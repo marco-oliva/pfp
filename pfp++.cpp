@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     for (std::size_t i = 0; i < vcf.size(); i++)
     {
         int this_thread = omp_get_thread_num();
-        spdlog::info("Processing sample: {}", vcf[i].id());
+        spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
         workers[this_thread](vcf[i], trigger_strings);
     }
     

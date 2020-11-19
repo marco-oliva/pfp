@@ -168,7 +168,7 @@ public:
         if (tags & WORKER) { name = "Worker"; } else { name = "Main"; }
         spdlog::info("{} -\tParse size: {}\tDic Size: {} Dic Total Length: {}", name ,parse_size, dictionary.size(), total_length);
         
-        if (params.print_out_statistics_csv and (tags & WORKER))
+        if (params.print_out_statistics_csv and (tags & MAIN)) 
         {
             std::ofstream csv(out_file_prefix + ".csv");
             csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
