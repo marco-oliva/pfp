@@ -16,7 +16,7 @@ n_threads  = 32
 # execute command: return True if everything OK, False otherwise
 def execute_command(command, seconds):
     try:
-        print("Executing: {}", command)
+        print("Executing: {}".format(command))
         process = subprocess.Popen(command.split(), preexec_fn=os.setsid)
         process.wait(timeout=seconds)
     except subprocess.CalledProcessError:
