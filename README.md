@@ -5,7 +5,7 @@ It produces the same result as running `bigbwt` on the fasta file generated as f
 ```
 cat reference.fa | bcftools consensus calls.vcf.gz -H 1 > consensus.fa
 ```
-Symbolic alleles are currently not supported, e.g. <CN1>. 
+Symbolic alleles are currently not supported, e.g. `<CN1>`. 
 
 ### Build ###
 
