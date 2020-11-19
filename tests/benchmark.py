@@ -41,17 +41,16 @@ def get_pscan(out_dir):
 
 def main():
     get_pscan(base_dir)
-    pscan_exe = base_dir + "Big-BWT/newscan.x"
+    pscan_exe = base_dir + "/Big-BWT/newscan.x"
     pfp_exe = "pfp++"
 
     # Run bigbwt
-    base_name_file
     base_command = "/usr/bin/time --verbose {pscan} -w {c_w} -p {c_p} -t {c_threads} -f {file}"
     for size in data_sizes:
         for w in w_values:
             for p in p_values:
                 command = base_command.format(pscan = pscan_exe, c_w = w, c_p = p, c_threads = n_threads,
-                                              file = data_dir_bigbwt + "chr.{}.fa".format(size))
+                                              file = data_dir_bigbwt + "/chr19.{}.fa".format(size))
                 execute_command(command, 1000000)
 
     # Run pfp
