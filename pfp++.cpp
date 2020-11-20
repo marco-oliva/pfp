@@ -17,6 +17,7 @@ int main(int argc, char **argv)
     std::vector<std::string> vcfs_file_names;
     std::vector<std::string> refs_file_names;
     std::string out_prefix;
+    std::string tmp_dir;
     std::size_t max_samples = 0;
     std::size_t threads = 1;
     bool check = false;
@@ -32,6 +33,7 @@ int main(int argc, char **argv)
     app.add_option("-p, --module", params.p, "Module used during parisng")->check(CLI::Range(50, 300))->configurable();
     app.add_option("-f, --min-frequency", params.min_frequency, "Min frequency for variations")->check(CLI::Range(0.0, 1.0))->configurable();
     app.add_option("-t, --threads", threads, "Number of threads")->configurable();
+    app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->configurable();
     app.add_flag("-s, --seeds", params.compute_seeded_trigger_strings, "Compute seeded trigger strings")->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
     app.add_flag("--only-trigger-strings", check, "Generate Only Trigger Strings")->configurable();
@@ -53,6 +55,9 @@ int main(int argc, char **argv)
     
     // Print out configurations
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
+    
+    // Set tmp file dir
+    if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
     
     // Parse the VCF
     vcfbwt::VCF vcf(refs_file_names, vcfs_file_names);
