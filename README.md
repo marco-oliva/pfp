@@ -28,12 +28,12 @@ make
 
 ```
 PFP++
-Usage: pfp++ [OPTIONS]
+Usage: ./pfp++ [OPTIONS]
 
 Options:
   -h,--help                   Print this help message and exit
-  -v,--vcf TEXT ... REQUIRED  List of vcf files. Assuming in genome order
-  -r,--ref TEXT ... REQUIRED  List of reference files. Assuming in genome order
+  -v,--vcf TEXT ... REQUIRED  List of vcf files. Assuming in genome order!
+  -r,--ref TEXT ... REQUIRED  List of reference files. Assuming in genome order!
   -o,--out-prefix TEXT REQUIRED
                               Output prefix
   -m,--max UINT               Max number of samples to analyze
@@ -44,6 +44,7 @@ Options:
   -f,--min-frequency FLOAT:FLOAT in [0 - 1]
                               Min frequency for variations
   -t,--threads UINT           Number of threads
+  --tmp-dir TEXT:DIR          Tmp file directory
   -s,--seeds                  Compute seeded trigger strings
   -c,--compression            Compress the dictionary
   --only-trigger-strings      Generate Only Trigger Strings
