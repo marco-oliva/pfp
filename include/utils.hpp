@@ -107,13 +107,13 @@ wang_hash_64(std::size_t key)
 }
 
 inline hash_type
-string_hash(const std::string& s)
+string_hash(const char* s, std::size_t size)
 {
     hash_type hash = 0;
     hash_type prime;
     if (sizeof(hash_type) > 4) { prime = long_prime; }
     else { prime = short_prime; }
-    for(std::size_t k=0; k< s.size(); k++)
+    for(std::size_t k = 0; k < size; k++)
     {
         int c = (unsigned char) s[k];
         assert(c >= 0 && c < 256);

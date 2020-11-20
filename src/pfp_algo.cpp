@@ -11,7 +11,7 @@
 bool
 vcfbwt::pfp::Dictionary::contains(const std::string& phrase) const
 {
-    hash_type phrase_hash = string_hash(phrase);
+    hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
     const auto& ptr = hash_string_map.find(phrase_hash);
     
     return ((ptr != hash_string_map.end()) and (ptr->second.phrase == phrase));
@@ -22,7 +22,7 @@ vcfbwt::pfp::Dictionary::add(const std::string& phrase)
 {
     this->sorted = false;
     
-    hash_type phrase_hash = string_hash(phrase);
+    hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
     if (hash_string_map.find(phrase_hash) != hash_string_map.end())
     {
         spdlog::error("Hash collision! Hash already in the dictionary");
@@ -43,14 +43,14 @@ vcfbwt::pfp::Dictionary::update_frequency(const std::string& phrase)
 {
     if (this->contains(phrase))
     {
-        this->hash_string_map[string_hash(phrase)].occurrences++;
+        this->hash_string_map[string_hash(&(phrase[0]), phrase.size())].occurrences++;
     }
 }
 
 vcfbwt::hash_type
 vcfbwt::pfp::Dictionary::get(const std::string& phrase) const
 {
-    return string_hash(phrase);
+    return string_hash(&(phrase[0]), phrase.size());
 }
 
 bool
@@ -109,8 +109,8 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, const std::unord
         
         if (
         (phrase.size() > this->params.w) and
-        (((string_hash(phrase.substr(phrase.size() - this->params.w)) % this->params.p) == 0) or
-        (ts.find(string_hash(phrase.substr(phrase.size() - this->params.w))) != ts.end())))
+        (((string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w) % this->params.p) == 0) or
+        (ts.find(string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w)) != ts.end())))
         {
             hash_type hash = 0;
             if (this->dictionary.contains(phrase))    { hash = this->dictionary.get(phrase); }
@@ -219,8 +219,8 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
     
         if (
         (phrase.size() > this->params.w) and
-        (((string_hash(phrase.substr(phrase.size() - this->params.w)) % this->params.p) == 0) or
-        (ts.find(string_hash(phrase.substr(phrase.size() - this->params.w))) != ts.end())))
+        ((((string_hash(&(phrase[phrase.size() - this->params.w]), this->w)) % this->params.p) == 0) or
+        (ts.find(string_hash(&(phrase[phrase.size() - this->params.w]), this->w)) != ts.end())))
         {
             hash_type hash = 0;
             if (reference_parse->dictionary.contains(phrase))   { hash = reference_parse->dictionary.get(phrase); }
@@ -420,7 +420,7 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
 {
     // Put last w charachters of each sample in the VCF as a trigger strings
     std::string dollar_window; dollar_window.append(params.w, DOLLAR_PRIME);
-    trigger_string_set.insert(string_hash(dollar_window));
+    trigger_string_set.insert(string_hash(&(dollar_window[0]), dollar_window.size()));
     
     // Compute trigger strings from most common variations
     if (params.compute_seeded_trigger_strings)
@@ -460,8 +460,8 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
                 std::string opening_trigger_string = vcf.get_reference().substr(region_start_pos - params.w, params.w);
                 std::string closing_trigger_string = vcf.get_reference().substr(region_end_pos, params.w);
                 
-                trigger_string_set.insert(string_hash(opening_trigger_string));
-                trigger_string_set.insert(string_hash(closing_trigger_string));
+                trigger_string_set.insert(string_hash(&(opening_trigger_string[0]), opening_trigger_string.size()));
+                trigger_string_set.insert(string_hash(&(closing_trigger_string[0]), closing_trigger_string.size()));
             
                 // Don't process variations in seed region more than once
                 i = j;
