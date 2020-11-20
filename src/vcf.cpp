@@ -60,7 +60,7 @@ vcfbwt::Sample::iterator::next_variation() const
 std::size_t
 vcfbwt::Sample::iterator::prev_variation() const
 {
-    if (var_it_ == 0) { spdlog::error("vcfbwt::Sample::iterator::prev_variation() var_it == 0"); exit(EXIT_FAILURE); }
+    if (var_it_ == 0) { spdlog::error("vcfbwt::Sample::iterator::prev_variation() var_it == 0"); std::exit(EXIT_FAILURE); }
     return sample_.get_variation(var_it_ - 1).pos;
 }
 
@@ -115,12 +115,12 @@ vcfbwt::Sample::iterator::go_to(std::size_t i)
     if (i >= this->sample_.reference_.size())
     {
         spdlog::error("vcfbwt::Sample::iterator::go_to(std::size_t i) Error: i >= reference.size()");
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
     if (i < ref_it_)
     {
         spdlog::error("vcfbwt::Sample::iterator::go_to(std::size_t i) Error: i < ref_it_ (going back not allowed)");
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
     
     // Not an efficient implementation, TODO: make it more efficient
@@ -140,7 +140,7 @@ vcfbwt::VCF::init_ref(const std::string& ref_path)
     if (not is_gzipped(in_stream))
     {
         spdlog::error("Reference file expected gzip compressed");
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
     
     zstr::istream is(in_stream);
@@ -163,7 +163,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
     if (inf == NULL)
     {
         spdlog::error("Can't open vcf file: {}", vcf_path);
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
     
     spdlog::info("Parsing vcf: {}", vcf_path);
@@ -192,7 +192,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
         spdlog::error("Error while parsing vcf file: {}", vcf_path);
         bcf_close(inf);
         bcf_hdr_destroy(hdr);
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
     
     // start parsing
@@ -293,7 +293,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
 void
 vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path)
 {
-    if (refs_path.size() == 0) { spdlog::error("No reference file provided"); exit(EXIT_FAILURE); }
+    if (refs_path.size() == 0) { spdlog::error("No reference file provided"); std::exit(EXIT_FAILURE); }
     
     spdlog::info("Opening {} ref files, assuming input oreder refelcts the intended genome order", refs_path.size());
     for (auto& path : refs_path) { init_ref(path); }
@@ -304,7 +304,7 @@ vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path)
 void
 vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
 {
-    if (vcfs_path.size() == 0) { spdlog::error("No vcf file provided"); exit(EXIT_FAILURE); }
+    if (vcfs_path.size() == 0) { spdlog::error("No vcf file provided"); std::exit(EXIT_FAILURE); }
     
     spdlog::info("Opening {} vcf files, assuming input oreder refelcts the intended genome order", vcfs_path.size());
     for (std::size_t i = 0; i < vcfs_path.size(); i++) { init_vcf(vcfs_path[i], i); }

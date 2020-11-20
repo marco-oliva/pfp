@@ -26,14 +26,14 @@ vcfbwt::pfp::Dictionary::add(const std::string& phrase)
     if (hash_string_map.find(phrase_hash) != hash_string_map.end())
     {
         spdlog::error("Hash collision! Hash already in the dictionary");
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
     
     DictionaryEntry entry(phrase);
     hash_string_map.insert(std::make_pair(phrase_hash, entry));
     
     if (this->size() == std::numeric_limits<size_type>::max())
-    { spdlog::error("Dictionary too big for {}", typeid(size_type).name()); exit(EXIT_FAILURE); }
+    { spdlog::error("Dictionary too big for {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
     
     return phrase_hash;
 }
@@ -87,7 +87,7 @@ vcfbwt::pfp::Dictionary::hash_to_rank(hash_type hash)
     if (not this->sorted) { sort(); }
     auto it = hash_to_ranks.find(hash);
     if (it != hash_to_ranks.end()) { return it->second; }
-    else { spdlog::error("Something went wrong"); exit(EXIT_FAILURE); }
+    else { spdlog::error("Something went wrong"); std::exit(EXIT_FAILURE); }
 }
 
 //------------------------------------------------------------------------------
@@ -136,7 +136,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, const std::unord
         this->parse.push_back(hash);
         this->trigger_strings_position.push_back(reference.size() - 1);
     }
-    else { spdlog::error("The reference doesn't have w dollar prime at the end!"); exit(EXIT_FAILURE); }
+    else { spdlog::error("The reference doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
 }
 
 //------------------------------------------------------------------------------
@@ -145,7 +145,7 @@ void
 vcfbwt::pfp::Parser::init(const Params& params, const std::string& prefix, ReferenceParse& rp, size_type t)
 {
     this->w = params.w; this->out_file_prefix = prefix; this->p = params.p; this->tags = t; this->parse_size = 0;
-    if (not ((tags & MAIN) or (tags & WORKER))) { spdlog::error("A parser must be either the main parser or a worker"); exit(EXIT_FAILURE); }
+    if (not ((tags & MAIN) or (tags & WORKER))) { spdlog::error("A parser must be either the main parser or a worker"); std::exit(EXIT_FAILURE); }
     
     if (tags & MAIN) {this->out_file_name = out_file_prefix + ".parse"; }
     if ((tags & MAIN) and params.compress_dictionary) { tags = tags | COMPRESSED; }
@@ -159,7 +159,7 @@ vcfbwt::pfp::Parser::init(const Params& params, const std::string& prefix, Refer
 void
 vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unordered_set<hash_type>& ts)
 {
-    if (ts.empty()) {spdlog::error("Empty set of treigger strings!"); exit(EXIT_FAILURE); }
+    if (ts.empty()) {spdlog::error("Empty set of treigger strings!"); std::exit(EXIT_FAILURE); }
     
     Sample::iterator sample_iterator(sample);
     
@@ -254,7 +254,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
         
         out_file.write((char*) (&hash), sizeof(hash_type));  parse_size++;
     }
-    else { spdlog::error("A sample doesn't have w dollar prime at the end!"); exit(EXIT_FAILURE); }
+    else { spdlog::error("A sample doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
     
 }
 
@@ -293,7 +293,7 @@ vcfbwt::pfp::Parser::close()
         {
             std::error_code error;
             mio::mmap_sink rw_mmap = mio::make_mmap_sink(tmp_out_file_name, 0, mio::map_entire_file, error);
-            if (error) { spdlog::error(error.message()); exit(EXIT_FAILURE); }
+            if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     
             for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
             {
@@ -323,7 +323,7 @@ vcfbwt::pfp::Parser::close()
             {
                 std::error_code error;
                 mio::mmap_sink rw_mmap = mio::make_mmap_sink(worker.get().tmp_out_file_name, 0, mio::map_entire_file, error);
-                if (error) { spdlog::error(error.message()); exit(EXIT_FAILURE); }
+                if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     
                 for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
                 {
@@ -482,7 +482,7 @@ void
 vcfbwt::pfp::Parser::read_parse(std::string parse_file_name, std::vector<size_type>& parse)
 {
     std::ifstream parse_file(parse_file_name, std::ios::binary);
-    if (not parse_file.is_open()) { spdlog::error("ERROR!"); exit(EXIT_FAILURE); }
+    if (not parse_file.is_open()) { spdlog::error("ERROR!"); std::exit(EXIT_FAILURE); }
     
     while (not parse_file.eof()) { size_type i; parse_file.read((char*) &i, sizeof(size_type)); parse.push_back(i); }
     
@@ -494,7 +494,7 @@ void
 vcfbwt::pfp::Parser::read_dictionary(std::string dic_file_name, std::vector<std::string>& dictionary_vector)
 {
     std::ifstream dic_file(dic_file_name);
-    if (not dic_file.is_open()) { spdlog::error("ERROR!"); exit(EXIT_FAILURE); }
+    if (not dic_file.is_open()) { spdlog::error("ERROR!"); std::exit(EXIT_FAILURE); }
     
     char c = '\5';
     while (c != ENDOFDICT)
@@ -523,7 +523,7 @@ vcfbwt::pfp::Parser::merge(std::string left_prefix, std::string right_prefix, st
     spdlog::info("Adjusting ranks");
     std::error_code error;
     mio::mmap_sink rw_mmap = mio::make_mmap_sink(left_prefix + ".parse", 0, mio::map_entire_file, error);
-    if (error) { spdlog::error(error.message()); exit(EXIT_FAILURE); }
+    if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     
     for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
     {
@@ -541,7 +541,7 @@ vcfbwt::pfp::Parser::merge(std::string left_prefix, std::string right_prefix, st
     
     // Read right parse, changing first phrase;
     rw_mmap = mio::make_mmap_sink(left_prefix + ".parse", 0, mio::map_entire_file, error);
-    if (error) { spdlog::error(error.message()); exit(EXIT_FAILURE); }
+    if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     
     for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
     {
@@ -582,7 +582,7 @@ vcfbwt::pfp::Parser::merge(std::string left_prefix, std::string right_prefix, st
     
     // Left
     mio::mmap_source rl_mmap; rl_mmap.map(left_prefix + ".parse", error);
-    if (error) { spdlog::error(error.message()); exit(EXIT_FAILURE); }
+    if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     for (size_type i = 0; i < (rl_mmap.size() / sizeof(hash_type)); i++)
     {
         hash_type hash;
@@ -590,13 +590,13 @@ vcfbwt::pfp::Parser::merge(std::string left_prefix, std::string right_prefix, st
     
         auto it = hash_to_ranks.find(hash);
         if (it != hash_to_ranks.end()) { out_parse.write((char*) &(it->second), sizeof(hash_type)); }
-        else { spdlog::error("Something wrong happend"); exit(EXIT_FAILURE); }
+        else { spdlog::error("Something wrong happend"); std::exit(EXIT_FAILURE); }
     }
     rl_mmap.unmap();
     
     // Right
     mio::mmap_source rr_mmap; rr_mmap.map(left_prefix + ".parse", error);
-    if (error) { spdlog::error(error.message()); exit(EXIT_FAILURE); }
+    if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     for (size_type i = 0; i < (rr_mmap.size() / sizeof(hash_type)); i++)
     {
         hash_type hash;
@@ -604,7 +604,7 @@ vcfbwt::pfp::Parser::merge(std::string left_prefix, std::string right_prefix, st
         
         auto it = hash_to_ranks.find(hash);
         if (it != hash_to_ranks.end()) { out_parse.write((char*) &(it->second), sizeof(hash_type)); }
-        else { spdlog::error("Something wrong happend"); exit(EXIT_FAILURE); }
+        else { spdlog::error("Something wrong happend"); std::exit(EXIT_FAILURE); }
     }
     rr_mmap.unmap();
     out_parse.close();

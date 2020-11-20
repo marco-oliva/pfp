@@ -58,8 +58,6 @@ vcfbwt::TempFile::getName(const std::string& name_part)
         + std::to_string(handler.counter);
         handler.filenames.insert(filename);
         handler.counter++;
-        
-        spdlog::info("Opening Tmp File: {}", filename);
     }
     
     return filename;

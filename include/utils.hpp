@@ -85,7 +85,7 @@ set_prime(std::size_t p)
 {
     if (sizeof(hash_type) > 4) { long_prime = p; }
     else if (p < std::numeric_limits<hash_type>::max()) { short_prime = p; }
-    else { spdlog::error("Prime is too big for {} bytes", sizeof(hash_type)); exit(EXIT_FAILURE); }
+    else { spdlog::error("Prime is too big for {} bytes", sizeof(hash_type)); std::exit(EXIT_FAILURE); }
 }
 
 /*

@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         std::ofstream tsout(out_prefix + ".ts");
         for (const auto& s : trigger_strings) { tsout.write((char*) &s, sizeof(vcfbwt::hash_type)); }
         
-        spdlog::info("Output trigger strings: {}", out_prefix + ".ts"); exit(EXIT_SUCCESS);
+        spdlog::info("Output trigger strings: {}", out_prefix + ".ts"); std::exit(EXIT_SUCCESS);
     }
     
     // Set threads accordingly to confmiguration
@@ -96,9 +96,7 @@ int main(int argc, char **argv)
         workers[this_thread](vcf[i], trigger_strings);
     }
     
-    // close the main parser
+    // close the main parser and exit
     main_parser.close();
-    
-    return 0;
-    
+    std::exit(EXIT_SUCCESS);
 }
