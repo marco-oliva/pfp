@@ -142,7 +142,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, const std::unord
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::pfp::Parser::init(const Params& params, const std::string& prefix, ReferenceParse& rp, size_type t)
+vcfbwt::pfp::Parser::init(const Params& params, const std::string& prefix, ReferenceParse& rp, std::size_t t)
 {
     this->w = params.w; this->out_file_prefix = prefix; this->p = params.p; this->tags = t; this->parse_size = 0;
     if (not ((tags & MAIN) or (tags & WORKER))) { spdlog::error("A parser must be either the main parser or a worker"); std::exit(EXIT_FAILURE); }

@@ -34,7 +34,7 @@ static long_type  long_prime   = 27162335252586509;
 static short_type short_prime  =        1999999973;
 
 #ifdef PFP_LONG_TYPE
-//#pragma message("Using 64 bit parse")
+//pragma message("Using 64 bit parse")
 typedef long_type  size_type;
 #else
 //#pragma message("Using 32 bit parse")

@@ -145,9 +145,9 @@ public:
         LAST = 16
     };
     
-    void init(const Params& params, const std::string& prefix, ReferenceParse& rp, size_type t = MAIN | UNCOMPRESSED);
+    void init(const Params& params, const std::string& prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED);
     
-    Parser(const Params& params, const std::string& file_path, ReferenceParse& rp, size_type t = MAIN | UNCOMPRESSED)
+    Parser(const Params& params, const std::string& file_path, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED)
     {
         this->init(params, file_path, rp, t);
     }
