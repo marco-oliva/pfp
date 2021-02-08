@@ -75,7 +75,7 @@ int main(int argc, char **argv)
         spdlog::info("Output trigger strings: {}", out_prefix + ".ts"); std::exit(EXIT_SUCCESS);
     }
     
-    // Set threads accordingly to confmiguration
+    // Set threads accordingly to configuration
     omp_set_num_threads(threads);
     
     std::unordered_set<vcfbwt::hash_type> trigger_strings;

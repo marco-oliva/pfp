@@ -88,9 +88,9 @@ include_directories(${nthash-include})
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 
 # 32 and 64 bits parse
-add_library(vcfbwt ${SOURCES})
-add_library(vcfbwt64 ${SOURCES})
-target_compile_options(vcfbwt64 PRIVATE "-DPFP_LONG_TYPE=ON")
+add_library(pfp ${SOURCES})
+add_library(pfp64 ${SOURCES})
+target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
 set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARY}")
 
@@ -98,11 +98,11 @@ set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARY}")
 # Tests
 
 add_executable(unit_tests tests/unit_tests.cpp)
-target_link_libraries(unit_tests vcfbwt ${VCF_LIB_DEPS})
+target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS})
 
 add_executable(unit_tests64 tests/unit_tests.cpp)
 target_compile_options(unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(unit_tests64 vcfbwt64 ${VCF_LIB_DEPS})
+target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS})
 
 ################################################################################
 # Tools
@@ -111,21 +111,21 @@ target_link_libraries(unit_tests64 vcfbwt64 ${VCF_LIB_DEPS})
 
 # 32 and 64 bits parse
 add_executable(pfp++ pfp++.cpp)
-target_link_libraries(pfp++ vcfbwt ${VCF_LIB_DEPS})
+target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS})
 add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(pfp++64 vcfbwt64 ${VCF_LIB_DEPS})
+target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS})
 
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
-target_link_libraries(mpfp++ vcfbwt ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS})
 add_executable(mpfp++64 merge.cpp)
 target_compile_options(mpfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(mpfp++64 vcfbwt64 ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS})
 
 # VCT to Fasta
 add_executable(vcf_to_fa vcf_to_fa.cpp)
-target_link_libraries(vcf_to_fa vcfbwt ${VCF_LIB_DEPS})
+target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS})
 
 
 
