@@ -122,7 +122,7 @@ private:
     std::vector<std::size_t> ref_sum_lengths;
     
     void init_vcf(const std::string& vcf_path, std::size_t i = 0);
-    void init_ref(const std::string& ref_path);
+    void init_ref(const std::string& ref_path, bool last = true);
     
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
     void init_multi_ref(const std::vector<std::string>& refs_path);

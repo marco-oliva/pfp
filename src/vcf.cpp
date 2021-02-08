@@ -5,6 +5,7 @@
 //
 
 #include <vcf.hpp>
+#include <pfp_algo.hpp>
 
 const std::string vcfbwt::VCF::vcf_freq = "AF";
 
@@ -133,7 +134,7 @@ vcfbwt::Sample::iterator::go_to(std::size_t i)
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::VCF::init_ref(const std::string& ref_path)
+vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 {
     spdlog::info("Reading reference file: {}", ref_path);
     std::ifstream in_stream(ref_path);
@@ -147,9 +148,10 @@ vcfbwt::VCF::init_ref(const std::string& ref_path)
     std::string line;
     
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { reference.append(line); } }
-    
+    if (not last) { reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); }
+
     ref_sum_lengths.push_back(reference.size());
-    
+
     spdlog::info("Done reading {}", ref_path);
 }
 
@@ -296,7 +298,7 @@ vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path)
     if (refs_path.size() == 0) { spdlog::error("No reference file provided"); std::exit(EXIT_FAILURE); }
     
     spdlog::info("Opening {} ref files, assuming input oreder refelcts the intended genome order", refs_path.size());
-    for (auto& path : refs_path) { init_ref(path); }
+    for (std::size_t i = 0; i < refs_path.size(); i++) { init_ref(refs_path[i], i == (refs_path.size() - 1)); }
 }
 
 //------------------------------------------------------------------------------
