@@ -251,7 +251,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
                         }
                         
                         auto id = samples_id.find(std::string(hdr->samples[i]));
-                        if (id != samples_id.end())
+                        if (id != samples_id.end() and id->second < max_samples) // Process only wanted samples
                         {
                             // Adding this variation to a sample only if:
                             // - has not been inserted right before this insertion
