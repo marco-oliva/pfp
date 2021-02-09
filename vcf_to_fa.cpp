@@ -22,9 +22,9 @@ int main(int argc, char **argv)
     
     vcfbwt::pfp::Params params;
     
-    app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable()->required();
-    app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable()->required();
-    app.add_option("-o,--out-file", out_file, "Output prefix")->configurable()->required();
+    app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable();
+    app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable();
+    app.add_option("-o,--out-file", out_file, "Output prefix")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
     app.add_option("-t, --threads", threads, "Number of threads")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
