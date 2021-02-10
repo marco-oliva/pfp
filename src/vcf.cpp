@@ -10,19 +10,6 @@
 const std::string vcfbwt::VCF::vcf_freq = "AF";
 
 
-//void
-//vcfbwt::Sample::init_sum()
-//{
-//    if (variations.size() == 0) { return; }
-//
-//    variations_length_sum.reserve(variations.size());
-//    variations_length_sum.push_back(variations[0]);
-//    for (std::size_t i = 1; i < variations.size(); i++)
-//    {
-//        variations_length_sum.push_back(variations[i] + variations[i - 1]);
-//    }
-//}
-
 //------------------------------------------------------------------------------
 
 vcfbwt::Sample::iterator::iterator(const Sample& sample) :
@@ -158,7 +145,9 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
+vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& variations,
+                      std::vector<Sample>& samples, std::unordered_map<std::string, std::size_t>& samples_id,
+                      std::size_t i)
 {
     // open VCF file
     htsFile * inf = bcf_open(vcf_path.c_str(), "r");
@@ -175,17 +164,18 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
     
     // get samples ids from header
     std::size_t n_samples = bcf_hdr_nsamples(hdr);
-    this->samples.reserve(n_samples);
-    
+
     std::size_t size_before = samples.size();
     for (std::size_t i = 0; i < n_samples; i++)
     {
-        vcfbwt::Sample s(std::string(hdr->samples[i]), this->reference, this->variations);
-        samples.push_back(s);
-        
-        samples_id.insert(std::make_pair(s.id(), i));
+        vcfbwt::Sample s(std::string(hdr->samples[i]), this->reference, variations);
+        if (samples_id.find(s.id()) == samples_id.end())
+        {
+            samples.push_back(s);
+            samples_id.insert(std::make_pair(s.id(), i));
+        }
     }
-    spdlog::info("{} samples in the vcf", samples.size() - size_before);
+    spdlog::debug("{} new samples in the vcf, tot: {}", samples.size() - size_before, samples.size());
     
     // struct for storing each record
     bcf1_t *rec = bcf_init();
@@ -214,7 +204,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
         bcf_unpack(rec, BCF_UN_ALL);
         int type = bcf_get_variant_types(rec);
     
-        this->variations.push_back(var);
+        variations.push_back(var);
         
         int32_t *gt_arr = NULL, ngt_arr = 0;
         int ngt = bcf_get_genotypes(hdr, rec, &gt_arr, &ngt_arr);
@@ -222,24 +212,24 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
         {
             int max_ploidy = ngt/n_samples;
             bool skip_this_variation = false;
-            for (std::size_t i = 0; i < n_samples; i++)
+            for (std::size_t i_s = 0; i_s < n_samples; i_s++)
             {
                 if (skip_this_variation) { break; }
-                int32_t *ptr = gt_arr + i*max_ploidy;
+                int32_t *ptr = gt_arr + i_s * max_ploidy;
                 for (std::size_t j = 0; j < max_ploidy; j++)
                 {
                     // if true, the sample has smaller ploidy
-                    if ( ptr[j]==bcf_int32_vector_end ) break;
+                    if ( ptr[j]==bcf_int32_vector_end ) { break; }
 
                     // missing allele
-                    if ( bcf_gt_is_missing(ptr[j]) ) continue;
+                    if ( bcf_gt_is_missing(ptr[j]) ) { continue; }
                     
                     if (bcf_gt_allele(ptr[j]))
                     {
                         // the VCF 0-based allele index
                         int allele_index = bcf_gt_allele(ptr[j]);
                         
-                        if (variations.back().alt.size() == 0)
+                        if (variations.back().alt.empty())
                             variations.back().alt = rec->d.allele[allele_index];
     
                         // Skip symbolic allele
@@ -250,17 +240,17 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
                             continue;
                         }
                         
-                        auto id = samples_id.find(std::string(hdr->samples[i]));
-                        if (id != samples_id.end() and id->second < max_samples) // Process only wanted samples
+                        auto id = samples_id.find(std::string(hdr->samples[i_s]));
+                        if (id != samples_id.end() and id->second <= max_samples) // Process only wanted samples
                         {
                             // Adding this variation to a sample only if:
                             // - has not been inserted right before this insertion
                             if ( not (
-                            ((this->samples[id->second].variations.size() > 0) and
-                            (this->samples[id->second].variations.back() == this->variations.size() - 1))
+                            ((samples[id->second].variations.size() > 0) and
+                            (samples[id->second].variations.back() == variations.size() - 1))
                             ))
                             {
-                                this->samples[id->second].variations.push_back(this->variations.size() - 1);
+                                samples[id->second].variations.push_back(variations.size() - 1);
                             }
                         }
                     }
@@ -293,24 +283,66 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::size_t i)
 //------------------------------------------------------------------------------
 
 void
+vcfbwt::VCF::init_vcf(const std::string &vcf_path, std::size_t i)
+{
+    init_vcf(vcf_path, variations, samples, samples_id, i);
+}
+
+//------------------------------------------------------------------------------
+
+
+void
 vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path)
 {
     if (refs_path.size() == 0) { spdlog::error("No reference file provided"); std::exit(EXIT_FAILURE); }
     
-    spdlog::info("Opening {} ref files, assuming input oreder refelcts the intended genome order", refs_path.size());
+    spdlog::info("Opening {} ref files, assuming input order reflects the intended genome order", refs_path.size());
     for (std::size_t i = 0; i < refs_path.size(); i++) { init_ref(refs_path[i], i == (refs_path.size() - 1)); }
 }
 
 //------------------------------------------------------------------------------
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "openmp-use-default-none"
 void
 vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
 {
-    if (vcfs_path.size() == 0) { spdlog::error("No vcf file provided"); std::exit(EXIT_FAILURE); }
+    if (vcfs_path.empty()) { spdlog::error("No vcf file provided"); std::exit(EXIT_FAILURE); }
     
-    spdlog::info("Opening {} vcf files, assuming input oreder refelcts the intended genome order", vcfs_path.size());
-    for (std::size_t i = 0; i < vcfs_path.size(); i++) { init_vcf(vcfs_path[i], i); }
+    spdlog::info("Opening {} vcf files, assuming input order reflects the intended genome order", vcfs_path.size());
+
+    // Preparing multi-threading tmp structures
+    std::size_t threads_avaiable = 1;
+    std::vector<std::vector<Sample>> tmp_samples_array;
+    std::vector<std::vector<Variation>> tmp_variations_array;
+    std::vector<std::unordered_map<std::string, std::size_t>> tmp_samples_id;
+
+    tmp_samples_array.resize(threads_avaiable);
+    tmp_variations_array.resize(threads_avaiable);
+    tmp_samples_id.resize(threads_avaiable);
+
+    #pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < vcfs_path.size(); i++)
+    {
+        int this_thread = omp_get_thread_num();
+        init_vcf(vcfs_path[i],
+                 tmp_variations_array[this_thread],
+                 tmp_samples_array[this_thread],
+                 tmp_samples_id[this_thread],
+                 i);
+    }
+
+    // Merge tmp structures into global structures
+
+    // samples_id
+
+
+    // samples
+
+    // variations
+
 }
+#pragma clang diagnostic pop
 
 //------------------------------------------------------------------------------
 

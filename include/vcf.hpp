@@ -115,13 +115,15 @@ private:
     std::vector<Variation> variations;
     std::vector<Sample> samples;
     std::unordered_map<std::string, std::size_t> samples_id;
-    std::vector<std::size_t> regions_start_points;
     
     std::size_t max_samples = 0;
     
     std::vector<std::size_t> ref_sum_lengths;
     
-    void init_vcf(const std::string& vcf_path, std::size_t i = 0);
+    void init_vcf(const std::string& vcf_path, std::vector<Variation>& variations_out,
+                  std::vector<Sample>& samples_out, std::unordered_map<std::string, std::size_t>& samples_id,
+                  std::size_t i = 0);
+    void init_vcf(const std::string& vcf_path, std::size_t i =0);
     void init_ref(const std::string& ref_path, bool last = true);
     
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
