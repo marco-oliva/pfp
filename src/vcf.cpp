@@ -145,8 +145,8 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& variations,
-                      std::vector<Sample>& samples, std::unordered_map<std::string, std::size_t>& samples_id,
+vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_variations,
+                      std::vector<Sample>& l_samples, std::unordered_map<std::string, std::size_t>& l_samples_id,
                       std::size_t i)
 {
     // open VCF file
@@ -162,20 +162,20 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& varia
     // read header
     bcf_hdr_t *hdr = bcf_hdr_read(inf);
     
-    // get samples ids from header
+    // get l_samples ids from header
     std::size_t n_samples = bcf_hdr_nsamples(hdr);
 
-    std::size_t size_before = samples.size();
+    std::size_t size_before = l_samples.size();
     for (std::size_t i = 0; i < n_samples; i++)
     {
-        vcfbwt::Sample s(std::string(hdr->samples[i]), this->reference, variations);
-        if (samples_id.find(s.id()) == samples_id.end())
+        vcfbwt::Sample s(std::string(hdr->samples[i]), this->reference, l_variations);
+        if (l_samples_id.find(s.id()) == l_samples_id.end())
         {
-            samples.push_back(s);
-            samples_id.insert(std::make_pair(s.id(), i));
+            l_samples.push_back(s);
+            l_samples_id.insert(std::make_pair(s.id(), i));
         }
     }
-    spdlog::debug("{} new samples in the vcf, tot: {}", samples.size() - size_before, samples.size());
+    spdlog::debug("{} new l_samples in the vcf, tot: {}", l_samples.size() - size_before, l_samples.size());
     
     // struct for storing each record
     bcf1_t *rec = bcf_init();
@@ -204,7 +204,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& varia
         bcf_unpack(rec, BCF_UN_ALL);
         int type = bcf_get_variant_types(rec);
     
-        variations.push_back(var);
+        l_variations.push_back(var);
         
         int32_t *gt_arr = NULL, ngt_arr = 0;
         int ngt = bcf_get_genotypes(hdr, rec, &gt_arr, &ngt_arr);
@@ -229,28 +229,28 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& varia
                         // the VCF 0-based allele index
                         int allele_index = bcf_gt_allele(ptr[j]);
                         
-                        if (variations.back().alt.empty())
-                            variations.back().alt = rec->d.allele[allele_index];
+                        if (l_variations.back().alt.empty())
+                            l_variations.back().alt = rec->d.allele[allele_index];
     
                         // Skip symbolic allele
-                        if (variations.back().alt[0] == '<')
+                        if (l_variations.back().alt[0] == '<')
                         {
-                            //spdlog::warn("vcfbwt::VCF::init_vcf: Skipping symbolic allele at pos {}", variations.back().pos);
+                            //spdlog::warn("vcfbwt::VCF::init_vcf: Skipping symbolic allele at pos {}", l_variations.back().pos);
                             skip_this_variation = true;
                             continue;
                         }
                         
-                        auto id = samples_id.find(std::string(hdr->samples[i_s]));
-                        if (id != samples_id.end() and id->second <= max_samples) // Process only wanted samples
+                        auto id = l_samples_id.find(std::string(hdr->samples[i_s]));
+                        if (id != l_samples_id.end() and id->second <= max_samples) // Process only wanted l_samples
                         {
                             // Adding this variation to a sample only if:
                             // - has not been inserted right before this insertion
                             if ( not (
-                            ((samples[id->second].variations.size() > 0) and
-                            (samples[id->second].variations.back() == variations.size() - 1))
+                            ((l_samples[id->second].variations.size() > 0) and
+                             (l_samples[id->second].variations.back() == l_variations.size() - 1))
                             ))
                             {
-                                samples[id->second].variations.push_back(variations.size() - 1);
+                                l_samples[id->second].variations.push_back(l_variations.size() - 1);
                             }
                         }
                     }
@@ -269,7 +269,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& varia
     spdlog::info("Parsing vcf done");
     
     // print some statistics
-    spdlog::info("Variations size [{}]: {}GB", variations.size(), inGigabytes(variations.size() * sizeof(Variation)));
+    spdlog::info("Variations size [{}]: {}GB", l_variations.size(), inGigabytes(l_variations.size() * sizeof(Variation)));
     spdlog::info("Reference size: {} GB", inGigabytes(reference.size()));
     
     std::size_t tot_a_s = 0;
@@ -302,8 +302,6 @@ vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path)
 
 //------------------------------------------------------------------------------
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "openmp-use-default-none"
 void
 vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
 {
@@ -311,38 +309,50 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
     
     spdlog::info("Opening {} vcf files, assuming input order reflects the intended genome order", vcfs_path.size());
 
-    // Preparing multi-threading tmp structures
-    std::size_t threads_avaiable = 1;
     std::vector<std::vector<Sample>> tmp_samples_array;
     std::vector<std::vector<Variation>> tmp_variations_array;
     std::vector<std::unordered_map<std::string, std::size_t>> tmp_samples_id;
 
-    tmp_samples_array.resize(threads_avaiable);
-    tmp_variations_array.resize(threads_avaiable);
-    tmp_samples_id.resize(threads_avaiable);
+    tmp_samples_array.resize(vcfs_path.size());
+    tmp_variations_array.resize(vcfs_path.size());
+    tmp_samples_id.resize(vcfs_path.size());
 
     #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < vcfs_path.size(); i++)
     {
-        int this_thread = omp_get_thread_num();
         init_vcf(vcfs_path[i],
-                 tmp_variations_array[this_thread],
-                 tmp_samples_array[this_thread],
-                 tmp_samples_id[this_thread],
+                 tmp_variations_array[i],
+                 tmp_samples_array[i],
+                 tmp_samples_id[i],
                  i);
     }
 
     // Merge tmp structures into global structures
+    spdlog::info("Merging variations");
+    for (std::size_t i = 0; i < vcfs_path.size(); i++)
+    {
+        std::size_t prev_variations_arr_size = variations.size();
+        this->variations.insert(this->variations.end(), tmp_variations_array[i].begin(), tmp_variations_array[i].end());
+        tmp_variations_array[i].clear();
 
-    // samples_id
+        for (auto& sample : tmp_samples_array[i])
+        {
+            if (this->samples_id.find(sample.id()) ==this-> samples_id.end())
+            {
+                Sample s(sample.id(), this->reference, this->variations);
+                this->samples.push_back(s);
+                this->samples_id.insert(std::make_pair(sample.id(), this->samples.size() - 1));
+            }
 
-
-    // samples
-
-    // variations
-
+            for (auto& sample_variation : sample.variations)
+            {
+                this->samples[samples_id[sample.id()]].variations.push_back(sample_variation + prev_variations_arr_size);
+            }
+        }
+        tmp_samples_array[i].clear();
+        tmp_samples_id[i].clear();
+    }
 }
-#pragma clang diagnostic pop
 
 //------------------------------------------------------------------------------
 
