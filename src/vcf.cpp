@@ -273,7 +273,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     spdlog::info("Reference size: {} GB", inGigabytes(reference.size()));
     
     std::size_t tot_a_s = 0;
-    for (auto& s : this->samples)
+    for (auto& s : l_samples)
     {
         tot_a_s += s.variations.size();
     }
@@ -352,6 +352,17 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
         tmp_samples_array[i].clear();
         tmp_samples_id[i].clear();
     }
+
+    // print some statistics
+    spdlog::info("Variations size [{}]: {}GB", variations.size(), inGigabytes(variations.size() * sizeof(Variation)));
+    spdlog::info("Reference size: {} GB", inGigabytes(reference.size()));
+
+    std::size_t tot_a_s = 0;
+    for (auto& s : this->samples)
+    {
+        tot_a_s += s.variations.size();
+    }
+    spdlog::info("Samples size: {} GB", inGigabytes(tot_a_s * 8));
 }
 
 //------------------------------------------------------------------------------
