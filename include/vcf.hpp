@@ -57,14 +57,12 @@ private:
 public:
     
     std::vector<std::size_t> variations;
-    //std::vector<std::size_t> variations_length_sum;
-    
+
     const std::string& id() const { return this->sample_id; }
     
     Sample(const std::string& id, const std::string& ref, const std::vector<Variation>& variations)
     : sample_id(id), reference_(ref), variations_list(variations) {}
     
-    void init_sum();
     const Variation& get_variation(size_type i) const { return this->variations_list[variations[i]]; }
     
     const std::string& get_reference() const { return this->reference_; }
@@ -115,14 +113,16 @@ private:
     std::vector<Variation> variations;
     std::vector<Sample> samples;
     std::unordered_map<std::string, std::size_t> samples_id;
-    std::vector<std::size_t> regions_start_points;
     
     std::size_t max_samples = 0;
     
     std::vector<std::size_t> ref_sum_lengths;
     
-    void init_vcf(const std::string& vcf_path, std::size_t i = 0);
-    void init_ref(const std::string& ref_path);
+    void init_vcf(const std::string& vcf_path, std::vector<Variation>& l_variations,
+                  std::vector<Sample>& l_samples, std::unordered_map<std::string, std::size_t>& l_samples_id,
+                  std::size_t i = 0);
+    void init_vcf(const std::string& vcf_path, std::size_t i =0);
+    void init_ref(const std::string& ref_path, bool last = true);
     
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
     void init_multi_ref(const std::vector<std::string>& refs_path);
