@@ -199,7 +199,8 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         var.ref_len = rec->rlen;
         std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
         var.pos = rec->pos + offset;
-        var.freq = *freq;
+        if (freq != NULL) { var.freq = *freq; }
+        else { var.freq = 0.0 ;}
     
         bcf_unpack(rec, BCF_UN_ALL);
         int type = bcf_get_variant_types(rec);
@@ -265,8 +266,6 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     bcf_hdr_destroy(hdr);
     bcf_close(inf);
     bcf_destroy(rec);
-    
-    spdlog::info("Parsing vcf done");
     
     // print some statistics
     spdlog::info("Variations size [{}]: {}GB", l_variations.size(), inGigabytes(l_variations.size() * sizeof(Variation)));
