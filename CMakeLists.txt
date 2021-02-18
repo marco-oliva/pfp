@@ -48,7 +48,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     set(BUILD_TYPE_FLAGS "-O3 -g -DNDEBUG")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BUILD_TYPE_FLAGS} ${rimerge-flags}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BUILD_TYPE_FLAGS}")
 
 ################################################################################
 # Check dependencies
@@ -92,7 +92,7 @@ add_library(pfp ${SOURCES})
 add_library(pfp64 ${SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARY}")
+set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARIES}")
 
 ################################################################################
 # Tests
