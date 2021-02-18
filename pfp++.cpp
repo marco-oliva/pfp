@@ -103,5 +103,4 @@ int main(int argc, char **argv)
     
     // close the main parser and exit
     main_parser.close();
-    std::exit(EXIT_SUCCESS);
 }

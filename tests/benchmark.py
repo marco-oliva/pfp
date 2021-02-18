@@ -29,7 +29,8 @@ with open(base_dir + '/config.ini', 'w') as config_file:
     config_file.write('ref = [{}]\n'.format(ref_list))
 
 
-DEBUG = True
+DEBUG = False
+RUN_BIGBWT = False
 if (DEBUG):
     data_sizes = [1]
     w_values   = [10]
@@ -37,10 +38,10 @@ if (DEBUG):
     f_values   = [1.0]
     n_threads  = 8
 else:
-    data_sizes = [64,128,256,512,1000, 2000]
-    w_values   = [10,15,20,25,30]
-    p_values   = [50,100,150,200]
-    f_values   = [0.001,0.005,0.01,0.05,0.1,0.5]
+    data_sizes = [64, 128, 256, 512]
+    w_values   = [10, 20, 30]
+    p_values   = [100, 200, 300]
+    f_values   = [0.01, 0.1, 1.0]
     n_threads  = 32
 
 #------------------------------------------------------------
@@ -48,7 +49,7 @@ else:
 def execute_command(command, seconds):
     try:
         print("Executing: {}".format(command))
-        process = subprocess.Popen(command.split(), preexec_fn=os.setsid, stdout=subprocess.PIPE)
+        process = subprocess.Popen(command.split(), shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE)
         (output, err) = process.communicate()
         process.wait(timeout=seconds)
     except subprocess.CalledProcessError:
@@ -88,19 +89,20 @@ def extract_fasta(out_dir, ref_list, vcf_list, n_sequences=1):
     execute_command(command, 100000000)
 
 def main():
-    get_pscan(data_dir_bigbwt)
-    pscan_exe = data_dir_bigbwt + "/Big-BWT/newscan.x"
     pfp_exe = base_dir + "/../build/pfp++"
 
     # Run bigbwt
-    base_command = "/usr/bin/time --verbose {pscan} -w {c_w} -p {c_p} -t {c_threads} -f {file}"
-    for size in data_sizes:
-        extract_fasta(data_dir_bigbwt, ref_list, vcf_list, size)
-        for w in w_values:
-            for p in p_values:
-                command = base_command.format(pscan = pscan_exe, c_w = w, c_p = p, c_threads = n_threads,
-                                              file = data_dir_bigbwt + "/extracted.fa")
-                out = execute_command(command, 1000000)
+    if RUN_BIGBWT:
+        get_pscan(data_dir_bigbwt)
+        pscan_exe = data_dir_bigbwt + "/Big-BWT/newscan.x"
+        base_command = "/usr/bin/time --verbose {pscan} -w {c_w} -p {c_p} -t {c_threads} -f {file}"
+        for size in data_sizes:
+            extract_fasta(data_dir_bigbwt, ref_list, vcf_list, size)
+            for w in w_values:
+                for p in p_values:
+                    command = base_command.format(pscan = pscan_exe, c_w = w, c_p = p, c_threads = n_threads,
+                                                  file = data_dir_bigbwt + "/extracted.fa")
+                    out = execute_command(command, 1000000)
 
     # Run pfp
     base_command = "/usr/bin/time --verbose {pfp} --configure {conf} -o {out} -m {c_size} -w {c_w} -p {c_p} -f {c_f} -t {c_threads} -s --use-acceleration --print-statistics"
