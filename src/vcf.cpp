@@ -191,16 +191,11 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     while (bcf_read(inf, hdr, rec) == 0)
     {
         vcfbwt::Variation var;
-    
-        int allocation_size = 0;
-        float* freq = NULL;
-        bcf_get_info_float(hdr, rec, vcf_freq.c_str(), &freq, &allocation_size);
-    
+        
         var.ref_len = rec->rlen;
         std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
         var.pos = rec->pos + offset;
-        if (freq != NULL) { var.freq = *freq; }
-        else { var.freq = 0.0 ;}
+        var.freq = 0;
     
         bcf_unpack(rec, BCF_UN_ALL);
         int type = bcf_get_variant_types(rec);
@@ -251,6 +246,9 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                              (l_samples[id->second].variations.back() == l_variations.size() - 1))
                             ))
                             {
+                                // Update frequency, to be normalized by the number of sambples when parsing ends
+                                l_variations.back().freq += 1;
+                                // Add variation to sample
                                 l_samples[id->second].variations.push_back(l_variations.size() - 1);
                             }
                         }
@@ -259,13 +257,17 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
             }
         }
         free(gt_arr);
-        free(freq);
     }
     
     // free allocated memory
     bcf_hdr_destroy(hdr);
     bcf_close(inf);
     bcf_destroy(rec);
+    
+    // Compute normalized variations frequency
+    std::size_t number_of_samples = 0;
+    for (auto& s : l_samples) { if (s.variations.size() > 0) { number_of_samples += 1; } }
+    for (auto& v : l_variations) { v.freq = v.freq / number_of_samples; }
     
     // print some statistics
     spdlog::info("Variations size [{}]: {}GB", l_variations.size(), inGigabytes(l_variations.size() * sizeof(Variation)));

@@ -8,19 +8,21 @@ data_dir_pfp    = "/home/marco/Data/1kgp"
 
 # VCF list
 vcf_list = ''
-for i in range(1,23):
-    vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",'.format(i)
-vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1b.20130502.genotypes.vcf.gz",'
-vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",'
-vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz"'
+#for i in range(1,23):
+#    vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",'.format(i)
+#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1b.20130502.genotypes.vcf.gz",'
+#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",'
+#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz"'
+vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"'.format(19)
 
 # Reference list
 ref_list = ''
-for i in range(1,23):
-    ref_list += '"' + data_dir_pfp + '/reference/{}.fa.gz",'.format(i)
-ref_list += '"' + data_dir_pfp + '/reference/X.fa.gz",'
-ref_list += '"' + data_dir_pfp + '/reference/Y.fa.gz",'
-ref_list += '"' + data_dir_pfp + '/reference/MT.fa.gz"'
+#for i in range(1,23):
+#    ref_list += '"' + data_dir_pfp + '/reference/{}.fa.gz",'.format(i)
+#ref_list += '"' + data_dir_pfp + '/reference/X.fa.gz",'
+#ref_list += '"' + data_dir_pfp + '/reference/Y.fa.gz",'
+#ref_list += '"' + data_dir_pfp + '/reference/MT.fa.gz"'
+ref_list += '"' + data_dir_pfp + '/reference/{}.fa.gz"'.format(19)
 
 # Generate config file
 with open(base_dir + '/config.ini', 'w') as config_file:
@@ -38,9 +40,9 @@ if (DEBUG):
     f_values   = [1.0]
     n_threads  = 8
 else:
-    data_sizes = [64, 128, 256, 512]
+    data_sizes = [64, 128, 256, 512, 1024]
     w_values   = [10, 20, 30]
-    p_values   = [100, 200, 300]
+    p_values   = [100, 500, 1000]
     f_values   = [1.0, 0.1, 0.01]
     n_threads  = 32
 
@@ -116,7 +118,8 @@ def main():
                         out = base_dir + "/out_w{}_p{}_f{}_s{}".format(w,p,f,size),
                         c_size = size, c_w = w, c_p = p, c_f = f, c_threads = n_threads)
                     out = execute_command(command, 1000000)
-
+                    with open('out_w{}_p{}_f{}_s{}.log'.format(w,p,f,size), 'wb') as log_file:
+                        log_file.write(out)
 
 if __name__ == '__main__':
     main()

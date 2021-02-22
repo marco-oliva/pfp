@@ -40,7 +40,7 @@ struct Variation
     std::size_t ref_len = 0;
     std::string alt;
     
-    float freq = 0.0;
+    double freq = 0.0;
 };
 
 class Sample
