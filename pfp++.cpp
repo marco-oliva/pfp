@@ -60,8 +60,7 @@ int main(int argc, char **argv)
     if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
     
     // Parse the VCF
-    vcfbwt::VCF vcf(refs_file_names, vcfs_file_names);
-    if (max_samples != 0) { vcf.set_max_samples(max_samples); }
+    vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, max_samples);
     
     if (only_trigger_strings)
     {

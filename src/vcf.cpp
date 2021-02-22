@@ -164,6 +164,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     // get l_samples ids from header
     std::size_t n_samples = bcf_hdr_nsamples(hdr);
+    if (this->max_samples == 0) { set_max_samples(n_samples); }
 
     std::size_t size_before = l_samples.size();
     for (std::size_t i = 0; i < n_samples; i++)
@@ -231,7 +232,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         // Skip symbolic allele
                         if (l_variations.back().alt[0] == '<')
                         {
-                            //spdlog::warn("vcfbwt::VCF::init_vcf: Skipping symbolic allele at pos {}", l_variations.back().pos);
+                            spdlog::debug("vcfbwt::VCF::init_vcf: Skipping symbolic allele at pos {}", l_variations.back().pos);
                             skip_this_variation = true;
                             continue;
                         }
@@ -246,7 +247,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                              (l_samples[id->second].variations.back() == l_variations.size() - 1))
                             ))
                             {
-                                // Update frequency, to be normalized by the number of sambples when parsing ends
+                                // Update frequency, to be normalized by the number of samples when parsing ends
                                 l_variations.back().freq += 1;
                                 l_variations.back().used = true;
                                 // Add variation to sample
@@ -268,7 +269,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     // Compute normalized variations frequency
     std::size_t number_of_samples = 0;
     for (auto& s : l_samples) { if (s.variations.size() > 0) { number_of_samples += 1; } }
-    for (auto& v : l_variations) { v.freq = v.freq / number_of_samples; }
+    for (auto& v : l_variations) { v.freq = v.freq / double(number_of_samples); }
     
     // print some statistics
     spdlog::info("Variations size [{}]: {}GB", l_variations.size(), inGigabytes(l_variations.size() * sizeof(Variation)));
