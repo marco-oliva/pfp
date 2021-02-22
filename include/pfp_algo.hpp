@@ -83,7 +83,7 @@ struct Params
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
     
-    inline std::size_t min_seed_region_length() const { return w * 3; }
+    inline std::size_t min_seed_region_length() const { return w * 10; }
     double min_frequency = 0.001;
 };
 
