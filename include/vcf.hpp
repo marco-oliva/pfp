@@ -41,6 +41,7 @@ struct Variation
     std::string alt;
     
     double freq = 0.0;
+    bool used = false;
 };
 
 class Sample

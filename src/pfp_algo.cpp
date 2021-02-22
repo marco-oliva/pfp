@@ -431,7 +431,7 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
         {
             const Variation& variation = variations_ref[i];
         
-            if (variation.freq > params.min_frequency)
+            if (((variation.freq > params.min_frequency) and (variation.freq < 1.0)) and variation.used)
             {
                 std::size_t region_start_pos = variation.pos - 1;
                 std::size_t region_end_pos = 0;
@@ -455,7 +455,7 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
                 
                     ++j;
                 }
-            
+                
                 // Extract seed string from region limits
                 std::string opening_trigger_string = vcf.get_reference().substr(region_start_pos - params.w, params.w);
                 std::string closing_trigger_string = vcf.get_reference().substr(region_end_pos, params.w);

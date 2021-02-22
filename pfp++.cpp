@@ -29,8 +29,8 @@ int main(int argc, char **argv)
     app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable();
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
-    app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 30))->configurable();
-    app.add_option("-p, --module", params.p, "Module used during parisng")->check(CLI::Range(50, 300))->configurable();
+    app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 200))->configurable();
+    app.add_option("-p, --module", params.p, "Module used during parisng")->check(CLI::Range(50, 2000))->configurable();
     app.add_option("-f, --min-frequency", params.min_frequency, "Min frequency for variations")->check(CLI::Range(0.0, 1.0))->configurable();
     app.add_option("-t, --threads", threads, "Number of threads")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
@@ -72,37 +72,35 @@ int main(int argc, char **argv)
         std::ofstream tsout(out_prefix + ".ts");
         for (const auto& s : trigger_strings) { tsout.write((char*) &s, sizeof(vcfbwt::hash_type)); }
         
-        spdlog::info("Output trigger strings: {}", out_prefix + ".ts");
+        spdlog::info("Output trigger strings: {}", out_prefix + ".ts"); return EXIT_SUCCESS;
     }
-    else
+    
+    // Set threads accordingly to configuration
+    omp_set_num_threads(threads);
+    
+    std::unordered_set<vcfbwt::hash_type> trigger_strings;
+    vcfbwt::pfp::Parser::compute_trigger_strings(vcf, params, trigger_strings);
+    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), trigger_strings, params);
+    
+    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+    
+    std::vector<vcfbwt::pfp::Parser> workers(threads);
+    for (std::size_t i = 0; i < workers.size(); i++)
     {
-        // Set threads accordingly to configuration
-        omp_set_num_threads(threads);
-    
-        std::unordered_set<vcfbwt::hash_type> trigger_strings;
-        vcfbwt::pfp::Parser::compute_trigger_strings(vcf, params, trigger_strings);
-        vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), trigger_strings, params);
-    
-        vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
-    
-        std::vector<vcfbwt::pfp::Parser> workers(threads);
-        for (std::size_t i = 0; i < workers.size(); i++)
-        {
-            std::size_t tag = vcfbwt::pfp::Parser::WORKER | vcfbwt::pfp::Parser::UNCOMPRESSED;
-            if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::Parser::LAST; }
-            workers[i].init(params, "", reference_parse, tag);
-            main_parser.register_worker(workers[i]);
-        }
-
-        #pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < vcf.size(); i++)
-        {
-            int this_thread = omp_get_thread_num();
-            spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
-            workers[this_thread](vcf[i], trigger_strings);
-        }
-    
-        // close the main parser and exit
-        main_parser.close();
+        std::size_t tag = vcfbwt::pfp::Parser::WORKER | vcfbwt::pfp::Parser::UNCOMPRESSED;
+        if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::Parser::LAST; }
+        workers[i].init(params, "", reference_parse, tag);
+        main_parser.register_worker(workers[i]);
     }
+    
+    #pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < vcf.size(); i++)
+    {
+        int this_thread = omp_get_thread_num();
+        spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
+        workers[this_thread](vcf[i], trigger_strings);
+    }
+    
+    // close the main parser and exit
+    main_parser.close();
 }

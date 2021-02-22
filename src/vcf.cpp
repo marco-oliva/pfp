@@ -248,6 +248,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                             {
                                 // Update frequency, to be normalized by the number of sambples when parsing ends
                                 l_variations.back().freq += 1;
+                                l_variations.back().used = true;
                                 // Add variation to sample
                                 l_samples[id->second].variations.push_back(l_variations.size() - 1);
                             }
