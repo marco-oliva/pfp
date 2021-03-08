@@ -226,6 +226,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         // the VCF 0-based allele index
                         int allele_index = bcf_gt_allele(ptr[j]);
                         
+                        // Get alternate allele
                         if (l_variations.back().alt.empty())
                             l_variations.back().alt = rec->d.allele[allele_index];
     
