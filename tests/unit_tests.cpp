@@ -28,7 +28,7 @@ CATCH_REGISTER_LISTENER(listener)
 
 std::string testfiles_dir = "../tests/files";
 
-std::string test_vcf_file = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf";
+std::string test_vcf_file = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
 std::string test_tbi_file = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz.tbi";
 std::string test_reference = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
 std::string test_fasta_file = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
@@ -37,6 +37,19 @@ std::size_t p_global = 75;
 std::size_t w_global = 20;
 
 //------------------------------------------------------------------------------
+
+TEST_CASE( "zstr", "[input]")
+{
+    std::ifstream in_stream(test_vcf_file);
+    
+    REQUIRE(vcfbwt::is_gzipped(in_stream));
+    
+    zstr::istream z_stream(in_stream);
+    std::string line; std::size_t tot_lines = 0;
+    while (std::getline(z_stream, line)) { REQUIRE(line.size() != 0); tot_lines += 1; }
+    
+    REQUIRE(tot_lines == 62168);
+}
 
 TEST_CASE( "Constructor", "[VCF parser]" )
 {

@@ -204,8 +204,10 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     // open VCF file
     vcflib::VariantCallFile vcf_file;
-    std::string vcf_path_non_cost = vcf_path;
-    vcf_file.open(vcf_path_non_cost);
+    std::ifstream in_stream(vcf_path);
+    if (is_gzipped(in_stream)) { zstr::istream z_stream(in_stream); vcf_file.open(z_stream); }
+    else { vcf_file.open(in_stream); }
+    
     
     if (not vcf_file.is_open())
     {
