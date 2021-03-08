@@ -1,0 +1,2 @@
+# exclude every clion build folder
+cmake-build*
