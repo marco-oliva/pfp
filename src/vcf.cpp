@@ -144,14 +144,70 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 
 //------------------------------------------------------------------------------
 
+std::vector<int> decompose_genotype_fast(const string& genotype) {
+    // Rather than doing lots of splits, we just squash atoi in with a single
+    // pass over the characters in place.
+    
+    // We'll fill this in
+    std::vector<int> to_return;
+    
+    // Guess at size
+    to_return.reserve(2);
+    
+    // We use this for our itoa
+    int number = 0;
+    for (size_t i = 0; i < genotype.size(); i++) {
+        switch(genotype[i]) {
+        case '.':
+            // We have a missing allele.
+            number = vcflib::NULL_ALLELE;
+            break;
+        case '|':
+        case '/':
+            // We've terminated a field
+            to_return.push_back(number);
+            number = 0;
+            break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            // We have a digit, so add it to the growing number
+            number *= 10;
+            number += (genotype[i] - '0');
+            break;
+        default:
+            throw std::runtime_error("Invalid genotype character in " + genotype);
+            break;
+        }
+    }
+    if(!genotype.empty()) {
+        // Finish the last field
+        to_return.push_back(number);
+    }
+    return to_return;
+}
+
 void
 vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_variations,
                       std::vector<Sample>& l_samples, std::unordered_map<std::string, std::size_t>& l_samples_id,
                       std::size_t i)
 {
+    // offset
+    std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
+    
     // open VCF file
-    htsFile * inf = bcf_open(vcf_path.c_str(), "r");
-    if (inf == NULL)
+    vcflib::VariantCallFile vcf_file;
+    std::string vcf_path_non_cost = vcf_path;
+    vcf_file.open(vcf_path_non_cost);
+    
+    if (not vcf_file.is_open())
     {
         spdlog::error("Can't open vcf file: {}", vcf_path);
         std::exit(EXIT_FAILURE);
@@ -159,112 +215,64 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     spdlog::info("Parsing vcf: {}", vcf_path);
     
-    // read header
-    bcf_hdr_t *hdr = bcf_hdr_read(inf);
-    
-    // get l_samples ids from header
-    std::size_t n_samples = bcf_hdr_nsamples(hdr);
-    if (this->max_samples == 0) { set_max_samples(n_samples); }
-
     std::size_t size_before = l_samples.size();
-    for (std::size_t i = 0; i < n_samples; i++)
+    for (auto& sample_name : vcf_file.sampleNames)
     {
-        vcfbwt::Sample s(std::string(hdr->samples[i]), this->reference, l_variations);
+        vcfbwt::Sample s(sample_name, this->reference, l_variations);
         if (l_samples_id.find(s.id()) == l_samples_id.end())
         {
             l_samples.push_back(s);
-            l_samples_id.insert(std::make_pair(s.id(), i));
+            l_samples_id.insert(std::make_pair(s.id(), l_samples.size() - 1));
         }
     }
+    
     spdlog::debug("{} new l_samples in the vcf, tot: {}", l_samples.size() - size_before, l_samples.size());
     
-    // struct for storing each record
-    bcf1_t *rec = bcf_init();
-    if (rec == NULL)
-    {
-        spdlog::error("Error while parsing vcf file: {}", vcf_path);
-        bcf_close(inf);
-        bcf_hdr_destroy(hdr);
-        std::exit(EXIT_FAILURE);
-    }
-    
     // start parsing
-    while (bcf_read(inf, hdr, rec) == 0)
+    vcflib::Variant variant(vcf_file);
+    while (vcf_file.getNextVariant(variant))
     {
+        // Skip symbolic allele
+        if (variant.isSymbolicSV()) { continue; }
+        
         vcfbwt::Variation var;
-        
-        var.ref_len = rec->rlen;
-        std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
-        var.pos = rec->pos + offset;
+        var.ref_len = variant.ref.size();
+        var.pos = variant.position + offset - 1;
         var.freq = 0;
+        var.alt = variant.alt[0];
     
-        bcf_unpack(rec, BCF_UN_ALL);
-        int type = bcf_get_variant_types(rec);
-    
-        l_variations.push_back(var);
-        
-        int32_t *gt_arr = NULL, ngt_arr = 0;
-        int ngt = bcf_get_genotypes(hdr, rec, &gt_arr, &ngt_arr);
-        if ( ngt > 0 )
+        for (auto& kv : variant.samples)
         {
-            int max_ploidy = ngt/n_samples;
-            bool skip_this_variation = false;
-            for (std::size_t i_s = 0; i_s < n_samples; i_s++)
+            // Go through all the parsed FORMAT fields for each sample
+            auto& sample_name = kv.first;
+            
+            if (l_samples_id.find(sample_name) == l_samples_id.end()) { spdlog::error("ERROR"); std::exit(EXIT_FAILURE); }
+            std::size_t sample_idx = l_samples_id.at(sample_name);
+            
+            if (sample_idx > this->max_samples) { continue; }
+            
+            // Pull out the GT value. Explode if there isn't one (though
+            // something like "." is acceptable)
+            auto& gt_string = kv.second.at("GT").at(0);
+            
+            // Decompose it and fill in the genotype slot for this sample.
+            std::vector<int> out = decompose_genotype_fast(gt_string);
+            
+            if (out[0] > 0)
             {
-                if (skip_this_variation) { break; }
-                int32_t *ptr = gt_arr + i_s * max_ploidy;
-                for (std::size_t j = 0; j < max_ploidy; j++)
+                // Add vartiation only if in one of the desired samples
+                if (l_variations.size() == 0 or l_variations.back().pos != var.pos)
                 {
-                    // if true, the sample has smaller ploidy
-                    if ( ptr[j]==bcf_int32_vector_end ) { break; }
-
-                    // missing allele
-                    if ( bcf_gt_is_missing(ptr[j]) ) { continue; }
-                    
-                    if (bcf_gt_allele(ptr[j]))
-                    {
-                        // the VCF 0-based allele index
-                        int allele_index = bcf_gt_allele(ptr[j]);
-                        
-                        if (l_variations.back().alt.empty())
-                            l_variations.back().alt = rec->d.allele[allele_index];
-    
-                        // Skip symbolic allele
-                        if (l_variations.back().alt[0] == '<')
-                        {
-                            spdlog::debug("vcfbwt::VCF::init_vcf: Skipping symbolic allele at pos {}", l_variations.back().pos);
-                            skip_this_variation = true;
-                            continue;
-                        }
-                        
-                        auto id = l_samples_id.find(std::string(hdr->samples[i_s]));
-                        if (id != l_samples_id.end() and id->second <= max_samples) // Process only wanted l_samples
-                        {
-                            // Adding this variation to a sample only if:
-                            // - has not been inserted right before this insertion
-                            if ( not (
-                            ((l_samples[id->second].variations.size() > 0) and
-                             (l_samples[id->second].variations.back() == l_variations.size() - 1))
-                            ))
-                            {
-                                // Update frequency, to be normalized by the number of samples when parsing ends
-                                l_variations.back().freq += 1;
-                                l_variations.back().used = true;
-                                // Add variation to sample
-                                l_samples[id->second].variations.push_back(l_variations.size() - 1);
-                            }
-                        }
-                    }
+                    l_variations.push_back(var);
                 }
+                
+                l_variations.back().freq += 1;
+                l_variations.back().used = true;
+                // Add variation to sample
+                l_samples[sample_idx].variations.push_back(l_variations.size() - 1);
             }
         }
-        free(gt_arr);
     }
-    
-    // free allocated memory
-    bcf_hdr_destroy(hdr);
-    bcf_close(inf);
-    bcf_destroy(rec);
     
     // Compute normalized variations frequency
     std::size_t number_of_samples = 0;

@@ -40,10 +40,10 @@ if (DEBUG):
     f_values   = [1.0]
     n_threads  = 8
 else:
-    data_sizes = [64, 128, 256, 512, 1024]
-    w_values   = [10, 20, 30]
-    p_values   = [100, 500, 1000]
-    f_values   = [1.0, 0.1, 0.01]
+    data_sizes = [512]
+    w_values   = [10, 20, 30, 40]
+    p_values   = [100, 500, 1000, 2000]
+    f_values   = [1.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     n_threads  = 32
 
 #------------------------------------------------------------
@@ -51,7 +51,7 @@ else:
 def execute_command(command, seconds):
     try:
         print("Executing: {}".format(command))
-        process = subprocess.Popen(command.split(), shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE)
+        process = subprocess.Popen(command.split(), preexec_fn=os.setsid, stdout=subprocess.PIPE)
         (output, err) = process.communicate()
         process.wait(timeout=seconds)
     except subprocess.CalledProcessError:

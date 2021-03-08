@@ -21,10 +21,7 @@
 
 #include <zstr/zstr.hpp>
 
-#include <hts.h>
-#include <vcf.h>
-#include <tbx.h>
-#include <vcfutils.h>
+#include <Variant.h>
 
 #include <utils.hpp>
 

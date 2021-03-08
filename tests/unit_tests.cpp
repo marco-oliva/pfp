@@ -28,6 +28,11 @@ CATCH_REGISTER_LISTENER(listener)
 
 std::string testfiles_dir = "../tests/files";
 
+std::string test_vcf_file = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf";
+std::string test_tbi_file = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz.tbi";
+std::string test_reference = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+std::string test_fasta_file = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
+
 std::size_t p_global = 75;
 std::size_t w_global = 20;
 
@@ -35,8 +40,8 @@ std::size_t w_global = 20;
 
 TEST_CASE( "Constructor", "[VCF parser]" )
 {
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+    std::string vcf_file_name = test_vcf_file;
+    std::string ref_file_name = test_reference;
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
 
     // read_samples list from file
@@ -58,13 +63,16 @@ TEST_CASE( "Constructor", "[VCF parser]" )
 
 TEST_CASE( "Sample: HG00096", "[VCF parser]" )
 {
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+    std::string vcf_file_name = test_vcf_file;
+    std::string ref_file_name = test_reference;
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
-
+    
+    // Only work on sample HG00096
+    vcf.set_max_samples(1);
+    
     REQUIRE(vcf[0].id() == "HG00096");
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
+    std::string test_sample_path = test_fasta_file;
     std::ifstream in_stream(test_sample_path);
 
     REQUIRE(vcfbwt::is_gzipped(in_stream));
@@ -85,8 +93,8 @@ TEST_CASE( "Sample: HG00096", "[VCF parser]" )
 
 TEST_CASE( "Reference + Sample HG00096, NO trigger strings, No acceleration", "[PFP algorithm]" )
 {
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+    std::string vcf_file_name = test_vcf_file;
+    std::string ref_file_name = test_reference;
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
 
     // Only work on sample HG00096
@@ -125,7 +133,7 @@ TEST_CASE( "Reference + Sample HG00096, NO trigger strings, No acceleration", "[
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
+    std::string test_sample_path = test_fasta_file;
     std::ifstream in_stream(test_sample_path);
     zstr::istream is(in_stream);
     std::string line, from_fasta;
@@ -159,8 +167,8 @@ TEST_CASE( "Reference + Sample HG00096, NO trigger strings, No acceleration", "[
 
 TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, No acceleration", "[PFP algorithm]" )
 {
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+    std::string vcf_file_name = test_vcf_file;
+    std::string ref_file_name = test_reference;
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
 
     // Only work on sample HG00096
@@ -199,7 +207,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, No acceleration", 
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
+    std::string test_sample_path = test_fasta_file;
     std::ifstream in_stream(test_sample_path);
     zstr::istream is(in_stream);
     std::string line, from_fasta;
@@ -234,8 +242,8 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, No acceleration", 
 
 TEST_CASE( "Reference + Sample HG00096, NO trigger strings, WITH acceleration", "[PFP algorithm]" )
 {
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+    std::string vcf_file_name = test_vcf_file;
+    std::string ref_file_name = test_reference;
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
 
     // Only work on sample HG00096
@@ -274,7 +282,7 @@ TEST_CASE( "Reference + Sample HG00096, NO trigger strings, WITH acceleration", 
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
+    std::string test_sample_path = test_fasta_file;
     std::ifstream in_stream(test_sample_path);
     zstr::istream is(in_stream);
     std::string line, from_fasta;
@@ -308,8 +316,8 @@ TEST_CASE( "Reference + Sample HG00096, NO trigger strings, WITH acceleration", 
 
 TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, WITH acceleration", "[PFP algorithm]" )
 {
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+    std::string vcf_file_name = test_vcf_file;
+    std::string ref_file_name = test_reference;
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
 
     // Only work on sample HG00096
@@ -348,7 +356,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, WITH acceleration"
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
+    std::string test_sample_path = test_fasta_file;
     std::ifstream in_stream(test_sample_path);
     zstr::istream is(in_stream);
     std::string line, from_fasta;
@@ -382,23 +390,13 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, WITH acceleration"
 
 TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
 {
-    std::vector<std::string> vcf_file_names =
-            {
-                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
-                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz"
-            };
-
-    std::vector<std::string> ref_file_names =
-            {
-                    testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz",
-                    testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz"
-            };
-
+    std::vector<std::string> vcf_file_names = { test_vcf_file, test_vcf_file };
+    std::vector<std::string> ref_file_names = { test_reference, test_reference };
     vcfbwt::VCF vcf(ref_file_names, vcf_file_names);
 
     REQUIRE(vcf[0].id() == "HG00096");
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_only_H1.fa.gz";
+    std::string test_sample_path = test_fasta_file;
     std::ifstream in_stream(test_sample_path);
 
     REQUIRE(vcfbwt::is_gzipped(in_stream));

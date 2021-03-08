@@ -53,14 +53,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BUILD_TYPE_FLAGS}")
 ################################################################################
 # Check dependencies
 
-# HTS
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-find_package(HTSlib REQUIRED)
-if(HTSlib_FOUND)
-    include_directories(${HTSlib_INCLUDE_DIRS})
-endif()
+include(ExternalProject)
 
-find_package(OpenMP)
+find_package(OpenMP REQUIRED)
 if(OPENMP_FOUND)
     include_directories(${OpenMP_CXX_INCLUDE_DIRS})
     link_libraries(${OpenMP_CXX_LIBRARIES})
@@ -77,6 +72,23 @@ if(OPENMP_FOUND)
     endif()
 endif()
 
+# Google Test
+ExternalProject_Add(vcflib
+        GIT_REPOSITORY "https://github.com/vcflib/vcflib.git"
+        CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}" "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}" "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}" "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+        UPDATE_COMMAND ""
+        INSTALL_COMMAND "")
+ExternalProject_Get_property(vcflib INSTALL_DIR)
+file(GLOB VCFLIB-INCLUDES
+        ${INSTALL_DIR}/src/vcflib/src
+        ${INSTALL_DIR}/src/vcflib/multichoose
+        ${INSTALL_DIR}/src/vcflib/intervaltree
+        ${INSTALL_DIR}/src/vcflib/smithwaterman
+        ${INSTALL_DIR}/src/vcflib/fastahack
+        ${INSTALL_DIR}/src/vcflib/filevercmp)
+set(vcflib-include ${VCFLIB-INCLUDES})
+set(vcflib-lib ${INSTALL_DIR}/src/vcflib-build/libvcflib.a tabixpp)
+
 ################################################################################
 # Lib
 
@@ -84,6 +96,7 @@ include_directories(${CMAKE_SOURCE_DIR}/thirdparty)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_BINARY_DIR}/generated)
 include_directories(${nthash-include})
+include_directories(${vcflib-include})
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 
@@ -92,17 +105,19 @@ add_library(pfp ${SOURCES})
 add_library(pfp64 ${SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARIES}")
+add_dependencies(pfp vcflib)
+add_dependencies(pfp64 vcflib)
+set(PFP_LIB_DEPS "z" "${vcflib-lib}")
 
 ################################################################################
 # Tests
 
 add_executable(unit_tests tests/unit_tests.cpp)
-target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS})
+target_link_libraries(unit_tests pfp ${PFP_LIB_DEPS})
 
 add_executable(unit_tests64 tests/unit_tests.cpp)
 target_compile_options(unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(unit_tests64 pfp64 ${PFP_LIB_DEPS})
 
 ################################################################################
 # Tools
@@ -111,21 +126,21 @@ target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS})
 
 # 32 and 64 bits parse
 add_executable(pfp++ pfp++.cpp)
-target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS})
+target_link_libraries(pfp++ pfp ${PFP_LIB_DEPS})
 add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(pfp++64 pfp64 ${PFP_LIB_DEPS})
 
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
-target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++ pfp ${PFP_LIB_DEPS})
 add_executable(mpfp++64 merge.cpp)
 target_compile_options(mpfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++64 pfp64 ${PFP_LIB_DEPS})
 
 # VCT to Fasta
 add_executable(vcf_to_fa vcf_to_fa.cpp)
-target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS})
+target_link_libraries(vcf_to_fa pfp ${PFP_LIB_DEPS})
 
 
 
