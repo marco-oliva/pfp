@@ -431,7 +431,7 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
         {
             const Variation& variation = variations_ref[i];
         
-            if (((variation.freq > params.min_frequency) and (variation.freq < 1.0)) and variation.used)
+            if (((variation.freq > params.min_frequency) and (variation.freq < params.max_frequency)) and variation.used)
             {
                 std::size_t region_start_pos = variation.pos - 1;
                 std::size_t region_end_pos = 0;

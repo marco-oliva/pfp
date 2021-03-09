@@ -85,6 +85,7 @@ struct Params
     
     inline std::size_t min_seed_region_length() const { return w * 10; }
     double min_frequency = 0.001;
+    double max_frequency = 0.5;
 };
 
 struct Statistics

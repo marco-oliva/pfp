@@ -32,6 +32,7 @@ int main(int argc, char **argv)
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 200))->configurable();
     app.add_option("-p, --module", params.p, "Module used during parisng")->check(CLI::Range(50, 2000))->configurable();
     app.add_option("-f, --min-frequency", params.min_frequency, "Min frequency for variations")->check(CLI::Range(0.0, 1.0))->configurable();
+    app.add_option("-F, --max-frequency", params.max_frequency, "Max frequency for variations")->check(CLI::Range(0.0, 1.0))->configurable();
     app.add_option("-t, --threads", threads, "Number of threads")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag("-s, --seeds", params.compute_seeded_trigger_strings, "Compute seeded trigger strings")->configurable();
