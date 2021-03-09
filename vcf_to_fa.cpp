@@ -58,10 +58,8 @@ int main(int argc, char **argv)
     {
         vcfbwt::Sample::iterator it(vcf[i]);
         std::string sample;
-        
+    
         while (not it.end()) { sample.push_back(*it); ++it; }
-        if (i == vcf.size() - 1) { sample.append(params.w, vcfbwt::pfp::DOLLAR); }
-        else { sample.append(params.w, vcfbwt::pfp::DOLLAR_PRIME); }
         samples << "> " + vcf[i].id() + "\n";
         samples.write(sample.c_str(), sample.size());
         samples.put('\n');
