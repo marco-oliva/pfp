@@ -36,7 +36,7 @@ std::size_t w_global = 20;
 TEST_CASE( "Constructor", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.Y.fa.gz";
+    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
 
     // read_samples list from file
