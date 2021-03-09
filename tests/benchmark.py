@@ -40,10 +40,11 @@ if (DEBUG):
     f_values   = [1.0]
     n_threads  = 8
 else:
-    data_sizes = [64, 128, 256, 512, 1024]
-    w_values   = [10, 20, 30]
-    p_values   = [100, 500, 1000]
-    f_values   = [1.0, 0.1, 0.01]
+    data_sizes = [512]
+    w_values   = [10, 20, 30, 40]
+    p_values   = [100, 500, 1000, 2000]
+    f_values   = [1.0, 0.1, 0.2, 0.3, 0.4]
+    F_values   = [0.5, 1.0]
     n_threads  = 32
 
 #------------------------------------------------------------
@@ -107,19 +108,20 @@ def main():
                     out = execute_command(command, 1000000)
 
     # Run pfp
-    base_command = "/usr/bin/time --verbose {pfp} --configure {conf} -o {out} -m {c_size} -w {c_w} -p {c_p} -f {c_f} -t {c_threads} -s --use-acceleration --print-statistics"
+    base_command = "/usr/bin/time --verbose {pfp} --configure {conf} -o {out} -m {c_size} -w {c_w} -p {c_p} -f {c_f} -F {c_F} -t {c_threads} -s --use-acceleration --print-statistics"
     for size in data_sizes:
         for w in w_values:
             for p in p_values:
                 for f in f_values:
-                    command = base_command.format(
-                        pfp = pfp_exe,
-                        conf = base_dir + '/config.ini',
-                        out = base_dir + "/out_w{}_p{}_f{}_s{}".format(w,p,f,size),
-                        c_size = size, c_w = w, c_p = p, c_f = f, c_threads = n_threads)
-                    out = execute_command(command, 1000000)
-                    with open('out_w{}_p{}_f{}_s{}.log'.format(w,p,f,size), 'wb') as log_file:
-                        log_file.write(out)
+                    for F in F_values:
+                        command = base_command.format(
+                            pfp = pfp_exe,
+                            conf = base_dir + '/config.ini',
+                            out = base_dir + "/out_w{}_p{}_f{}_F{}_s{}".format(w,p,f,F,size),
+                            c_size = size, c_w = w, c_p = p, c_f = f, c_F = F, c_threads = n_threads)
+                        out = execute_command(command, 1000000)
+                        with open('out_w{}_p{}_f{}_F{}_s{}.log'.format(w,p,f,F,size), 'wb') as log_file:
+                            log_file.write(out)
 
 if __name__ == '__main__':
     main()
