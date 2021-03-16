@@ -31,11 +31,13 @@ int main(int argc, char **argv)
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
     
     // Unparse
+    spdlog::info("Reading dictionary");
     std::vector<std::string> dict;
     vcfbwt::pfp::Parser::read_dictionary(dict_file, dict);
     
     std::ifstream parse_stream(parse_file, std::ios::binary);
     
+    spdlog::info("Start unparsing");
     std::ofstream unparsed(out_file);
     while (not parse_stream.eof())
     {
@@ -43,6 +45,8 @@ int main(int argc, char **argv)
         parse_stream.read((char*)&p, sizeof(vcfbwt::size_type));
         
         if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+        if (p == 0) { spdlog::error("Element in the parse is 0, skipping"); continue; }
+        if (dict[p - 1].size() <= window_size) { spdlog::error("Phrase shorter than {} in the parse",window_size); exit(EXIT_FAILURE);  }
         std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - window_size);
         unparsed << dict_string;
     }

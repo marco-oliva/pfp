@@ -422,6 +422,9 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
     std::string dollar_window; dollar_window.append(params.w, DOLLAR_PRIME);
     trigger_string_set.insert(string_hash(&(dollar_window[0]), dollar_window.size()));
     
+    std::unordered_set<std::string> banned_ts;
+    banned_ts.insert(std::string(params.w, 'N'));
+    
     // Compute trigger strings from most common variations
     if (params.compute_seeded_trigger_strings)
     {
@@ -433,38 +436,19 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
         
             if (((variation.freq > params.min_frequency) and (variation.freq < params.max_frequency)) and variation.used)
             {
-                std::size_t region_start_pos = variation.pos - 1;
-                std::size_t region_end_pos = 0;
-            
-                // Keep going forward until we have a window without variations over a certain frequency threshold
-                // and the region is at least of a certain length
-                std::size_t j = i + 1;
-                std::size_t last_over_frequency_variation_pos = variation.pos;
-                region_end_pos = std::min(region_start_pos + params.min_seed_region_length(), variations_ref[j].pos);
-            
-                while (
-                (region_start_pos - region_end_pos <= params.min_seed_region_length()) or
-                (region_end_pos - last_over_frequency_variation_pos < params.w)
-                )
-                {
-                    region_end_pos = variations_ref[j].pos + 1;
-                    if (variations_ref[j].freq >= params.min_frequency)
-                    {
-                        last_over_frequency_variation_pos = variations_ref[j].pos;
-                    }
+                // Extract seed strings from before and after the variations
+                std::string opening_trigger_string = vcf.get_reference().substr(variation.pos - params.w, params.w);
+                std::string closing_trigger_string = vcf.get_reference().substr(variation.pos + 1, params.w);
                 
-                    ++j;
+                if (banned_ts.find(opening_trigger_string) == banned_ts.end())
+                {
+                    trigger_string_set.insert(string_hash(&(opening_trigger_string[0]), opening_trigger_string.size()));
                 }
                 
-                // Extract seed string from region limits
-                std::string opening_trigger_string = vcf.get_reference().substr(region_start_pos - params.w, params.w);
-                std::string closing_trigger_string = vcf.get_reference().substr(region_end_pos, params.w);
-                
-                trigger_string_set.insert(string_hash(&(opening_trigger_string[0]), opening_trigger_string.size()));
-                trigger_string_set.insert(string_hash(&(closing_trigger_string[0]), closing_trigger_string.size()));
-            
-                // Don't process variations in seed region more than once
-                i = j;
+                if (banned_ts.find(closing_trigger_string) == banned_ts.end())
+                {
+                    trigger_string_set.insert(string_hash(&(closing_trigger_string[0]), closing_trigger_string.size()));
+                }
             }
         }
         

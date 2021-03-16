@@ -117,7 +117,7 @@ string_hash(const char* s, std::size_t size)
     {
         int c = (unsigned char) s[k];
         assert(c >= 0 && c < 256);
-        hash = (256 * hash + c) % prime;    //  add char k
+        hash = (37 * hash + c) % prime;    //  add char k
     }
     return hash;
 }
