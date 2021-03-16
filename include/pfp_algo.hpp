@@ -78,7 +78,7 @@ struct Params
 {
     hash_type p = 100;
     hash_type w =  10;
-    bool compute_seeded_trigger_strings = true;
+    bool compute_seeded_trigger_strings = false;
     bool compress_dictionary = false;
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;

@@ -127,6 +127,12 @@ target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS})
 add_executable(vcf_to_fa vcf_to_fa.cpp)
 target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS})
 
+# Unparse
+add_executable(unparse unparse.cpp)
+target_link_libraries(unparse pfp ${VCF_LIB_DEPS})
+add_executable(unparse64 unparse.cpp)
+target_compile_options(unparse64 PRIVATE "-DPFP_LONG_TYPE=ON")
+target_link_libraries(unparse64 pfp64 ${VCF_LIB_DEPS})
 
 
 
