@@ -38,6 +38,7 @@ int main(int argc, char **argv)
     app.add_flag("-s, --seeds", params.compute_seeded_trigger_strings, "Compute seeded trigger strings")->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
     app.add_flag("--only-trigger-strings", only_trigger_strings, "Generate Only Trigger Strings")->configurable();
+    app.add_flag("--not-use-modulo", params.not_use_p, "Only the trigger stings stop the parsing")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");

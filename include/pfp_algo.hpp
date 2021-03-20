@@ -78,6 +78,7 @@ struct Params
 {
     hash_type p = 100;
     hash_type w =  10;
+    bool not_use_p = false;
     bool compute_seeded_trigger_strings = false;
     bool compress_dictionary = false;
     bool use_acceleration = false;
@@ -174,7 +175,8 @@ public:
             std::ofstream csv(out_file_prefix + ".csv");
             csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
             csv << params.w << ",";
-            csv << params.p << ",";
+            if (params.not_use_p) { csv << "nan" << ","; }
+            else { csv << params.p << ","; }
             csv << params.min_frequency << ",";
             csv << statistics.parse_length << ",";
             csv << statistics.num_of_phrases_dictionary << ",";

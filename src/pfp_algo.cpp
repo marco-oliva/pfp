@@ -109,7 +109,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, const std::unord
         
         if (
         (phrase.size() > this->params.w) and
-        (((string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w) % this->params.p) == 0) or
+        (((not this->params.not_use_p) and ((string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w) % this->params.p) == 0)) or
         (ts.find(string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w)) != ts.end())))
         {
             hash_type hash = 0;
@@ -219,7 +219,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
     
         if (
         (phrase.size() > this->params.w) and
-        ((((string_hash(&(phrase[phrase.size() - this->params.w]), this->w)) % this->params.p) == 0) or
+        (((not this->params.not_use_p) and ((string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w) % this->params.p) == 0)) or
         (ts.find(string_hash(&(phrase[phrase.size() - this->params.w]), this->w)) != ts.end())))
         {
             hash_type hash = 0;
