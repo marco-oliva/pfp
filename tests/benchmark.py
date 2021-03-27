@@ -3,8 +3,9 @@
 import sys, time, argparse, subprocess, os.path, wget
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-data_dir_bigbwt = "/home/marco/Tmp"
-data_dir_pfp    = "/home/marco/Data/1kgp"
+data_dir_bigbwt = "/blue/boucher/marco.oliva/tmp"
+#data_dir_pfp    = "/blue/boucher/marco.oliva/data/1kgp"
+data_dir_pfp    = "/blue/boucher/marco.oliva/tmp/generated_vcf"
 
 # VCF list
 vcf_list = ''
@@ -13,7 +14,8 @@ vcf_list = ''
 #vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1b.20130502.genotypes.vcf.gz",'
 #vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",'
 #vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz"'
-vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"'.format(19)
+#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"'.format(19)
+vcf_list += '"' + data_dir_pfp + '/generated.vcf.gz"'
 
 # Reference list
 ref_list = ''
@@ -22,7 +24,7 @@ ref_list = ''
 #ref_list += '"' + data_dir_pfp + '/reference/X.fa.gz",'
 #ref_list += '"' + data_dir_pfp + '/reference/Y.fa.gz",'
 #ref_list += '"' + data_dir_pfp + '/reference/MT.fa.gz"'
-ref_list += '"' + data_dir_pfp + '/reference/{}.fa.gz"'.format(19)
+ref_list += '"' + data_dir_pfp + '/22.fa.gz"'
 
 # Generate config file
 with open(base_dir + '/config.ini', 'w') as config_file:
@@ -33,6 +35,8 @@ with open(base_dir + '/config.ini', 'w') as config_file:
 
 DEBUG = False
 RUN_BIGBWT = False
+RUN_WITH_MODULO = False
+RUN_WITHOUT_MODULO = True
 if (DEBUG):
     data_sizes = [1]
     w_values   = [10]
@@ -40,11 +44,11 @@ if (DEBUG):
     f_values   = [1.0]
     n_threads  = 8
 else:
-    data_sizes = [512]
+    data_sizes = [500]
     w_values   = [10, 20, 30, 40]
     p_values   = [100, 500, 1000, 2000]
-    f_values   = [1.0, 0.1, 0.2, 0.3, 0.4]
-    F_values   = [0.5, 1.0]
+    f_values   = [1.0, 0.01]
+    F_values   = [0.5]
     n_threads  = 32
 
 #------------------------------------------------------------
@@ -52,7 +56,7 @@ else:
 def execute_command(command, seconds):
     try:
         print("Executing: {}".format(command))
-        process = subprocess.Popen(command.split(), shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE)
+        process = subprocess.Popen(command.split(), preexec_fn=os.setsid, stdout=subprocess.PIPE)
         (output, err) = process.communicate()
         process.wait(timeout=seconds)
     except subprocess.CalledProcessError:
@@ -79,7 +83,7 @@ def get_vcf_file(out_dir, chromosome_id):
         print('Chromosome id currently not supported')
         return
     chromosome_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502." \
-                       "genotypes.vcf.gz".format(chromosome_id)
+                      "genotypes.vcf.gz".format(chromosome_id)
     chromosome_url = "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/" \
                      + chromosome_name
     print('Downloading {}'.format(chromosome_url))
@@ -88,7 +92,7 @@ def get_vcf_file(out_dir, chromosome_id):
 def extract_fasta(out_dir, ref_list, vcf_list, n_sequences=1):
     vcf_to_fasta_exe = "../build/vcf_to_fa"
     command = "/usr/bin/time --verbose {} --configure {} -m {} -o {}".format(vcf_to_fasta_exe, base_dir + '/config.ini',
-                                                                          n_sequences, out_dir + '/extracted.fa')
+                                                                             n_sequences, out_dir + '/extracted.fa')
     execute_command(command, 100000000)
 
 def main():
@@ -107,20 +111,37 @@ def main():
                                                   file = data_dir_bigbwt + "/extracted.fa")
                     out = execute_command(command, 1000000)
 
-    # Run pfp
-    base_command = "/usr/bin/time --verbose {pfp} --configure {conf} -o {out} -m {c_size} -w {c_w} -p {c_p} -f {c_f} -F {c_F} -t {c_threads} -s --use-acceleration --print-statistics"
-    for size in data_sizes:
-        for w in w_values:
-            for p in p_values:
+    # Run pfp, with modulo
+    if (RUN_WITH_MODULO):
+        base_command = "/usr/bin/time --verbose {pfp} --configure {conf} -o {out} -m {c_size} -w {c_w} -p {c_p} -f {c_f} -F {c_F} -t {c_threads} --seeds --use-acceleration --print-statistics"
+        for size in data_sizes:
+            for w in w_values:
+                for p in p_values:
+                    for f in f_values:
+                        for F in F_values:
+                            command = base_command.format(
+                                pfp = pfp_exe,
+                                conf = base_dir + '/config.ini',
+                                out = base_dir + "/out_w{}_p{}_f{}_F{}_s{}".format(w,p,f,F,size),
+                                c_size = size, c_w = w, c_p = p, c_f = f, c_F = F, c_threads = n_threads)
+                            out = execute_command(command, 1000000)
+                            with open('out_w{}_p{}_f{}_F{}_s{}.log'.format(w,p,f,F,size), 'wb') as log_file:
+                                log_file.write(out)
+
+    # Run pfp, without modulo
+    if (RUN_WITHOUT_MODULO):
+        base_command = "/usr/bin/time --verbose {pfp} --configure {conf} -o {out} -m {c_size} -w {c_w} --not-use-modulo -f {c_f} -F {c_F} -t {c_threads} --seeds --use-acceleration --print-statistics"
+        for size in data_sizes:
+            for w in w_values:
                 for f in f_values:
                     for F in F_values:
                         command = base_command.format(
                             pfp = pfp_exe,
                             conf = base_dir + '/config.ini',
-                            out = base_dir + "/out_w{}_p{}_f{}_F{}_s{}".format(w,p,f,F,size),
-                            c_size = size, c_w = w, c_p = p, c_f = f, c_F = F, c_threads = n_threads)
+                            out = base_dir + "/out_w{}_f{}_F{}_s{}".format(w,f,F,size),
+                            c_size = size, c_w = w, c_f = f, c_F = F, c_threads = n_threads)
                         out = execute_command(command, 1000000)
-                        with open('out_w{}_p{}_f{}_F{}_s{}.log'.format(w,p,f,F,size), 'wb') as log_file:
+                        with open('out_w{}_f{}_F{}_s{}.log'.format(w,f,F,size), 'wb') as log_file:
                             log_file.write(out)
 
 if __name__ == '__main__':
