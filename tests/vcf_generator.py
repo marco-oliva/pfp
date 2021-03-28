@@ -28,6 +28,10 @@ class Parameters:
     out_file = 'generated.vcf.gz'
 
 
+Description = '''
+VCF Generator
+'''
+
 # ### Spec
 # Generate a VCF file so that:
 #
@@ -46,10 +50,10 @@ def main():
 
     parser = argparse.ArgumentParser(description=Description, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-R', help='reference path', type=str, dest='reference', required=True)
-    parser.add_argument('-r', help='input B file name', type=int, default=parameters.r dest="groups")
-    parser.add_argument('-s', help='samples per group', type=int, defgault=parameters.s, dest="samples")
-    parser.add_argument('-n', help='random variation sites for each group', type=int, default=parameters.n, , dest="variations")
-    parser.add_argument('-N', help='variations common to all regions and samples', type=int, default=parameters.N, , dest="common")
+    parser.add_argument('-r', help='input B file name', type=int, default=parameters.r, dest="groups")
+    parser.add_argument('-s', help='samples per group', type=int, default=parameters.s, dest="samples")
+    parser.add_argument('-n', help='random variation sites for each group', type=int, default=parameters.n, dest="variations")
+    parser.add_argument('-N', help='variations common to all regions and samples', type=int, default=parameters.N, dest="common")
     parser.add_argument('-p', help='out of 100 samples in a group will have a certain SNP', type=int, default=parameters.p, dest="snp_prob")
     parser.add_argument('-P', help='same as p for N', type=int, default=parameters.P, dest="common_snp_probs")
     parser.add_argument('-o', help='output file', type=str, default=parameters.out_file, dest="out_file")
@@ -105,8 +109,9 @@ def main():
         samples_per_region[i] = samples_list
 
     # For each region
+    print('Generating random variations for each region')
     rand_variations_pos = list()
-    for region, samples_list in samples_per_region.items():
+    for region, samples_list in tqdm(samples_per_region.items()):
         # Create variations
         for i in range(parameters.n):
 
@@ -141,6 +146,7 @@ def main():
     for region, samples_list in samples_per_region.items():
         all_samples.extend(samples_list)
 
+    print('Building vcf structure')
     for v in range(parameters.N):
         # Build variation object
         while True:
@@ -166,8 +172,12 @@ def main():
         # Append variation to global variations list
         variations.append(var)
 
-    # Variations statistics
+    # Sort Variations by position
     variations.sort(key=operator.attrgetter('pos'))
+
+    # Variations statistics
+    print('==============================')
+    print('Statistics')
 
     positions = np.array([v.pos for v in variations])
     print('Min pos: {}'.format(np.min(positions)))
@@ -184,6 +194,7 @@ def main():
     print('Min dist: {}'.format(np.min(distances)))
     print('Max dist: {}'.format(np.max(distances)))
     print('Average dist: {}'.format(np.average(distances)))
+    print('==============================')
 
     data = distances
 
@@ -200,13 +211,12 @@ def main():
     plt.bar(bins[:-1], hist_norm, widths)
     plt.xscale('log')
     plt.yscale('log')
-    plt.savefig(out_file + '.plot.png')
+    plt.xlabel('Distance between two variations in nucleotides')
+    plt.ylabel('Abundance')
+    plt.savefig(parameters.out_file + '.plot.png')
 
     # Output VCF file
-
-    # Sort Variations by position
-    variations.sort(key=operator.attrgetter('pos'))
-
+    print('Writing to file')
     with gzip.open(parameters.out_file, 'wb') as f:
         f.write('##fileformat=VCFv4.1\n'.encode())
         f.write('##reference={}\n'.format(parameters.R).encode())
