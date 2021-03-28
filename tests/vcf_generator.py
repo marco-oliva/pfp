@@ -11,6 +11,8 @@ from Bio import SeqIO
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from datetime import datetime
+
 
 
 # Parameters
@@ -91,7 +93,8 @@ def main():
     # Variations list (vcf)
     variations = list()
 
-    # Seeding random generator
+    # Seeding random generator with time, something more random?
+    random.seed(datetime.now())
 
     # Create samples per region map
     samples_per_region = dict()
