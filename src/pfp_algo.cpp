@@ -425,10 +425,8 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
     
     // If a window of Ns has hash 0 modulo p than raise an error, it will lead to a giant parse
     std::string ns = std::string(params.w, 'N');
-    if (string_hash(ns.c_str(), ns.size()) % params.p == 0)
-    {
-        spdlog::error("The current configuration allows for w Ns to be a trigger string!");
-    }
+    if (string_hash(ns.c_str(), ns.size()) % params.p == 0) { spdlog::error("The current configuration allows for {} Ns to be a trigger string!", params.w);}
+    else { spdlog::info("{} Ns not in the trigger strings set", params.w); }
     
     std::unordered_set<std::string> banned_ts;
     banned_ts.insert(std::string(params.w, 'N'));
