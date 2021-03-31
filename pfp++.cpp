@@ -47,8 +47,6 @@ int main(int argc, char **argv)
     
     CLI11_PARSE(app, argc, argv);
     
-    if (params.use_acceleration) { params.compute_seeded_trigger_strings = true; }
-    
     // Clean file name vectors
     vcfs_file_names.erase(std::remove_if(vcfs_file_names.begin(), vcfs_file_names.end(),
                                          [] (std::string& s) {return s.size() == 0; } ), vcfs_file_names.end());
