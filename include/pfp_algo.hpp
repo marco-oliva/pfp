@@ -122,6 +122,7 @@ private:
     std::string out_file_prefix;
     std::string out_file_name;
     std::string tmp_out_file_name;
+    std::vector<std::string> samples_processed;
     
     Params params;
     Statistics statistics;

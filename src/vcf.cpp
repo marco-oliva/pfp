@@ -218,6 +218,10 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                     // if true, the sample has smaller ploidy
                     if ( ptr[j]==bcf_int32_vector_end ) { break; }
 
+                    // if not phased, skip
+                    //int is_phased = bcf_gt_is_phased(ptr[j]);
+                    //if (not is_phased) { break; }
+
                     // missing allele
                     if ( bcf_gt_is_missing(ptr[j]) ) { continue; }
                     

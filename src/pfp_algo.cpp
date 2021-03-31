@@ -162,6 +162,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
     if (ts.empty()) {spdlog::error("Empty set of treigger strings!"); std::exit(EXIT_FAILURE); }
     
     Sample::iterator sample_iterator(sample);
+    this->samples_processed.push_back(sample.id());
     
     std::string phrase;
     
@@ -199,7 +200,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
                     
                     // copy from parse[start_window : end_window]
                     out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
-                    parse_size += end_window - start_window + 1;
+                    this->parse_size += end_window - start_window + 1;
             
                     // move itarators and re initialize phrase
                     sample_iterator.go_to(tsp[end_window]);
@@ -227,7 +228,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
             else if (dictionary.contains(phrase))               { hash = dictionary.get(phrase); }
             else                                                { hash = dictionary.add(phrase); }
         
-            out_file.write((char*) (&hash), sizeof(hash_type)); parse_size++;
+            out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
     
             if (phrase[0] != DOLLAR_PRIME)
             {
@@ -252,7 +253,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
         else if (dictionary.contains(phrase))               { hash = dictionary.get(phrase); }
         else                                                { hash = dictionary.add(phrase); }
         
-        out_file.write((char*) (&hash), sizeof(hash_type));  parse_size++;
+        out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
     }
     else { spdlog::error("A sample doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
     
@@ -350,7 +351,7 @@ vcfbwt::pfp::Parser::close()
             merged.write((char*) &out_e, sizeof(size_type));
         }
     
-        //Main
+        // Main
         if ((this->parse_size) != 0)
         {
             std::ifstream main_parse(this->tmp_out_file_name);
@@ -422,8 +423,17 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
     std::string dollar_window; dollar_window.append(params.w, DOLLAR_PRIME);
     trigger_string_set.insert(string_hash(&(dollar_window[0]), dollar_window.size()));
     
+    // If a window of Ns has hash 0 modulo p than raise an error, it will lead to a giant parse
+    std::string ns = std::string(params.w, 'N');
+    if (string_hash(ns.c_str(), ns.size()) % params.p == 0)
+    {
+        spdlog::error("The current configuration allows for w Ns to be a trigger string!");
+    }
+    
     std::unordered_set<std::string> banned_ts;
     banned_ts.insert(std::string(params.w, 'N'));
+
+    
     
     // Compute trigger strings from most common variations
     if (params.compute_seeded_trigger_strings)
