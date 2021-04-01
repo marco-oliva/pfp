@@ -430,8 +430,6 @@ vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& par
     
     std::unordered_set<std::string> banned_ts;
     banned_ts.insert(std::string(params.w, 'N'));
-
-    
     
     // Compute trigger strings from most common variations
     if (params.compute_seeded_trigger_strings)

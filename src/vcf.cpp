@@ -243,7 +243,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         }
                         
                         auto id = l_samples_id.find(std::string(hdr->samples[i_s]));
-                        if (id != l_samples_id.end() and id->second <= max_samples) // Process only wanted l_samples
+                        if (id != l_samples_id.end() and id->second < max_samples) // Process only wanted l_samples
                         {
                             // Adding this variation to a sample only if:
                             // - has not been inserted right before this insertion
@@ -294,6 +294,13 @@ void
 vcfbwt::VCF::init_vcf(const std::string &vcf_path, std::size_t i)
 {
     init_vcf(vcf_path, variations, samples, samples_id, i);
+    std::size_t tot_a_s = 0, tot_samples = 0;
+    for (auto& s : this->samples)
+    {
+        tot_a_s += s.variations.size();
+        if (s.variations.size() > 0) { tot_samples += 1; }
+    }
+    spdlog::info("Average variations per sample: {}", tot_a_s / tot_samples);
 }
 
 //------------------------------------------------------------------------------
@@ -364,13 +371,15 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
     // print some statistics
     spdlog::info("Variations size [{}]: {}GB", variations.size(), inGigabytes(variations.size() * sizeof(Variation)));
     spdlog::info("Reference size: {} GB", inGigabytes(reference.size()));
-
-    std::size_t tot_a_s = 0;
+    
+    std::size_t tot_a_s = 0, tot_samples = 0;
     for (auto& s : this->samples)
     {
         tot_a_s += s.variations.size();
+        if (s.variations.size() > 0) { tot_samples += 1; }
     }
     spdlog::info("Samples size: {} GB", inGigabytes(tot_a_s * 8));
+    spdlog::info("Average variations per sample: {}", tot_a_s / tot_samples);
 }
 
 //------------------------------------------------------------------------------

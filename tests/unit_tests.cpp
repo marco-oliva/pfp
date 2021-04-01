@@ -60,7 +60,7 @@ TEST_CASE( "Sample: HG00096", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
     REQUIRE(vcf[0].id() == "HG00096");
 
@@ -114,7 +114,7 @@ TEST_CASE( "Reference + Sample HG00096, NO trigger strings, No acceleration", "[
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
     // Only work on sample HG00096
     vcf.set_max_samples(1);
@@ -188,7 +188,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, No acceleration", 
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
     // Only work on sample HG00096
     vcf.set_max_samples(1);
@@ -263,7 +263,7 @@ TEST_CASE( "Reference + Sample HG00096, NO trigger strings, WITH acceleration", 
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
     // Only work on sample HG00096
     vcf.set_max_samples(1);
@@ -337,7 +337,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, WITH acceleration"
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
     // Only work on sample HG00096
     vcf.set_max_samples(1);
@@ -411,7 +411,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, WITH acceleration,
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
     
     // Only work on sample HG00096
     vcf.set_max_samples(1);
@@ -496,7 +496,7 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
                     testfiles_dir + "/Y.fa.gz"
             };
 
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names);
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, 1);
 
     REQUIRE(vcf[0].id() == "HG00096");
 
