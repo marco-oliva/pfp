@@ -196,7 +196,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, No acceleration", 
     // Produce dictionary and parsing
     std::unordered_set<vcfbwt::hash_type> trigger_strings;
     vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global; params.min_frequency = 0.001;
+    params.w = w_global; params.p = p_global; params.min_frequency = 0.001; params.max_frequency = 2;
     params.compute_seeded_trigger_strings = true;
     params.use_acceleration = false;
     vcfbwt::pfp::Parser::compute_trigger_strings(vcf, params, trigger_strings);
@@ -345,7 +345,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, WITH acceleration"
     // Produce dictionary and parsing
     std::unordered_set<vcfbwt::hash_type> trigger_strings;
     vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global; params.min_frequency = 0.001;
+    params.w = w_global; params.p = p_global; params.min_frequency = 0.001;  params.max_frequency = 2;
     params.compute_seeded_trigger_strings = true;
     params.use_acceleration = true;
     vcfbwt::pfp::Parser::compute_trigger_strings(vcf, params, trigger_strings);
@@ -419,7 +419,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH trigger strings, WITH acceleration,
     // Produce dictionary and parsing
     std::unordered_set<vcfbwt::hash_type> trigger_strings;
     vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global; params.min_frequency = 0.001;
+    params.w = w_global; params.p = p_global; params.min_frequency = 0.001;  params.max_frequency = 2;
     params.compute_seeded_trigger_strings = true;
     params.use_acceleration = true;
     params.not_use_p = true;
