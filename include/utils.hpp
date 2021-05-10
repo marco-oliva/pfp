@@ -201,6 +201,15 @@ bool is_gzipped(std::ifstream& in);
 
 //------------------------------------------------------------------------------
 
+// Disk space statistics
+namespace DiskWrites
+{
+    void update(std::size_t num_of_bytes);
+};
+
+//------------------------------------------------------------------------------
+
+
 } // end namespace vcfbwt
 
 #endif //utils_hpp

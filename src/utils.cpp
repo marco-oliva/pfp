@@ -96,3 +96,29 @@ vcfbwt::is_gzipped(std::ifstream& in)
     
     return ((f == '\x1F') and (s == '\x8B'));
 }
+
+//------------------------------------------------------------------------------
+
+struct WritesCounter
+{
+    std::mutex write_stats_lock;
+    std::size_t bytes_wrote;
+    
+    WritesCounter() : bytes_wrote(0) {};
+    ~WritesCounter()
+    {
+        // Can't use spdlog here, could be destroyed after spdlog's objects
+        std::cout << "[Disk Write (bytes): " << std::to_string(bytes_wrote) << "]" << std::endl;
+    }
+    
+} writes_counter;
+
+void vcfbwt::DiskWrites::update(std::size_t num_of_bytes)
+{
+    std::lock_guard<std::mutex> lock(writes_counter.write_stats_lock);
+    writes_counter.bytes_wrote += num_of_bytes;
+}
+
+
+
+//------------------------------------------------------------------------------

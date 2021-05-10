@@ -154,6 +154,13 @@ vcfbwt::pfp::Parser::init(const Params& params, const std::string& prefix, Refer
     this->reference_parse = &rp;
     
     this->params = params;
+    
+    //------------------------------ TODO: Remove this
+    //for (auto& p : this->reference_parse->trigger_strings_position)
+    //{
+    //    phrases_versions.insert({p, {}});
+    //}
+    //------------------------------
 }
 
 void
@@ -236,6 +243,14 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
                 spdlog::debug("Parsed phrase [{}] {}", phrase.size(), phrase);
                 spdlog::debug("------------------------------------------------------------");
             }
+    
+            //------------------------------ TODO: Remove this
+            //if (phrases_versions.find(pos_on_reference - w + 1) != phrases_versions.end())
+            //{
+            //    phrases_versions[pos_on_reference - w + 1].insert(hash);
+            //}
+            //else { /*NOP*/ }
+            //------------------------------
             
             phrase.erase(phrase.begin(), phrase.end() - this->w); // Keep the last w chars
         }
@@ -256,7 +271,6 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
         out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
     }
     else { spdlog::error("A sample doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
-    
 }
 
 void
@@ -266,12 +280,38 @@ vcfbwt::pfp::Parser::close()
     
     if ((tags & MAIN) or (tags & WORKER))
     {
+        vcfbwt::DiskWrites::update(out_file.tellp()); // Disk Stats
         this->out_file.close();
     }
     
     // Output parse, substitute hash with rank
     if (tags & MAIN)
     {
+    
+        //------------------------------ TODO: Remove this
+        // Collect workers phrases versions and print out the values
+        //for (auto worker : registered_workers)
+        //{
+        //    for (auto& ts_pair : worker.get().phrases_versions)
+        //    {
+        //        if (this->phrases_versions.find(ts_pair.first) != phrases_versions.end())
+        //        {
+        //            this->phrases_versions[ts_pair.first].merge(ts_pair.second);
+        //        }
+        //        else {this->phrases_versions[ts_pair.first] = ts_pair.second; }
+        //    }
+        //}
+        
+        //spdlog::info("Writing phrases frequencies in ./phrases.csv. Size: {}", phrases_versions.size());
+        //std::ofstream phrases_frequencies_csv("phrases.csv");
+        //phrases_frequencies_csv << "end_ts,frequency" << std::endl;
+        //for (auto& pair : phrases_versions)
+        //{
+        //    phrases_frequencies_csv << std::to_string(pair.first) << "," << std::to_string(pair.second.size()) << std::endl;
+        //}
+        //phrases_frequencies_csv.close();
+        //------------------------------
+        
         // close all the registered workers and merge their dictionaries
         spdlog::info("Main parser: closing all registered workers");
         for (auto worker : registered_workers) { worker.get().close(); }
@@ -369,6 +409,7 @@ vcfbwt::pfp::Parser::close()
                 merged << worker_parse.rdbuf();
             }
         }
+        vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
         merged.close();
         
         this->parse_size = out_parse_size;
@@ -387,6 +428,8 @@ vcfbwt::pfp::Parser::close()
             }
         
             dict.put(ENDOFDICT);
+            
+            vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
             dict.close();
         }
         
@@ -405,7 +448,11 @@ vcfbwt::pfp::Parser::close()
                 int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
                 lengths.write((char*) &len, sizeof(int32_t));
             }
+    
+            vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
             dicz.close();
+    
+            vcfbwt::DiskWrites::update(lengths.tellp()); // Disk Stats
             lengths.close();
         }
     

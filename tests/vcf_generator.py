@@ -111,9 +111,9 @@ def main():
     # For each region
     print('Generating random variations for each region')
     rand_variations_pos = list()
-    for region, samples_list in tqdm(samples_per_region.items()):
+    for region, samples_list in samples_per_region.items():
         # Create variations
-        for i in range(parameters.n):
+        for i in tqdm(range(parameters.n)):
 
             # Get variation random pos
             while True:

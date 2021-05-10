@@ -148,6 +148,11 @@ public:
         LAST = 16
     };
     
+    
+    //------------------------------ TODO: Remove this
+    //std::unordered_map<std::size_t, std::unordered_set<std::size_t>> phrases_versions;
+    //------------------------------
+    
     void init(const Params& params, const std::string& prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED);
     
     Parser(const Params& params, const std::string& file_path, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED)
