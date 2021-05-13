@@ -20,6 +20,7 @@
 #include <fstream>
 
 #include <unistd.h>
+#include <math.h>
 
 #include <spdlog/spdlog.h>
 #include <mio/mmap.hpp>
@@ -42,17 +43,20 @@ typedef short_type size_type;
 #endif
 typedef long_type  hash_type;
 
-constexpr std::size_t KILOBYTE     = 1024;
-constexpr std::size_t MEGABYTE     = KILOBYTE * KILOBYTE;
-constexpr std::size_t GIGABYTE     = KILOBYTE * MEGABYTE;
+constexpr std::size_t KILOBYTE      = 1024;
+constexpr std::size_t MEGABYTE      = KILOBYTE * KILOBYTE;
+constexpr std::size_t GIGABYTE      = KILOBYTE * MEGABYTE;
 
-constexpr double KILOBYTE_DOUBLE = 1024.0;
-constexpr double MILLION_DOUBLE  = 1000000.0;
-constexpr double MEGABYTE_DOUBLE = KILOBYTE_DOUBLE * KILOBYTE_DOUBLE;
-constexpr double GIGABYTE_DOUBLE = KILOBYTE_DOUBLE * MEGABYTE_DOUBLE;
+constexpr double KILOBYTE_DOUBLE    = 1024.0;
+constexpr double MILLION_DOUBLE     = 1000000.0;
+constexpr double MEGABYTE_DOUBLE    = KILOBYTE_DOUBLE * KILOBYTE_DOUBLE;
+constexpr double GIGABYTE_DOUBLE    = KILOBYTE_DOUBLE * MEGABYTE_DOUBLE;
 
-constexpr std::size_t MILLION      = 1000000;
-constexpr std::size_t BILLION      = 1000 * MILLION;
+constexpr std::size_t MILLION       = 1000000;
+constexpr std::size_t BILLION       = 1000 * MILLION;
+
+constexpr short_type kr_consant     = 256;
+constexpr short_type kr_prime       = 2147483647;
 
 
 //------------------------------------------------------------------------------
@@ -88,24 +92,6 @@ set_prime(std::size_t p)
     else { spdlog::error("Prime is too big for {} bytes", sizeof(hash_type)); std::exit(EXIT_FAILURE); }
 }
 
-/*
-  Thomas Wang's integer hash function. In many implementations, std::hash
-  is identity function for integers, which leads to performance issues.
-*/
-
-inline std::size_t
-wang_hash_64(std::size_t key)
-{
-    key = (~key) + (key << 21); // key = (key << 21) - key - 1;
-    key = key ^ (key >> 24);
-    key = (key + (key << 3)) + (key << 8); // key * 265
-    key = key ^ (key >> 14);
-    key = (key + (key << 2)) + (key << 4); // key * 21
-    key = key ^ (key >> 28);
-    key = key + (key << 31);
-    return key;
-}
-
 inline hash_type
 string_hash(const char* s, std::size_t size)
 {
@@ -122,52 +108,23 @@ string_hash(const char* s, std::size_t size)
     return hash;
 }
 
-/*
-  Window in a string and its KR fingerprint
-*/
-struct KR_window {
-    int wsize;
-    int *window;
-    int asize;
-    hash_type prime;
-    hash_type hash;
-    size_type tot_char;
-    size_type asize_pot;   // asize^(wsize-1) mod prime
+class KarpRabinHash
+{
+public:
+    KarpRabinHash(hash_type c, size_type n);
     
-    KR_window(int w): wsize(w) {
-        asize = 256;
-        asize_pot = 1;
-        if (sizeof(hash_type) > 4) { prime = long_prime; }
-        else { prime = short_prime; }
-        
-        for(int i=1;i<wsize;i++)
-            asize_pot = (asize_pot*asize)% prime; // ugly linear-time power algorithm
-        // alloc and clear window
-        window = new int[wsize];
-        reset();
-    }
+    void initialize(const std::string& window);
+    void update(char char_out, char char_in);
+    void reset();
     
-    // init window, hash, and tot_char
-    void reset() {
-        for(int i=0;i<wsize;i++) window[i]=0;
-        // init hash value and related values
-        hash=tot_char=0;
-    }
+    const hash_type& get_hash() const { return this->hash_value; }
     
-    hash_type addchar(int c) {
-        std::size_t k = tot_char++ % wsize;
-        // complex expression to avoid negative numbers
-        hash += (prime - (window[k]*asize_pot) % prime); // remove window[k] contribution
-        hash = (asize*hash + c) % prime;      //  add char i
-        window[k]=c;
-        // cerr << get_window() << " ~~ " << window << " --> " << hash << endl;
-        return hash;
-    }
     
-    ~KR_window() {
-        delete[] window;
-    }
-    
+private:
+    hash_type constant;
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    hash_type hash_value = 0;
 };
 
 

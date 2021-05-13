@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include <vcf.hpp>
+#include <utils.hpp>
 
 namespace vcfbwt
 {
@@ -28,6 +29,15 @@ enum SPECIAL_TYPES
     DOLLAR = 2,
     DOLLAR_PRIME = 3
 };
+
+inline bool
+is_all_dollars(std::string& s)
+{
+    bool out = true;
+    for (auto& c : s) { out = (out and (c == DOLLAR or c == DOLLAR_PRIME )); }
+    
+    return out;
+}
 
 //------------------------------------------------------------------------------
 
@@ -78,15 +88,9 @@ struct Params
 {
     hash_type p = 100;
     hash_type w =  10;
-    bool not_use_p = false;
-    bool compute_seeded_trigger_strings = false;
     bool compress_dictionary = false;
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
-    
-    inline std::size_t min_seed_region_length() const { return w * 10; }
-    double min_frequency = 0.001;
-    double max_frequency = 0.5;
 };
 
 struct Statistics
@@ -106,9 +110,9 @@ public :
     
     const Params& params;
     
-    void init(const std::string& reference, const std::unordered_set<hash_type>& ts);
+    void init(const std::string& reference);
     
-    ReferenceParse(const std::string& reference, const std::unordered_set<hash_type>& ts, const Params& pms) : params(pms) { this->init(reference,ts); }
+    ReferenceParse(const std::string& reference, const Params& pms) : params(pms) { this->init(reference); }
     const hash_type& operator[](size_type i) const { return this->parse[i]; }
 };
 
@@ -149,10 +153,6 @@ public:
     };
     
     
-    //------------------------------ TODO: Remove this
-    //std::unordered_map<std::size_t, std::unordered_set<std::size_t>> phrases_versions;
-    //------------------------------
-    
     void init(const Params& params, const std::string& prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED);
     
     Parser(const Params& params, const std::string& file_path, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED)
@@ -181,9 +181,7 @@ public:
             std::ofstream csv(out_file_prefix + ".csv");
             csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
             csv << params.w << ",";
-            if (params.not_use_p) { csv << "nan" << ","; }
-            else { csv << params.p << ","; }
-            csv << params.min_frequency << ",";
+            csv << params.p << ",";
             csv << statistics.parse_length << ",";
             csv << statistics.num_of_phrases_dictionary << ",";
             csv << statistics.total_dictionary_length << ",";
@@ -197,13 +195,12 @@ public:
     const Statistics& get_statistics() const { return this->statistics; }
     void register_worker(Parser& parser) { this->registered_workers.push_back(std::ref(parser)); }
     
-    void operator()(const Sample& sample, const std::unordered_set<hash_type>& trigger_strings);
+    void operator()(const Sample& sample);
     
-    static void compute_trigger_strings(VCF& vcf, const Params& params, std::unordered_set<hash_type>& trigger_string_set);
     static void read_parse(std::string parse_file_name, std::vector<size_type>& parse);
     static void read_dictionary(std::string dic_file_name, std::vector<std::string>& dictionary_vector);
     static void merge(std::string left_prefix, std::string right_prefix, std::string out_prefix, const Params& params);
-    static void parse_fasta(std::string fasta_file_name, std::string out_prefix, const std::unordered_set<hash_type>& trigger_strings, const Params& params);
+    static void parse_fasta(std::string fasta_file_name, std::string out_prefix, const Params& params);
 };
 
 //------------------------------------------------------------------------------

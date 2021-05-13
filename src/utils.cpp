@@ -10,6 +10,46 @@
 
 //------------------------------------------------------------------------------
 
+vcfbwt::hash_type modular_pow(vcfbwt::hash_type base, vcfbwt::hash_type exponent, vcfbwt::hash_type modulus)
+{
+    if (modulus == 1) { return 0; }
+    if (exponent == 0) { return 1; }
+    vcfbwt::hash_type c = 1;
+    for (vcfbwt::hash_type e_prime = 0; e_prime <= exponent - 1; e_prime++)
+    {
+        c = (c * base) % modulus;
+    }
+    return c;
+}
+
+
+vcfbwt::KarpRabinHash::KarpRabinHash(hash_type c, size_type n) : constant(c), window_length(n)
+{
+    constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, kr_prime);
+}
+
+void vcfbwt::KarpRabinHash::reset() { this->hash_value = 0; }
+
+void vcfbwt::KarpRabinHash::initialize(const std::string& window)
+{
+    assert(window.size() == this->window_length);
+    for (hash_type i = 0; i < this->window_length; i++)
+    {
+        hash_value += window[window.size() - 1 - i] * modular_pow(constant, i, kr_prime);
+        hash_value = hash_value % kr_prime;
+    }
+}
+
+void vcfbwt::KarpRabinHash::update(char char_out, char char_in)
+{
+    hash_value = hash_value + kr_prime; // negative avoider
+    hash_value = hash_value - ((constant_to_n_minus_one_mod * char_out) % kr_prime);
+    hash_value = (constant * hash_value) + char_in;
+    hash_value = hash_value % kr_prime;
+}
+
+//------------------------------------------------------------------------------
+
 const std::string vcfbwt::TempFile::DEFAULT_TEMP_DIR = ".";
 std::string vcfbwt::TempFile::temp_dir = vcfbwt::TempFile::DEFAULT_TEMP_DIR;
 

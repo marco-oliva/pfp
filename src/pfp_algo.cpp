@@ -93,10 +93,13 @@ vcfbwt::pfp::Dictionary::hash_to_rank(hash_type hash)
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::pfp::ReferenceParse::init(const std::string& reference, const std::unordered_set<hash_type>& ts)
+vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
 {
     std::string phrase;
     spdlog::info("Parsing reference");
+    
+    // Karp Robin Hash Function for sliding window
+    KarpRabinHash kr_hash(kr_consant, this->params.w);
     
     // Reference as first sample, just one dollar to be compatible with Giovanni's pscan.cpp
     phrase.append(1, DOLLAR);
@@ -106,11 +109,10 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, const std::unord
         char c = reference[ref_it];
         
         phrase.push_back(c);
-        
-        if (
-        (phrase.size() > this->params.w) and
-        (((not this->params.not_use_p) and ((string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w) % this->params.p) == 0)) or
-        (ts.find(string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w)) != ts.end())))
+        if (phrase.size() == params.w) { kr_hash.initialize(phrase); }
+        else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
+
+        if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
             hash_type hash = 0;
             if (this->dictionary.contains(phrase))    { hash = this->dictionary.get(phrase); }
@@ -120,6 +122,8 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, const std::unord
             this->trigger_strings_position.push_back(ref_it - this->params.w + 1);
     
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
+            
+            kr_hash.reset(); kr_hash.initialize(phrase);
         }
     }
     
@@ -154,27 +158,22 @@ vcfbwt::pfp::Parser::init(const Params& params, const std::string& prefix, Refer
     this->reference_parse = &rp;
     
     this->params = params;
-    
-    //------------------------------ TODO: Remove this
-    //for (auto& p : this->reference_parse->trigger_strings_position)
-    //{
-    //    phrases_versions.insert({p, {}});
-    //}
-    //------------------------------
 }
 
 void
-vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unordered_set<hash_type>& ts)
+vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
 {
-    if (ts.empty()) {spdlog::error("Empty set of treigger strings!"); std::exit(EXIT_FAILURE); }
-    
     Sample::iterator sample_iterator(sample);
     this->samples_processed.push_back(sample.id());
     
     std::string phrase;
     
+    // Karp Robin Hash Function for sliding window
+    KarpRabinHash kr_hash(kr_consant, this->params.w);
+    
     // Every sample starts with w dollar prime
     phrase.append(this->w, DOLLAR_PRIME);
+    kr_hash.initialize(phrase);
     
     // Shorthands
     std::vector<size_type>& tsp = reference_parse->trigger_strings_position;
@@ -204,7 +203,6 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
                     spdlog::debug("copied from {} to {}", tsp[start_window], tsp[end_window] + this->w);
                     spdlog::debug("next variatin: {}", sample_iterator.next_variation());
                     
-                    
                     // copy from parse[start_window : end_window]
                     out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
                     this->parse_size += end_window - start_window + 1;
@@ -213,6 +211,9 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
                     sample_iterator.go_to(tsp[end_window]);
                     phrase.clear();
                     for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}
+                    
+                    kr_hash.reset(); kr_hash.initialize(phrase);
+                    
                     ++sample_iterator;
                     spdlog::debug("New phrase [{}]: {}", phrase.size(), phrase);
                     spdlog::debug("------------------------------------------------------------");
@@ -223,12 +224,10 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
         // Next phrase should contain a variation so parse as normal, also if we don't
         // want to use the acceleration we should always end up here
         phrase.push_back(*sample_iterator);
+        kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]);
         ++sample_iterator;
     
-        if (
-        (phrase.size() > this->params.w) and
-        (((not this->params.not_use_p) and ((string_hash(&(phrase[phrase.size() - this->params.w]), this->params.w) % this->params.p) == 0)) or
-        (ts.find(string_hash(&(phrase[phrase.size() - this->params.w]), this->w)) != ts.end())))
+        if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
             hash_type hash = 0;
             if (reference_parse->dictionary.contains(phrase))   { hash = reference_parse->dictionary.get(phrase); }
@@ -237,22 +236,16 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample, const std::unorder
         
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
     
-            if (phrase[0] != DOLLAR_PRIME)
-            {
-                spdlog::debug("------------------------------------------------------------");
-                spdlog::debug("Parsed phrase [{}] {}", phrase.size(), phrase);
-                spdlog::debug("------------------------------------------------------------");
-            }
-    
-            //------------------------------ TODO: Remove this
-            //if (phrases_versions.find(pos_on_reference - w + 1) != phrases_versions.end())
+            //if (phrase[0] != DOLLAR_PRIME)
             //{
-            //    phrases_versions[pos_on_reference - w + 1].insert(hash);
+            spdlog::debug("------------------------------------------------------------");
+            spdlog::debug("Parsed phrase [{}] {}", phrase.size(), phrase);
+            spdlog::debug("------------------------------------------------------------");
             //}
-            //else { /*NOP*/ }
-            //------------------------------
             
             phrase.erase(phrase.begin(), phrase.end() - this->w); // Keep the last w chars
+    
+            kr_hash.reset(); kr_hash.initialize(phrase);
         }
     }
     
@@ -287,31 +280,6 @@ vcfbwt::pfp::Parser::close()
     // Output parse, substitute hash with rank
     if (tags & MAIN)
     {
-    
-        //------------------------------ TODO: Remove this
-        // Collect workers phrases versions and print out the values
-        //for (auto worker : registered_workers)
-        //{
-        //    for (auto& ts_pair : worker.get().phrases_versions)
-        //    {
-        //        if (this->phrases_versions.find(ts_pair.first) != phrases_versions.end())
-        //        {
-        //            this->phrases_versions[ts_pair.first].merge(ts_pair.second);
-        //        }
-        //        else {this->phrases_versions[ts_pair.first] = ts_pair.second; }
-        //    }
-        //}
-        
-        //spdlog::info("Writing phrases frequencies in ./phrases.csv. Size: {}", phrases_versions.size());
-        //std::ofstream phrases_frequencies_csv("phrases.csv");
-        //phrases_frequencies_csv << "end_ts,frequency" << std::endl;
-        //for (auto& pair : phrases_versions)
-        //{
-        //    phrases_frequencies_csv << std::to_string(pair.first) << "," << std::to_string(pair.second.size()) << std::endl;
-        //}
-        //phrases_frequencies_csv.close();
-        //------------------------------
-        
         // close all the registered workers and merge their dictionaries
         spdlog::info("Main parser: closing all registered workers");
         for (auto worker : registered_workers) { worker.get().close(); }
@@ -458,58 +426,6 @@ vcfbwt::pfp::Parser::close()
     
         // Outoput Occurrencies
         // NOP
-    }
-}
-
-//------------------------------------------------------------------------------
-
-void
-vcfbwt::pfp::Parser::compute_trigger_strings(vcfbwt::VCF& vcf, const Params& params, std::unordered_set<hash_type>& trigger_string_set)
-{
-    // Put last w charachters of each sample in the VCF as a trigger strings
-    std::string dollar_window; dollar_window.append(params.w, DOLLAR_PRIME);
-    trigger_string_set.insert(string_hash(&(dollar_window[0]), dollar_window.size()));
-    
-    // If a window of Ns has hash 0 modulo p than raise an error, it will lead to a giant parse
-    std::string ns = std::string(params.w, 'N');
-    if (string_hash(ns.c_str(), ns.size()) % params.p == 0) { spdlog::error("The current configuration allows for {} Ns to be a trigger string!", params.w);}
-    else { spdlog::info("{} Ns not in the trigger strings set", params.w); }
-    
-    std::unordered_set<std::string> banned_ts;
-    banned_ts.insert(std::string(params.w, 'N'));
-    
-    // Compute trigger strings from most common variations
-    if (params.compute_seeded_trigger_strings)
-    {
-        const std::vector<Variation>& variations_ref = vcf.get_variations();
-    
-        for (std::size_t i = 0; i < variations_ref.size(); i++)
-        {
-            const Variation& variation = variations_ref[i];
-        
-            if (((variation.freq > params.min_frequency) and (variation.freq < params.max_frequency)) and variation.used)
-            {
-                // Extract seed strings from before and after the variations
-                std::string opening_trigger_string = vcf.get_reference().substr(variation.pos - params.w, params.w);
-                std::string closing_trigger_string = vcf.get_reference().substr(variation.pos + 1, params.w);
-                
-                if (banned_ts.find(opening_trigger_string) == banned_ts.end())
-                {
-                    trigger_string_set.insert(string_hash(&(opening_trigger_string[0]), opening_trigger_string.size()));
-                }
-                
-                if (banned_ts.find(closing_trigger_string) == banned_ts.end())
-                {
-                    trigger_string_set.insert(string_hash(&(closing_trigger_string[0]), closing_trigger_string.size()));
-                }
-            }
-        }
-        
-        spdlog::info("Generated {} trigger strings", trigger_string_set.size());
-    }
-    else
-    {
-        spdlog::info("Not generating seeded trigger strings");
     }
 }
 

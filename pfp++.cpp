@@ -33,14 +33,9 @@ int main(int argc, char **argv)
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 200))->configurable();
     app.add_option("-p, --modulo", params.p, "Module used during parisng")->check(CLI::Range(50, 20000))->configurable();
-    app.add_option("-f, --min-frequency", params.min_frequency, "Min frequency for variations")->check(CLI::Range(0.0, 1.0))->configurable();
-    app.add_option("-F, --max-frequency", params.max_frequency, "Max frequency for variations")->check(CLI::Range(0.0, 1.0))->configurable();
     app.add_option("-t, --threads", threads, "Number of threads")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
-    app.add_flag("-s, --seeds", params.compute_seeded_trigger_strings, "Compute seeded trigger strings")->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
-    app.add_flag("--only-trigger-strings", only_trigger_strings, "Generate Only Trigger Strings")->configurable();
-    app.add_flag("--not-use-modulo", params.not_use_p, "Only the trigger stings stop the parsing")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
@@ -64,24 +59,11 @@ int main(int argc, char **argv)
     // Parse the VCF
     vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, max_samples);
     
-    if (only_trigger_strings)
-    {
-        // Compute and output trigger_strings
-        std::unordered_set<vcfbwt::hash_type> trigger_strings;
-        vcfbwt::pfp::Parser::compute_trigger_strings(vcf, params, trigger_strings);
-        
-        std::ofstream tsout(out_prefix + ".ts");
-        for (const auto& s : trigger_strings) { tsout.write((char*) &s, sizeof(vcfbwt::hash_type)); }
-        
-        spdlog::info("Output trigger strings: {}", out_prefix + ".ts"); return EXIT_SUCCESS;
-    }
-    
     // Set threads accordingly to configuration
     omp_set_num_threads(threads);
     
     std::unordered_set<vcfbwt::hash_type> trigger_strings;
-    vcfbwt::pfp::Parser::compute_trigger_strings(vcf, params, trigger_strings);
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), trigger_strings, params);
+    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
     
     vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
     
@@ -99,7 +81,7 @@ int main(int argc, char **argv)
     {
         int this_thread = omp_get_thread_num();
         spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
-        workers[this_thread](vcf[i], trigger_strings);
+        workers[this_thread](vcf[i]);
     }
     
     // close the main parser and exit
