@@ -55,10 +55,6 @@ constexpr double GIGABYTE_DOUBLE    = KILOBYTE_DOUBLE * MEGABYTE_DOUBLE;
 constexpr std::size_t MILLION       = 1000000;
 constexpr std::size_t BILLION       = 1000 * MILLION;
 
-constexpr short_type kr_consant     = 256;
-constexpr short_type kr_prime       = 2147483647;
-
-
 //------------------------------------------------------------------------------
 
 inline double
@@ -111,20 +107,27 @@ string_hash(const char* s, std::size_t size)
 class KarpRabinHash
 {
 public:
-    KarpRabinHash(hash_type c, size_type n);
+    KarpRabinHash(size_type n);
     
     void initialize(const std::string& window);
     void update(char char_out, char char_in);
     void reset();
     
     const hash_type& get_hash() const { return this->hash_value; }
+    void set_constant(const hash_type& c) { this->constant = c; }
+    void set_prime(const hash_type& p) { this->prime = p; }
     
     
 private:
     hash_type constant;
+    hash_type prime;
     hash_type constant_to_n_minus_one_mod;
     size_type window_length;
     hash_type hash_value = 0;
+    
+public:
+    constexpr static hash_type kr_prime    = 1999999973;
+    constexpr static hash_type kr_constant = 256;
 };
 
 

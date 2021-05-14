@@ -62,7 +62,6 @@ int main(int argc, char **argv)
     // Set threads accordingly to configuration
     omp_set_num_threads(threads);
     
-    std::unordered_set<vcfbwt::hash_type> trigger_strings;
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
     
     vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);

@@ -24,8 +24,6 @@ int main(int argc, char **argv)
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable()->required();
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(0, 100))->configurable();
     app.add_option("-p, --module", params.p, "Module used during parisng")->check(CLI::Range(0, 1000))->configurable();
-    app.add_option("-f, --min-frequency", params.min_frequency, "Min frequency for variations")->check(CLI::Range(0.0, 1.0))->configurable();
-    app.add_flag("-s, --seeds", params.compute_seeded_trigger_strings, "Compute seeded trigger strings")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
     app.set_config("--configure");
     app.allow_windows_style_options();

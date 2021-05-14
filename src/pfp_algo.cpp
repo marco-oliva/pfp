@@ -99,7 +99,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     spdlog::info("Parsing reference");
     
     // Karp Robin Hash Function for sliding window
-    KarpRabinHash kr_hash(kr_consant, this->params.w);
+    KarpRabinHash kr_hash(this->params.w);
     
     // Reference as first sample, just one dollar to be compatible with Giovanni's pscan.cpp
     phrase.append(1, DOLLAR);
@@ -169,7 +169,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
     std::string phrase;
     
     // Karp Robin Hash Function for sliding window
-    KarpRabinHash kr_hash(kr_consant, this->params.w);
+    KarpRabinHash kr_hash(this->params.w);
     
     // Every sample starts with w dollar prime
     phrase.append(this->w, DOLLAR_PRIME);

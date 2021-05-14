@@ -23,29 +23,33 @@ vcfbwt::hash_type modular_pow(vcfbwt::hash_type base, vcfbwt::hash_type exponent
 }
 
 
-vcfbwt::KarpRabinHash::KarpRabinHash(hash_type c, size_type n) : constant(c), window_length(n)
+vcfbwt::KarpRabinHash::KarpRabinHash(size_type n) : window_length(n)
 {
-    constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, kr_prime);
+    this->constant = kr_constant;
+    this->prime = kr_prime;
+    constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, prime);
 }
 
 void vcfbwt::KarpRabinHash::reset() { this->hash_value = 0; }
 
 void vcfbwt::KarpRabinHash::initialize(const std::string& window)
 {
+    constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, prime);
+    
     assert(window.size() == this->window_length);
     for (hash_type i = 0; i < this->window_length; i++)
     {
-        hash_value += window[window.size() - 1 - i] * modular_pow(constant, i, kr_prime);
-        hash_value = hash_value % kr_prime;
+        hash_value += window[window.size() - 1 - i] * modular_pow(constant, i, prime);
+        hash_value = hash_value % prime;
     }
 }
 
 void vcfbwt::KarpRabinHash::update(char char_out, char char_in)
 {
-    hash_value = hash_value + kr_prime; // negative avoider
-    hash_value = hash_value - ((constant_to_n_minus_one_mod * char_out) % kr_prime);
+    hash_value = hash_value + prime; // negative avoider
+    hash_value = hash_value - ((constant_to_n_minus_one_mod * char_out) % prime);
     hash_value = (constant * hash_value) + char_in;
-    hash_value = hash_value % kr_prime;
+    hash_value = hash_value % prime;
 }
 
 //------------------------------------------------------------------------------
