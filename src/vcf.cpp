@@ -246,17 +246,20 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         if (id != l_samples_id.end() and id->second < max_samples) // Process only wanted l_samples
                         {
                             // Adding this variation to a sample only if:
-                            // - has not been inserted right before this insertion
-                            if ( not (
-                            ((l_samples[id->second].variations.size() > 0) and
-                             (l_samples[id->second].variations.back() == l_variations.size() - 1))
-                            ))
+                            // - it doens't overlap with previous variation
+                            if ((l_samples[id->second].variations.size() == 0) or
+                                (l_variations[(l_samples[id->second].variations.back())].pos
+                                 + l_variations[(l_samples[id->second].variations.back())].ref_len < var.pos))
                             {
                                 // Update frequency, to be normalized by the number of samples when parsing ends
                                 l_variations.back().freq += 1;
                                 l_variations.back().used = true;
                                 // Add variation to sample
                                 l_samples[id->second].variations.push_back(l_variations.size() - 1);
+                            }
+                            else
+                            {
+                                spdlog::debug("Skipping overlapping variation at pos {} for sample {}", var.pos, id->first);
                             }
                         }
                     }
@@ -383,5 +386,4 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
 }
 
 //------------------------------------------------------------------------------
-
 

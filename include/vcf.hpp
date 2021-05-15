@@ -127,7 +127,6 @@ private:
     
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
     void init_multi_ref(const std::vector<std::string>& refs_path);
-    
 
 public:
     

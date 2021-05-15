@@ -48,7 +48,7 @@ void vcfbwt::KarpRabinHash::update(char char_out, char char_in)
 {
     hash_value = hash_value + prime; // negative avoider
     hash_value = hash_value - ((constant_to_n_minus_one_mod * char_out) % prime);
-    hash_value = (constant * hash_value) + char_in;
+    hash_value = ((constant * hash_value) % prime) + char_in;
     hash_value = hash_value % prime;
 }
 
