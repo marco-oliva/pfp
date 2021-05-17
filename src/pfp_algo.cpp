@@ -38,15 +38,6 @@ vcfbwt::pfp::Dictionary::add(const std::string& phrase)
     return phrase_hash;
 }
 
-void
-vcfbwt::pfp::Dictionary::update_frequency(const std::string& phrase)
-{
-    if (this->contains(phrase))
-    {
-        this->hash_string_map[string_hash(&(phrase[0]), phrase.size())].occurrences++;
-    }
-}
-
 vcfbwt::hash_type
 vcfbwt::pfp::Dictionary::get(const std::string& phrase) const
 {
@@ -284,16 +275,19 @@ vcfbwt::pfp::Parser::close()
         spdlog::info("Main parser: closing all registered workers");
         for (auto worker : registered_workers) { worker.get().close(); }
     
-        spdlog::info("Main parser: Merging reference dictionary into MAIN dictionary, WARNING (TODO) does not add up occurrences");
+        spdlog::info("Main parser: Merging reference dictionary into MAIN dictionary");
         this->dictionary.hash_string_map.insert(this->reference_parse->dictionary.hash_string_map.begin(), this->reference_parse->dictionary.hash_string_map.end());
     
-        spdlog::info("Main parser: merging workers dictionaries, WARNING (TODO) does not add up occurrences");
+        spdlog::info("Main parser: merging workers dictionaries");
         for (auto worker : registered_workers)
         {
             // there should not be any collision since the reference dictionary is checked during parsing
             // if there is a collision the hash should be the same anyway
             this->dictionary.hash_string_map.insert(worker.get().dictionary.hash_string_map.begin(), worker.get().dictionary.hash_string_map.end());
         }
+        
+        // Occurrences
+        std::vector<size_type> occurrences(this->dictionary.size(), 0);
         
         spdlog::info("Main parser: Replacing hash values with ranks in MAIN, WORKERS and reference");
     
@@ -310,6 +304,7 @@ vcfbwt::pfp::Parser::close()
                 std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
                 size_type rank = this->dictionary.hash_to_rank(hash);
                 std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+                occurrences[rank - 1] += 1;
             }
             rw_mmap.unmap();
             truncate_file(tmp_out_file_name, this->parse_size * sizeof(size_type));
@@ -322,6 +317,7 @@ vcfbwt::pfp::Parser::close()
             {
                 hash_type rank = this->dictionary.hash_to_rank(this->reference_parse->parse[i]);
                 this->reference_parse->parse[i] = rank;
+                occurrences[rank - 1] += 1;
             }
         }
         
@@ -340,6 +336,7 @@ vcfbwt::pfp::Parser::close()
                     std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
                     size_type rank = this->dictionary.hash_to_rank(hash);
                     std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+                    occurrences[rank - 1] += 1;
                 }
                 rw_mmap.unmap();
                 truncate_file(worker.get().tmp_out_file_name, worker.get().parse_size * sizeof(size_type));
@@ -425,7 +422,16 @@ vcfbwt::pfp::Parser::close()
         }
     
         // Outoput Occurrencies
-        // NOP
+        if(this->params.compute_occurrences)
+        {
+            spdlog::info("Main parser: writing occurrences to file");
+            std::string occ_file_name = out_file_prefix + ".occ";
+            std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
+            occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
+            
+            vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
+            occ.close();
+        }
     }
 }
 

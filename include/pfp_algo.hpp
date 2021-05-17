@@ -49,11 +49,10 @@ private:
     
     struct DictionaryEntry
     {
-        size_type occurrences = 1;
         std::string phrase;
     
         DictionaryEntry() = default;
-        DictionaryEntry(const std::string& s) : occurrences(1), phrase(s) {}
+        DictionaryEntry(const std::string& s) : phrase(s) {}
     };
     
     std::unordered_map<hash_type, DictionaryEntry> hash_string_map;
@@ -91,6 +90,7 @@ struct Params
     bool compress_dictionary = false;
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
+    bool compute_occurrences = false;
 };
 
 struct Statistics
@@ -201,6 +201,8 @@ public:
     static void read_dictionary(std::string dic_file_name, std::vector<std::string>& dictionary_vector);
     static void merge(std::string left_prefix, std::string right_prefix, std::string out_prefix, const Params& params);
     static void parse_fasta(std::string fasta_file_name, std::string out_prefix, const Params& params);
+    
+    static std::vector<std::size_t> compute_occurrences(std::vector<std::string>& dictionary_vector, std::vector<size_type>& parse);
 };
 
 //------------------------------------------------------------------------------
