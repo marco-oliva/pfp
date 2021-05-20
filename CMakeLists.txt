@@ -86,13 +86,14 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 include_directories(${nthash-include})
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
+file(GLOB MALLOC_COUNT_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/malloc_count/*.c)
 
 # 32 and 64 bits parse
-add_library(pfp ${SOURCES})
-add_library(pfp64 ${SOURCES})
+add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES})
+add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARIES}")
+set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARIES}" "dl")
 
 ################################################################################
 # Tests

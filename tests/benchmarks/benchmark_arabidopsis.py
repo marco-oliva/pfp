@@ -9,21 +9,20 @@ data_dir_pfp    = "/blue/boucher/marco.oliva/tmp/generated_vcf"
 
 # VCF list
 vcf_list = ''
-#for i in range(1,23):
-#    vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",'.format(i)
-#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1b.20130502.genotypes.vcf.gz",'
-#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",'
-#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz"'
-#vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"'.format(19)
-vcf_list += '"' + data_dir_pfp + '/generated.vcf.gz"'
+for i in range(1,23):
+    vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",'.format(i)
+vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1b.20130502.genotypes.vcf.gz",'
+vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",'
+vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz"'
+vcf_list += '"' + data_dir_pfp + '/vcf/ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"'.format(19)
 
 # Reference list
 ref_list = ''
-#for i in range(1,23):
-#    ref_list += '"' + data_dir_pfp + '/reference/{}.fa.gz",'.format(i)
-#ref_list += '"' + data_dir_pfp + '/reference/X.fa.gz",'
-#ref_list += '"' + data_dir_pfp + '/reference/Y.fa.gz",'
-#ref_list += '"' + data_dir_pfp + '/reference/MT.fa.gz"'
+for i in range(1,23):
+    ref_list += '"' + data_dir_pfp + '/reference/{}.fa.gz",'.format(i)
+ref_list += '"' + data_dir_pfp + '/reference/X.fa.gz",'
+ref_list += '"' + data_dir_pfp + '/reference/Y.fa.gz",'
+ref_list += '"' + data_dir_pfp + '/reference/MT.fa.gz"'
 ref_list += '"' + data_dir_pfp + '/22.fa.gz"'
 
 # Generate config file
@@ -41,14 +40,11 @@ if (DEBUG):
     data_sizes = [1]
     w_values   = [10]
     p_values   = [50]
-    f_values   = [1.0]
     n_threads  = 8
 else:
     data_sizes = [500]
     w_values   = [10, 20, 30, 40]
     p_values   = [100, 500, 1000, 2000]
-    f_values   = [1.0, 0.01]
-    F_values   = [0.5]
     n_threads  = 32
 
 #------------------------------------------------------------
@@ -90,6 +86,7 @@ def get_vcf_file(out_dir, chromosome_id):
     wget.download(chromosome_url, out_dir + '/' + chromosome_name)
 
 def extract_fasta(out_dir, ref_list, vcf_list, n_sequences=1):
+
     vcf_to_fasta_exe = "../build/vcf_to_fa"
     command = "/usr/bin/time --verbose {} --configure {} -m {} -o {}".format(vcf_to_fasta_exe, base_dir + '/config.ini',
                                                                              n_sequences, out_dir + '/extracted.fa')
