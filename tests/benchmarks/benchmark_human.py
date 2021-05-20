@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import sys, time, argparse, subprocess, os, wget, errno, datetime, logging
+import sys, time, argparse, subprocess, os, wget, errno, datetime, logging, gzip, re
 from Bio import SeqIO
 
 # Set this dir
-data_base_dir = '/home/marco/tmp/tests'
+data_base_dir = '/home/marco/Tmp/tests'
 pre_download_data_dir = '/home/marco/Data/1kgp'
 version_letter = 'a'
 
@@ -22,14 +22,10 @@ common_data_dir         = "{}/human_tests/data".format(data_base_dir)
 common_tools_dir        = "{}/human_tests/tools".format(data_base_dir)
 tmp_fasta_dir           = "{}/human_tests/data/tmp".format(data_base_dir)
 
-# Generate config file
-# with open(project_base_dir + '/config.ini', 'w') as config_file:
-#     config_file.write('# Generated config file\n')
-#     config_file.write('vcf = [{}]\n'.format(vcf_list))
-#     config_file.write('ref = [{}]\n'.format(ref_list))
 
+# Chromosomes
+chromosomes_list = [i for i in range(1, 23)]
 
-data_sizes = [10, 100, 200]
 w_values   = [10]
 p_values   = [100]
 n_threads  = 32
@@ -57,17 +53,24 @@ def execute_command(command, time_it=False, seconds=1000000):
 
 
 def get_pscan(work_dir):
-    repository = "https://github.com/alshai/Big-BWT.git"
-    get_command = "git clone {} {}".format(repository, work_dir + "/Big-BWT")
-    execute_command(get_command)
+    if os.path.exists(work_dir + '/Big-BWT'):
+        print('Repository already exists')
+    else:
+        repository = "https://github.com/alshai/Big-BWT.git"
+        get_command = "git clone {} {}".format(repository, work_dir + "/Big-BWT")
+        execute_command(get_command)
     build_command = "make -C {}".format(work_dir + "/Big-BWT")
     execute_command(build_command)
-    return work_dir + '/Big-BWT/pscan.x'
+    return work_dir + '/Big-BWT/newscan.x'
 
 def get_au_pair(work_dir):
     return "binary_path"
 
 def get_pfp(work_dir):
+    if os.path.exists('../../build/pfp++'):
+        pfp_realpath = os.path.relpath('../../build/pfp++')
+        execute_command('cp {} {}'.format(pfp_realpath, work_dir))
+        return work_dir + '/pfp++'
     repository = "https://github.com/marco-oliva/pfp.git"
     execute_command("git clone {} {}".format(repository, work_dir + "/pfp"))
     mkdir_p(work_dir + '/pfp/build')
@@ -79,31 +82,39 @@ def get_pfp(work_dir):
 def get_vcf_files(out_dir):
     vcf_files_list = list()
     for chromosome_id in [str(c) for c in range(1,23)]:
-        chromosome_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
+        chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
                           "genotypes.vcf.gz".format(chromosome_id, version_letter)
-        print(pre_download_data_dir + '/vcf/' + chromosome_name)
-        if (os.path.exists(pre_download_data_dir + '/vcf/' + chromosome_name)):
-            print('Copying {}'.format(chromosome_name))
-            execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' + chromosome_name,
-                                              out_dir + '/' + chromosome_name)
+        if (os.path.exists(pre_download_data_dir + '/vcf/' + chromosome_file_name)):
+            print('Copying {}'.format(chromosome_file_name))
+            execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' + chromosome_file_name,
+                                              out_dir + '/' + chromosome_file_name)
                             )
         else:
             chromosome_url = "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/" \
-                             + chromosome_name
+                             + chromosome_file_name
             print('Downloading {}'.format(chromosome_url))
-            wget.download(chromosome_url, out_dir + '/' + chromosome_name)
+            wget.download(chromosome_url, out_dir + '/' + chromosome_file_name)
 
-        print('From gzip to bgzip')
-        execute_command('gunzip {}'.format(out_dir + '/' + chromosome_name), time_it=True)
-        execute_command('bgzip {}'.format(out_dir + '/' + chromosome_name[-3]), time_it=True)
-        execute_command('bcftools index {}'.format(out_dir + '/' + chromosome_name[-3] + '.bgz'), time_it=True)
-        vcf_files_list.append(out_dir + '/' + chromosome_name[-3] + '.bgz')
+        if os.path.exists(pre_download_data_dir + '/vcf/' +  chromosome_file_name[-3] + '.bgz'):
+            print('{} alrady exists'.format(chromosome_file_name[-3] + '.bgz'))
+            execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' +  chromosome_file_name[-3] + '.bgz'),
+                            out_dir + '/' + chromosome_file_name[-3] + '.bgz')
+        else:
+            execute_command('gunzip {}'.format(out_dir + '/' + chromosome_file_name), time_it=True)
+            execute_command('bgzip {}'.format(out_dir + '/' + chromosome_file_name[-3]), time_it=True)
+
+        if os.path.exists(pre_download_data_dir + '/vcf/' +  chromosome_file_name[-3] + '.bgz.csi'):
+            execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' +  chromosome_file_name[-3] + '.bgz.csi',
+                                              out_dir + '/' + chromosome_file_name[-3] + '.bgz.csi'))
+        else:
+            execute_command('bcftools index {}'.format(out_dir + '/' + chromosome_file_name[-3] + '.bgz'), time_it=True)
+        vcf_files_list.append(out_dir + '/' + chromosome_file_name[-3] + '.bgz')
     return vcf_files_list
 
 def get_reference_files(out_dir):
-    reference_url = 'ftp://ftp.1000genomes.ebi.ac.uk//vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz'
+    reference_url = 'ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz'
     if (os.path.exists(pre_download_data_dir + '/reference/hs37d5.fa.gz')):
-        execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/hs37d5.fa.gz', out_dir + 'hs37d5.fa.gz'))
+        execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/hs37d5.fa.gz', out_dir + '/hs37d5.fa.gz'))
     else:
         print("Downloading reference files")
         wget.download(reference_url, out_dir + '/' + 'hs37d5.fa.gz')
@@ -112,9 +123,12 @@ def get_reference_files(out_dir):
 
     out_fasta_list = list()
     for record in SeqIO.parse(out_dir + '/' + 'hs37d5.fa', 'fasta'):
+        if (os.path.exists(pre_download_data_dir + '/reference/' + record.id + '.fa.gz')):
+            execute_command('cp {} {}', pre_download_data_dir + '/reference/' + record.id + '.fa.gz', out_dir + '/' + record.id + '.fa.gz')
+        else:
+            with gzip.open(out_dir + '/' + record.id + '.fa.gz', 'wt') as output_fasta:
+                SeqIO.write(record, output_fasta, "fasta")
         out_fasta_list.append(out_dir + '/' + record.id)
-        with gzip.open(out_dir + '/' + record.id, 'wb') as output_fasta:
-            SeqIO.write(record, output_fasta, "fasta")
     return out_fasta_list
 
 def extract_fasta(out_file_path, ref_file, vcf_file, sample_id):
@@ -132,11 +146,74 @@ def mkdir_p(path):
         else:
             raise # nop
 
-def main_debug():
+def main():
+    """
+    Devo:
+        - fare il setup dei file, questo lo posso ignorare
+        - estrarre i fasta:
+            - per ogni sample passato in input devo estrarre i fasta da tutti i cromosomi e concatenarli
+    :return:
+    """
+
+    parser = argparse.ArgumentParser(description='Testing stuff.')
+    parser.add_argument('-S', dest='samples_file', type=str, help='File containing list of samples', required=True)
+    args = parser.parse_args()
+
+    # Get executables
+    mkdir_p(common_tools_dir)
+    pfp_exe = get_pfp(common_tools_dir)
+    pscan_exe = get_pscan(common_tools_dir)
+
+    # Start extracting samples
+    if not os.path.exists(args.samples_file):
+        print('{} does not exist'.format(args.samples_file))
+        return
+
+    with open(args.samples_file) as f_handler:
+        samples = f_handler.readlines()
+    samples = [x.strip() for x in samples]
+
     vcf_dir = common_data_dir + '/vcf'
     mkdir_p(vcf_dir)
-    print(get_vcf_files(vcf_dir))
+    vcf_files_list = get_vcf_files(vcf_dir)
 
+    ref_dir = common_data_dir + '/ref'
+    mkdir_p(ref_dir)
+    ref_files_list = get_reference_files(ref_dir)
+
+    samples_dir = common_data_dir + '/samples'
+    mkdir_p(samples_dir)
+
+    vcf_name_pattern = re.compile(".*ALL.chr([1-9]*).phase3_shapeit2.*")
+    for sample in samples:
+        sample_dir = samples_dir + '/' + sample
+        out_fasta_all = sample_dir + '/' + sample + '_ALL.fa'
+        if os.path.exists(out_fasta_all):
+            print('{} already exists'.format(out_fasta_all))
+        else:
+            for vcf_file in vcf_files_list:
+                out_fasta_single_chromosome = sample_dir + '/' + sample + '_' + chromosome + '.fa'
+                if not os.path.exists(out_fasta_single_chromosome):
+                    chromosome = vcf_name_pattern.search(vcf_file).group(1)
+                    ref_fasta = ref_dir + '/' + chromosome + '.fa.gz'
+                    extract_fasta(out_fasta_single_chromosome, ref_fasta, vcf_file, sample)
+            execute_command('cat {} >> {}'.format(out_fasta_single_chromosome, out_fasta_all), time_it=True)
+
+
+    out_fasta_multi_sample = samples_dir + '/' + len(samples) + '_samples.fa'
+    if os.path.exists(out_fasta_multi_sample):
+        print('{} already exists'.format(out_fasta_multi_sample))
+    else:
+        for sample in samples:
+            sample_file = samples_dir + '/' + sample + '/' + sample + '_ALL.fa'
+            execute_command('cat {} >> {}'.format(sample_file, out_fasta_multi_sample), time_it=True)
+
+    # Run pscan.x
+    base_command = "{pscan} -t {c_threads} -f {file}"
+    command = base_command.format(pscan=pscan_exe, c_threads=n_threads, file = out_fasta_multi_sample)
+    execute_command(command, time_it=True)
+
+    # Run pfp++
 
 # def main():
 #     pfp_exe = project_base_dir + "/../build/pfp++"
@@ -188,4 +265,4 @@ def main_debug():
 #                             log_file.write(out)
 
 if __name__ == '__main__':
-    main_debug()
+    main()
