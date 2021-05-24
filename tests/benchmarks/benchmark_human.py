@@ -8,7 +8,7 @@ import tqdm
 # Set this dir
 #data_base_dir = '/home/marco/Tmp/tests'
 #pre_download_data_dir = '/home/marco/Data/1kgp'
-data_base_dir = '/blue/boucher/marco.oliva/tmp'
+data_base_dir = '/blue/boucher/marco.oliva/projects/experiments/pfp'
 pre_download_data_dir = '/blue/boucher/marco.oliva/data/1kgp'
 
 version_letter = 'a'
