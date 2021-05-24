@@ -95,6 +95,12 @@ def get_vcf_files(out_dir):
     for chromosome_id in [str(c) for c in range(1,23)]:
         chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
                           "genotypes.vcf.gz".format(chromosome_id, version_letter)
+
+        if (os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.bgz') and os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.bgz.csi')):
+            vcf_files_list.append(out_dir + '/' + chromosome_file_name[:-3] + '.bgz')
+            rootLogger.info('{} already exists'.format(out_dir + '/' + chromosome_file_name[:-3] + '.bgz'))
+            continue
+
         if (os.path.exists(pre_download_data_dir + '/vcf/' + chromosome_file_name)):
             rootLogger.info('Copying {}'.format(chromosome_file_name))
             execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' + chromosome_file_name,
@@ -138,7 +144,7 @@ def get_reference_files(out_dir):
     out_fasta_list = list()
     for record in SeqIO.parse(out_dir + '/' + 'hs37d5.fa', 'fasta'):
         if (os.path.exists(pre_download_data_dir + '/reference/' + record.id + '.fa.gz')):
-            execute_command('cp {} {}', pre_download_data_dir + '/reference/' + record.id + '.fa.gz', out_dir + '/' + record.id + '.fa.gz')
+            execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/' + record.id + '.fa.gz', out_dir + '/' + record.id + '.fa.gz'))
         else:
             with gzip.open(out_dir + '/' + record.id + '.fa.gz', 'wt') as output_fasta:
                 SeqIO.write(record, output_fasta, "fasta")
