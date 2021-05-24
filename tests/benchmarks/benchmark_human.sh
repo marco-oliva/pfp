@@ -20,6 +20,9 @@ PROFILER="/usr/bin/time --verbose"
 BENCHMARK="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmark_human.py"
 SAMPLES_LIST_FILE="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/input_list.txt"
 
+module load python
+module load htslib
+module load bcftools
+module load git
+
 ${PROFILER} ${BENCHMARK} -t 32 -s ${SAMPLES_LIST_FILE}
-
-
