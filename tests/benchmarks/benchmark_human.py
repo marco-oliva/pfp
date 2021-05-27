@@ -6,8 +6,6 @@ from multiprocessing import Pool
 import tqdm
 
 # Set this dir
-#data_base_dir = '/home/marco/Tmp/tests'
-#pre_download_data_dir = '/home/marco/Data/1kgp'
 data_base_dir = '/blue/boucher/marco.oliva/projects/experiments/pfp'
 pre_download_data_dir = '/blue/boucher/marco.oliva/data/1kgp'
 
@@ -31,8 +29,8 @@ tmp_fasta_dir           = "{}/human_tests/data/tmp".format(data_base_dir)
 # Chromosomes
 chromosomes_list = [i for i in range(1, 23)]
 
-w_values   = [10]
-p_values   = [100]
+w_value   = 10
+p_value  = 100
 n_threads  = 32
 
 #------------------------------------------------------------
@@ -94,12 +92,7 @@ def get_vcf_files(out_dir):
     vcf_files_list = list()
     for chromosome_id in [str(c) for c in range(1,23)]:
         chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
-                          "genotypes.vcf.gz".format(chromosome_id, version_letter)
-
-        if (os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.bgz') and os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.bgz.csi')):
-            vcf_files_list.append(out_dir + '/' + chromosome_file_name[:-3] + '.bgz')
-            rootLogger.info('{} already exists'.format(out_dir + '/' + chromosome_file_name[:-3] + '.bgz'))
-            continue
+                               "genotypes.vcf.gz".format(chromosome_id, version_letter)
 
         if (os.path.exists(pre_download_data_dir + '/vcf/' + chromosome_file_name)):
             rootLogger.info('Copying {}'.format(chromosome_file_name))
@@ -117,18 +110,22 @@ def get_vcf_files(out_dir):
             execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' +  chromosome_file_name[:-3] + '.bgz'),
                             out_dir + '/' + chromosome_file_name[:-3] + '.bgz')
         else:
-            if not os.path.exists(out_dir + '/' +  chromosome_file_name[:-3]):
+            if not os.path.exists(out_dir + '/' +  chromosome_file_name[:-3] + '.bgz'):
                 execute_command('gunzip {}'.format(out_dir + '/' + chromosome_file_name), time_it=True)
-            execute_command('bgzip {}'.format(out_dir + '/' + chromosome_file_name[:-3]), time_it=True)
-            execute_command('mv {} {}'.format(out_dir + '/' + chromosome_file_name[:-3] + '.gz',
-                                              out_dir + '/' + chromosome_file_name[:-3] + '.bgz'))
+                execute_command('bgzip {}'.format(out_dir + '/' + chromosome_file_name[:-3]), time_it=True)
+                execute_command('mv {} {}'.format(out_dir + '/' + chromosome_file_name[:-3] + '.gz',
+                                                  out_dir + '/' + chromosome_file_name[:-3] + '.bgz'))
 
-        if os.path.exists(pre_download_data_dir + '/vcf/' +  chromosome_file_name[:-3] + '.bgz.csi'):
-            execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' +  chromosome_file_name[:-3] + '.bgz.csi',
-                                              out_dir + '/' + chromosome_file_name[:-3] + '.bgz.csi'))
-        else:
-            execute_command('bcftools index {}'.format(out_dir + '/' + chromosome_file_name[:-3] + '.bgz'), time_it=True)
-        vcf_files_list.append(out_dir + '/' + chromosome_file_name[:-3] + '.bgz')
+        # Filter and index, if not existing
+        rootLogger.info('Filtering out symbolyc allels from VCFs')
+        if not os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'):
+            execute_command('bcftools view -v snps,indels -m2 -M2 -Oz -o {outv} {inv}'.format(
+                inv=out_dir + '/' + chromosome_file_name[:-3] + '.bgz',
+                outv=out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'), time_it=True)
+        if not os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz.csi'):
+            execute_command('bcftools index {}'.format(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'), time_it=True)
+
+        vcf_files_list.append(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz')
     return vcf_files_list
 
 def get_reference_files(out_dir):
@@ -139,21 +136,24 @@ def get_reference_files(out_dir):
         rootLogger.info("Downloading reference files")
         wget.download(reference_url, out_dir + '/' + 'hs37d5.fa.gz')
     rootLogger.info('Extracting chromosomes')
-    execute_command("gunzip {}".format(out_dir + '/' + 'hs37d5.fa.gz'))
+
+    if not (os.path.exists(out_dir + '/' + 'hs37d5.fa')):
+        execute_command("gunzip {}".format(out_dir + '/' + 'hs37d5.fa.gz'))
 
     out_fasta_list = list()
     for record in SeqIO.parse(out_dir + '/' + 'hs37d5.fa', 'fasta'):
         if (os.path.exists(pre_download_data_dir + '/reference/' + record.id + '.fa.gz')):
+            rootLogger.info('{} already exists'.format(pre_download_data_dir + '/reference/' + record.id + '.fa.gz'))
             execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/' + record.id + '.fa.gz', out_dir + '/' + record.id + '.fa.gz'))
         else:
             with gzip.open(out_dir + '/' + record.id + '.fa.gz', 'wt') as output_fasta:
                 SeqIO.write(record, output_fasta, "fasta")
-        out_fasta_list.append(out_dir + '/' + record.id)
+        out_fasta_list.append(out_dir + '/' + record.id + '.fa.gz')
     return out_fasta_list
 
 def extract_fasta(out_file_path, ref_file, vcf_file, sample_id):
     bcf_command = "/usr/bin/time --verbose bcftools consensus -H 1 -f {} -s {} {} -o {}".format(
-        red_file, sample_id, vcf_file, out_file_path)
+        ref_file, sample_id, vcf_file, out_file_path)
     execute_command(bcf_command, time_it=True)
 
 
@@ -166,22 +166,33 @@ def mkdir_p(path):
         else:
             raise # nop
 
+def create_pfp_config_file(vcf_list, ref_list, out_dir):
+    # Generate config file
+    with open(out_dir + '/config.ini', 'w') as config_file:
+        config_file.write('# Generated config file\n')
+        config_file.write('vcf = {}\n'.format(vcf_list))
+        config_file.write('ref = {}\n'.format(ref_list))
+    return out_dir + '/config.ini'
+
+
 def per_sample_fasta(samples_dir, ref_dir, vcf_files_list, sample):
-    vcf_name_pattern = re.compile(".*ALL.chr([1-9]*).phase3_shapeit2.*")
+    rootLogger.info('Running on sample: {}'.format(sample))
+
     sample_dir = samples_dir + '/' + sample
+    mkdir_p(sample_dir)
     out_fasta_all_path = sample_dir + '/' + sample + '_ALL.fa'
     if os.path.exists(out_fasta_all_path):
-        rootLogger.info('{} already exists'.format(out_fasta_all_path))
-    else:
-        out_fasta_all = open(out_fasta_all_path)
-        for vcf_file in vcf_files_list:
-            chromosome = vcf_name_pattern.search(vcf_file).group(1)
-            ref_fasta = ref_dir + '/' + chromosome + '.fa.gz'
-            out_fasta_single_chromosome = sample_dir + '/' + sample + '_' + chromosome + '.fa'
-            extract_fasta(out_fasta_single_chromosome, ref_fasta, vcf_file, sample)
-            with open(out_fasta_single_chromosome) as chr_file:
-                out_fasta_all.write(chr_file.read())
-        out_fasta_all.close()
+        rootLogger.info('{} already exists, overwriting it'.format(out_fasta_all_path))
+    #else:
+    out_fasta_all = open(out_fasta_all_path, 'w')
+    for idx,vcf_file in enumerate(vcf_files_list):
+        chromosome = str(idx + 1)
+        ref_fasta = ref_dir + '/' + chromosome + '.fa.gz'
+        out_fasta_single_chromosome = sample_dir + '/' + sample + '_' + chromosome + '.fa'
+        extract_fasta(out_fasta_single_chromosome, ref_fasta, vcf_file, sample)
+        with open(out_fasta_single_chromosome, 'r') as chr_file:
+            out_fasta_all.write(chr_file.read())
+    out_fasta_all.close()
 
 def main():
     global rootLogger
@@ -223,14 +234,17 @@ def main():
     ref_dir = common_data_dir + '/ref'
     mkdir_p(ref_dir)
     ref_files_list = get_reference_files(ref_dir)
+    ref_files_list = ref_files_list[0:22]
 
     samples_dir = common_data_dir + '/samples'
     mkdir_p(samples_dir)
 
+    # ============================================================
+
     # ------------------------------------------------------------
     # Parallel section
     pool = Pool(processes=args.threads)
-    fixed_args = [amples_dir, ref_dir, vcf_files_list]
+    fixed_args = [samples_dir, ref_dir, vcf_files_list]
     execs = []
     for sample in samples:
         execs.append(fixed_args + [sample])
@@ -239,26 +253,36 @@ def main():
         pass
     # ------------------------------------------------------------
 
-    out_fasta_multi_sample = samples_dir + '/' + len(samples) + '_samples.fa'
+    out_fasta_multi_sample = samples_dir + '/' + str(len(samples)) + '_samples.fa'
     if os.path.exists(out_fasta_multi_sample):
-        rootLogger.info('{} already exists'.format(out_fasta_multi_sample))
-    else:
-        multi_sample_file = open(out_fasta_multi_sample)
-        for sample in samples:
-            sample_file_path = samples_dir + '/' + sample + '/' + sample + '_ALL.fa'
-            with open(sample_file_path) as sample_file:
-                multi_sample_file.write(sample_file.read())
-        multi_sample_file.close()
+        rootLogger.info('{} already exists, overwriting it'.format(out_fasta_multi_sample))
+
+    multi_sample_file = open(out_fasta_multi_sample, 'w')
+    for sample in samples:
+        sample_file_path = samples_dir + '/' + sample + '/' + sample + '_ALL.fa'
+        with open(sample_file_path) as sample_file:
+            multi_sample_file.write(sample_file.read())
+    multi_sample_file.close()
 
     # ------------------------------------------------------------
 
     # Run pscan.x
-    base_command = "{pscan} -t {c_threads} -f {file}"
-    command = base_command.format(pscan=pscan_exe, c_threads=n_threads, file = out_fasta_multi_sample)
+    base_command = "{pscan} -t {c_threads} -f {file} -w {window} -p {modulo}"
+    command = base_command.format(pscan=pscan_exe, c_threads=n_threads, file=out_fasta_multi_sample, window=w_value,
+                                  modulo=p_value)
     execute_command(command, time_it=True)
 
+    # ============================================================
+
     # Run pfp++
-    print('Here it should be pfp')
+    mkdir_p(data_dir_pfp)
+    pfp_config_file = create_pfp_config_file(vcf_files_list, ref_files_list, data_dir_pfp)
+    base_command = "{pfp} --configure {config_file} -t {c_threads} -m {n_samples} " \
+                   "--use-acceleration --print-statistics --occurrences -w {window} -p {modulo} -o {out_dir}"
+    command = base_command.format(pfp=pfp_exe, c_threads=n_threads, window=w_value,
+                                  modulo=p_value, config_file=pfp_config_file, n_samples=len(samples),
+                                  out_dir=data_dir_pfp)
+    execute_command(command, time_it=True)
 
 if __name__ == '__main__':
     main()
