@@ -9,8 +9,11 @@
 //------------------------------------------------------------------------------
 
 bool
-vcfbwt::pfp::Dictionary::contains(const std::string& phrase) const
+vcfbwt::pfp::Dictionary::contains(const std::string& phrase)
 {
+    // lock the dictionary
+    std::lock_guard<std::mutex> guard(dictionary_mutex);
+
     hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
     const auto& ptr = hash_string_map.find(phrase_hash);
     
@@ -20,6 +23,9 @@ vcfbwt::pfp::Dictionary::contains(const std::string& phrase) const
 vcfbwt::hash_type
 vcfbwt::pfp::Dictionary::add(const std::string& phrase)
 {
+    // lock the dictionary
+    std::lock_guard<std::mutex> guard(dictionary_mutex);
+
     this->sorted = false;
     
     hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
@@ -55,6 +61,9 @@ std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> b)
 void
 vcfbwt::pfp::Dictionary::sort()
 {
+    // lock the dictionary
+    std::lock_guard<std::mutex> guard(dictionary_mutex);
+
     // sort the dictionary
     for (auto& entry : this->hash_string_map)
     {
@@ -70,6 +79,13 @@ vcfbwt::pfp::Dictionary::sort()
     }
     
     this->sorted = true;
+}
+
+const std::string&
+vcfbwt::pfp::Dictionary::sorted_entry_at(std::size_t i)
+{
+    std::lock_guard<std::mutex> guard(dictionary_mutex);
+    if (not this->sorted) { sort(); } return sorted_phrases[i].first.get();
 }
 
 vcfbwt::size_type
@@ -147,6 +163,7 @@ vcfbwt::pfp::Parser::init(const Params& params, const std::string& prefix, Refer
     this->tmp_out_file_name = TempFile::getName("parse");
     this->out_file.open(tmp_out_file_name, std::ios::binary);
     this->reference_parse = &rp;
+    this->dictionary = &this->reference_parse->dictionary;
     
     this->params = params;
 }
@@ -221,9 +238,8 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
             hash_type hash = 0;
-            if (reference_parse->dictionary.contains(phrase))   { hash = reference_parse->dictionary.get(phrase); }
-            else if (dictionary.contains(phrase))               { hash = dictionary.get(phrase); }
-            else                                                { hash = dictionary.add(phrase); }
+            if (dictionary->contains(phrase))               { hash = dictionary->get(phrase); }
+            else                                            { hash = dictionary->add(phrase); }
         
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
     
@@ -248,9 +264,8 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
         else { phrase.append(this->w, DOLLAR_PRIME); }
         
         hash_type hash = 0;
-        if (reference_parse->dictionary.contains(phrase))   { hash = reference_parse->dictionary.get(phrase); }
-        else if (dictionary.contains(phrase))               { hash = dictionary.get(phrase); }
-        else                                                { hash = dictionary.add(phrase); }
+        if (dictionary->contains(phrase))               { hash = dictionary->get(phrase); }
+        else                                            { hash = dictionary->add(phrase); }
         
         out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
     }
@@ -274,20 +289,9 @@ vcfbwt::pfp::Parser::close()
         // close all the registered workers and merge their dictionaries
         spdlog::info("Main parser: closing all registered workers");
         for (auto worker : registered_workers) { worker.get().close(); }
-    
-        spdlog::info("Main parser: Merging reference dictionary into MAIN dictionary");
-        this->dictionary.hash_string_map.insert(this->reference_parse->dictionary.hash_string_map.begin(), this->reference_parse->dictionary.hash_string_map.end());
-    
-        spdlog::info("Main parser: merging workers dictionaries");
-        for (auto worker : registered_workers)
-        {
-            // there should not be any collision since the reference dictionary is checked during parsing
-            // if there is a collision the hash should be the same anyway
-            this->dictionary.hash_string_map.insert(worker.get().dictionary.hash_string_map.begin(), worker.get().dictionary.hash_string_map.end());
-        }
         
         // Occurrences
-        std::vector<size_type> occurrences(this->dictionary.size(), 0);
+        std::vector<size_type> occurrences(this->dictionary->size(), 0);
         
         spdlog::info("Main parser: Replacing hash values with ranks in MAIN, WORKERS and reference");
     
@@ -302,7 +306,7 @@ vcfbwt::pfp::Parser::close()
             {
                 hash_type hash;
                 std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
-                size_type rank = this->dictionary.hash_to_rank(hash);
+                size_type rank = this->dictionary->hash_to_rank(hash);
                 std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
                 occurrences[rank - 1] += 1;
             }
@@ -315,7 +319,7 @@ vcfbwt::pfp::Parser::close()
         {
             for (size_type i = 0; i < this->reference_parse->parse.size(); i++)
             {
-                hash_type rank = this->dictionary.hash_to_rank(this->reference_parse->parse[i]);
+                hash_type rank = this->dictionary->hash_to_rank(this->reference_parse->parse[i]);
                 this->reference_parse->parse[i] = rank;
                 occurrences[rank - 1] += 1;
             }
@@ -334,7 +338,7 @@ vcfbwt::pfp::Parser::close()
                 {
                     hash_type hash;
                     std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
-                    size_type rank = this->dictionary.hash_to_rank(hash);
+                    size_type rank = this->dictionary->hash_to_rank(hash);
                     std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
                     occurrences[rank - 1] += 1;
                 }
@@ -386,9 +390,9 @@ vcfbwt::pfp::Parser::close()
             std::string dict_file_name = out_file_prefix + ".dict";
             std::ofstream dict(dict_file_name);
         
-            for (size_type i = 0; i < this->dictionary.size(); i++)
+            for (size_type i = 0; i < this->dictionary->size(); i++)
             {
-                dict.write(this->dictionary.sorted_entry_at(i).c_str(), this->dictionary.sorted_entry_at(i).size());
+                dict.write(this->dictionary->sorted_entry_at(i).c_str(), this->dictionary->sorted_entry_at(i).size());
                 dict.put(ENDOFWORD);
             }
         
@@ -404,13 +408,13 @@ vcfbwt::pfp::Parser::close()
             std::ofstream dicz(out_file_prefix + ".dicz");
             std::ofstream lengths(out_file_prefix + ".dicz.len");
     
-            for (size_type i = 0; i < this->dictionary.size(); i++)
+            for (size_type i = 0; i < this->dictionary->size(); i++)
             {
                 std::size_t shift = 0;
                 if (i != 0) { shift = this->w; }
-                dicz.write(this->dictionary.sorted_entry_at(i).c_str() + shift,
-                           this->dictionary.sorted_entry_at(i).size() - shift);
-                int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
+                dicz.write(this->dictionary->sorted_entry_at(i).c_str() + shift,
+                           this->dictionary->sorted_entry_at(i).size() - shift);
+                int32_t len = this->dictionary->sorted_entry_at(i).size() - shift;
                 lengths.write((char*) &len, sizeof(int32_t));
             }
     

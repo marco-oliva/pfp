@@ -44,7 +44,9 @@ is_all_dollars(std::string& s)
 class Dictionary
 {
 private:
-    
+
+    std::mutex dictionary_mutex;
+
     bool sorted = false;
     
     struct DictionaryEntry
@@ -67,14 +69,13 @@ public:
     
     hash_type add(const std::string& phrase);
     hash_type get(const std::string& phrase) const;
-    bool contains(const std::string& phrase) const;
-    void update_frequency(const std::string& phrase);
+    bool contains(const std::string& phrase);
 
     size_type hash_to_rank(hash_type hash);
     
-    size_type size() { return hash_string_map.size(); }
+    size_type size() const { return hash_string_map.size(); }
     
-    const std::string& sorted_entry_at(std::size_t i) {if (not this->sorted) { sort(); } return sorted_phrases[i].first.get(); }
+    const std::string& sorted_entry_at(std::size_t i);
     
     static void merge(Dictionary& destination, const Dictionary& source);
     
@@ -132,8 +133,8 @@ private:
     Statistics statistics;
     
     ReferenceParse* reference_parse = nullptr;
-    
-    Dictionary dictionary;
+    Dictionary* dictionary = nullptr;
+
     hash_type w, p;
     size_type parse_size, tags;
     
@@ -166,15 +167,15 @@ public:
     {
         close();
         size_type total_length = 0;
-        for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size(); }
+        for (auto& entry : dictionary->hash_string_map) { total_length += entry.second.phrase.size(); }
     
         // Fill out statistics
         this->statistics.parse_length = this->parse_size;
-        this->statistics.num_of_phrases_dictionary = this->dictionary.sorted_phrases.size();
+        this->statistics.num_of_phrases_dictionary = this->dictionary->sorted_phrases.size();
         this->statistics.total_dictionary_length = total_length;
         std::string name;
         if (tags & WORKER) { name = "Worker"; } else { name = "Main"; }
-        spdlog::info("{} -\tParse size: {}\tDic Size: {} Dic Total Length: {}", name ,parse_size, dictionary.size(), total_length);
+        spdlog::info("{} -\tParse size: {}\tDic Size: {} Dic Total Length: {}", name ,parse_size, dictionary->size(), total_length);
         
         if (params.print_out_statistics_csv and (tags & MAIN))
         {

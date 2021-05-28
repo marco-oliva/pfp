@@ -26,6 +26,8 @@
 #include <mio/mmap.hpp>
 #include <omp.h>
 
+#include "malloc_count/malloc_count.h"
+
 namespace vcfbwt
 {
 

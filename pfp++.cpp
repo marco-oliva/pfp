@@ -81,6 +81,8 @@ int main(int argc, char **argv)
     {
         int this_thread = omp_get_thread_num();
         spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
+        malloc_count_print_status();
+
         workers[this_thread](vcf[i]);
     }
     
