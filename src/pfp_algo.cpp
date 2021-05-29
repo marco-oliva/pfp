@@ -45,6 +45,34 @@ vcfbwt::pfp::Dictionary::add(const std::string& phrase)
 }
 
 vcfbwt::hash_type
+vcfbwt::pfp::Dictionary::check_and_add(const std::string &phrase)
+{
+    // lock the dictionary
+    std::lock_guard<std::mutex> guard(dictionary_mutex);
+
+    // Check if present
+    hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
+    const auto& ptr = hash_string_map.find(phrase_hash);
+
+    if ((ptr != hash_string_map.end()) and (ptr->second.phrase != phrase))
+    {
+        spdlog::error("Hash collision! Hash already in the dictionary");
+        std::exit(EXIT_FAILURE);
+    }
+    else if (ptr != hash_string_map.end()) { return phrase_hash; }
+
+    this->sorted = false;
+
+    DictionaryEntry entry(phrase);
+    hash_string_map.insert(std::make_pair(phrase_hash, entry));
+
+    if (this->size() == std::numeric_limits<size_type>::max())
+    { spdlog::error("Dictionary too big for {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
+
+    return phrase_hash;
+}
+
+vcfbwt::hash_type
 vcfbwt::pfp::Dictionary::get(const std::string& phrase) const
 {
     return string_hash(&(phrase[0]), phrase.size());
@@ -121,9 +149,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
 
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
-            hash_type hash = 0;
-            if (this->dictionary.contains(phrase))    { hash = this->dictionary.get(phrase); }
-            else                                      { hash = this->dictionary.add(phrase); }
+            hash_type hash = this->dictionary.check_and_add(phrase);
             
             this->parse.push_back(hash);
             this->trigger_strings_position.push_back(ref_it - this->params.w + 1);
@@ -140,9 +166,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         // Append w dollar prime at the end, reference as the first sample
         phrase.append(this->params.w, DOLLAR_PRIME);
     
-        hash_type hash = 0;
-        if (this->dictionary.contains(phrase))    { hash = this->dictionary.get(phrase); }
-        else                                      { hash = this->dictionary.add(phrase); }
+        hash_type hash = this->dictionary.check_and_add(phrase);
     
         this->parse.push_back(hash);
         this->trigger_strings_position.push_back(reference.size() - 1);
@@ -237,9 +261,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
     
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
-            hash_type hash = 0;
-            if (dictionary->contains(phrase))               { hash = dictionary->get(phrase); }
-            else                                            { hash = dictionary->add(phrase); }
+            hash_type hash = this->dictionary->check_and_add(phrase);
         
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
     
@@ -262,10 +284,8 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
         // Append w dollar prime at the end of each sample, DOLLAR if it's the last sample
         if (this->tags & LAST) { phrase.append(this->w, DOLLAR); }
         else { phrase.append(this->w, DOLLAR_PRIME); }
-        
-        hash_type hash = 0;
-        if (dictionary->contains(phrase))               { hash = dictionary->get(phrase); }
-        else                                            { hash = dictionary->add(phrase); }
+
+        hash_type hash = this->dictionary->check_and_add(phrase);
         
         out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
     }

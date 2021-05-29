@@ -26,9 +26,4 @@ module load htslib
 module load bcftools
 module load git
 
-# 10 samples
 ${PROFILER} ${BENCHMARK} -t 32 -s ${SAMPLES_LIST_FILE}
-
-# 100 samples
-
-# 200 samples

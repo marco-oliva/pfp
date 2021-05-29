@@ -26,7 +26,8 @@
 #include <mio/mmap.hpp>
 #include <omp.h>
 
-#include "malloc_count/malloc_count.h"
+#include <malloc_count/malloc_count.h>
+#include <murmur/MurmurHash3.h>
 
 namespace vcfbwt
 {
@@ -93,17 +94,10 @@ set_prime(std::size_t p)
 inline hash_type
 string_hash(const char* s, std::size_t size)
 {
-    hash_type hash = 0;
-    hash_type prime;
-    if (sizeof(hash_type) > 4) { prime = long_prime; }
-    else { prime = short_prime; }
-    for(std::size_t k = 0; k < size; k++)
-    {
-        int c = (unsigned char) s[k];
-        assert(c >= 0 && c < 256);
-        hash = (37 * hash + c) % prime;    //  add char k
-    }
-    return hash;
+    long_type hash[2] = {0};
+    if (size >= std::numeric_limits<int>::max()) { spdlog::error("String too big"); exit(EXIT_FAILURE); }
+    MurmurHash3_x64_128(s, size, short_prime, hash);
+    return hash[0];
 }
 
 class KarpRabinHash

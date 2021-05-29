@@ -68,6 +68,7 @@ public:
     Dictionary() = default;
     
     hash_type add(const std::string& phrase);
+    hash_type check_and_add(const std::string& phrase);
     hash_type get(const std::string& phrase) const;
     bool contains(const std::string& phrase);
 

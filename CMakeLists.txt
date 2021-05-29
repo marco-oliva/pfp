@@ -87,10 +87,11 @@ include_directories(${nthash-include})
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 file(GLOB MALLOC_COUNT_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/malloc_count/*.c)
+file(GLOB MURMUR_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/murmur/*.cpp)
 
 # 32 and 64 bits parse
-add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES})
-add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES})
+add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
+add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
 set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARIES}" "dl")
