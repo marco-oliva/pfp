@@ -21,9 +21,9 @@ project_base_dir = os.path.dirname(os.path.abspath(__file__))
 date_string             = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 data_dir_bigbwt         = "{}/human_tests/{}/bigbwt".format(data_base_dir, date_string)
 data_dir_pfp            = "{}/human_tests/{}/pfp".format(data_base_dir, date_string)
-common_data_dir         = "{}/human_tests/data".format(data_base_dir)
+common_data_dir         = "{}/human_tests/{}/data".format(data_base_dir, date_string)
 common_tools_dir        = "{}/human_tests/tools".format(data_base_dir)
-tmp_fasta_dir           = "{}/human_tests/data/tmp".format(data_base_dir)
+tmp_fasta_dir           = "{}/human_tests/{}/data/tmp".format(data_base_dir, date_string)
 
 
 # Chromosomes

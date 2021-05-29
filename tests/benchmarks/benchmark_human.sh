@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exh10
+#SBATCH --job-name=exhbp
 #SBATCH --account=boucher
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=marco.oliva@ufl.edu
@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=60gb
 #SBATCH --time=72:00:00
-#SBATCH --output=%j_exh10.log
+#SBATCH --output=%j_exhbp.log
 
 ##----------------------------------------------------------
 # Print Some statistics
@@ -19,11 +19,14 @@ pwd; hostname; date
 BASE_DIR_EXP="/blue/boucher/marco.oliva/projects/experiments/pfp"
 PROFILER="/usr/bin/time --verbose"
 BENCHMARK="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmark_human.py"
-SAMPLES_LIST_FILE="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/input_list.txt"
+SAMPLES_LIST_BASE="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/input_list"
 
 module load python
 module load htslib
 module load bcftools
 module load git
 
-${PROFILER} ${BENCHMARK} -t 32 -s ${SAMPLES_LIST_FILE}
+${PROFILER} ${BENCHMARK} -t 32 -s "${SAMPLES_LIST_BASE}_10.txt"
+${PROFILER} ${BENCHMARK} -t 32 -s "${SAMPLES_LIST_BASE}_100.txt"
+${PROFILER} ${BENCHMARK} -t 32 -s "${SAMPLES_LIST_BASE}_200.txt"
+
