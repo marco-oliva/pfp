@@ -117,12 +117,12 @@ def get_reference_files(out_dir):
     out_fasta_list = list()
     for chromosome_id in [str(c) for c in chromosomes_list]:
         if (os.path.exists(pre_download_data_dir + '/reference/' + chromosome_id + '.fa.gz')):
-            rootLogger.info('{} already exists'.format(pre_download_data_dir + '/reference/' + record.id + '.fa.gz'))
-            execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/' + record.id + '.fa.gz', out_dir + '/' + record.id + '.fa.gz'))
+            rootLogger.info('{} already exists'.format(pre_download_data_dir + '/reference/' + chromosome_id + '.fa.gz'))
+            execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/' + chromosome_id + '.fa.gz', out_dir + '/' + chromosome_id + '.fa.gz'))
         else:
             rootLogger.info('Reference files have to be in {}'.format(pre_download_data_dir + '/reference/'))
             exit()
-        out_fasta_list.append(out_dir + '/' + record.id + '.fa.gz')
+        out_fasta_list.append(out_dir + '/' + chromosome_id + '.fa.gz')
     return out_fasta_list
 
 def extract_fasta(out_file_path, ref_file, vcf_file, sample_id):
