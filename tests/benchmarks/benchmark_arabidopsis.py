@@ -159,7 +159,7 @@ def per_sample_fasta(samples_dir, ref_dir, vcf_files_list, sample):
     out_fasta_all = open(out_fasta_all_path, 'w')
     for idx,vcf_file in enumerate(vcf_files_list):
         chromosome = str(idx + 1)
-        ref_fasta = ref_dir + '/' + chromosome + '.fa.gz'
+        ref_fasta = ref_dir + '/' + chromosome + '.fas.gz'
         out_fasta_single_chromosome = sample_dir + '/' + sample + '_' + chromosome + '.fa'
         extract_fasta(out_fasta_single_chromosome, ref_fasta, vcf_file, sample)
         with open(out_fasta_single_chromosome, 'r') as chr_file:
