@@ -62,14 +62,14 @@ def execute_command(command, time_it=False, seconds=1000000):
 
 
 def get_pscan(work_dir):
-    if os.path.exists(work_dir + '/Big-BWT'):
-        rootLogger.info('Repository already exists')
+    if os.path.exists(work_dir + '/Big-BWT/newscan.x'):
+        rootLogger.info('newscan.x already exists')
     else:
         repository = "https://github.com/alshai/Big-BWT.git"
         get_command = "git clone {} {}".format(repository, work_dir + "/Big-BWT")
         execute_command(get_command)
-    build_command = "make -C {}".format(work_dir + "/Big-BWT")
-    execute_command(build_command)
+        build_command = "make -C {}".format(work_dir + "/Big-BWT")
+        execute_command(build_command)
     return work_dir + '/Big-BWT/newscan.x'
 
 def get_au_pair(work_dir):
@@ -100,54 +100,28 @@ def get_vcf_files(out_dir):
                                               out_dir + '/' + chromosome_file_name)
                             )
         else:
-            chromosome_url = "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/" \
-                             + chromosome_file_name
-            rootLogger.info('Downloading {}'.format(chromosome_url))
-            wget.download(chromosome_url, out_dir + '/' + chromosome_file_name)
-
-        if os.path.exists(pre_download_data_dir + '/vcf/' +  chromosome_file_name[:-3] + '.bgz'):
-            rootLogger.info('{} alrady exists'.format(chromosome_file_name[:-3] + '.bgz'))
-            execute_command('cp {} {}'.format(pre_download_data_dir + '/vcf/' +  chromosome_file_name[:-3] + '.bgz'),
-                            out_dir + '/' + chromosome_file_name[:-3] + '.bgz')
-        else:
-            if not os.path.exists(out_dir + '/' +  chromosome_file_name[:-3] + '.bgz'):
-                execute_command('gunzip {}'.format(out_dir + '/' + chromosome_file_name), time_it=True)
-                execute_command('bgzip {}'.format(out_dir + '/' + chromosome_file_name[:-3]), time_it=True)
-                execute_command('mv {} {}'.format(out_dir + '/' + chromosome_file_name[:-3] + '.gz',
-                                                  out_dir + '/' + chromosome_file_name[:-3] + '.bgz'))
+            rootLogger.info('VCF files have to be in {}'.format(pre_download_data_dir + '/vcf/'))
+            exit()
 
         # Filter and index, if not existing
         rootLogger.info('Filtering out symbolyc allels from VCFs')
-        if not os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'):
-            execute_command('bcftools view -v snps,indels -m2 -M2 -Oz -o {outv} {inv}'.format(
-                inv=out_dir + '/' + chromosome_file_name[:-3] + '.bgz',
-                outv=out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'), time_it=True)
-        if not os.path.exists(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz.csi'):
-            execute_command('bcftools index {}'.format(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'), time_it=True)
+        execute_command('bcftools view -v snps,indels -m2 -M2 -Oz -o {outv} {inv}'.format(
+            inv=out_dir + '/' + chromosome_file_name,
+            outv=out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'), time_it=True)
+        execute_command('bcftools index {}'.format(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz'), time_it=True)
 
         vcf_files_list.append(out_dir + '/' + chromosome_file_name[:-3] + '.filtered.bgz')
     return vcf_files_list
 
 def get_reference_files(out_dir):
-    reference_url = 'ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz'
-    if (os.path.exists(pre_download_data_dir + '/reference/hs37d5.fa.gz')):
-        execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/hs37d5.fa.gz', out_dir + '/hs37d5.fa.gz'))
-    else:
-        rootLogger.info("Downloading reference files")
-        wget.download(reference_url, out_dir + '/' + 'hs37d5.fa.gz')
-    rootLogger.info('Extracting chromosomes')
-
-    if not (os.path.exists(out_dir + '/' + 'hs37d5.fa')):
-        execute_command("gunzip {}".format(out_dir + '/' + 'hs37d5.fa.gz'))
-
     out_fasta_list = list()
-    for record in SeqIO.parse(out_dir + '/' + 'hs37d5.fa', 'fasta'):
-        if (os.path.exists(pre_download_data_dir + '/reference/' + record.id + '.fa.gz')):
+    for chromosome_id in [str(c) for c in chromosomes_list]:
+        if (os.path.exists(pre_download_data_dir + '/reference/' + chromosome_id + '.fa.gz')):
             rootLogger.info('{} already exists'.format(pre_download_data_dir + '/reference/' + record.id + '.fa.gz'))
             execute_command('cp {} {}'.format(pre_download_data_dir + '/reference/' + record.id + '.fa.gz', out_dir + '/' + record.id + '.fa.gz'))
         else:
-            with gzip.open(out_dir + '/' + record.id + '.fa.gz', 'wt') as output_fasta:
-                SeqIO.write(record, output_fasta, "fasta")
+            rootLogger.info('Reference files have to be in {}'.format(pre_download_data_dir + '/reference/'))
+            exit()
         out_fasta_list.append(out_dir + '/' + record.id + '.fa.gz')
     return out_fasta_list
 
@@ -155,7 +129,6 @@ def extract_fasta(out_file_path, ref_file, vcf_file, sample_id):
     bcf_command = "/usr/bin/time --verbose bcftools consensus -H 1 -f {} -s {} {} -o {}".format(
         ref_file, sample_id, vcf_file, out_file_path)
     execute_command(bcf_command, time_it=True)
-
 
 def mkdir_p(path):
     try:
@@ -183,7 +156,6 @@ def per_sample_fasta(samples_dir, ref_dir, vcf_files_list, sample):
     out_fasta_all_path = sample_dir + '/' + sample + '_ALL.fa'
     if os.path.exists(out_fasta_all_path):
         rootLogger.info('{} already exists, overwriting it'.format(out_fasta_all_path))
-    #else:
     out_fasta_all = open(out_fasta_all_path, 'w')
     for idx,vcf_file in enumerate(vcf_files_list):
         chromosome = str(idx + 1)
