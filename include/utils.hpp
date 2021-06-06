@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <list>
+#include <unordered_map>
 
 #include <unistd.h>
 #include <math.h>

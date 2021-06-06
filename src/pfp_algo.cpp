@@ -606,3 +606,112 @@ vcfbwt::pfp::Parser::merge(std::string left_prefix, std::string right_prefix, st
     dict.put(ENDOFDICT);
     dict.close();
 }
+
+//------------------------------------------------------------------------------
+
+void
+vcfbwt::pfp::AuPair::init(std::vector<std::string>& dictionary, std::vector<size_type>& parse)
+{
+    for (std::size_t i = 0; i < parse.size() - 1; i++)
+    {
+        std::string& phrase_1 = dictionary[parse[i] - 1];
+        hash_type phrase_1_hash = string_hash(phrase_1.c_str(), phrase_1.size());
+
+        std::string& phrase_2 = dictionary[parse[i + 1] - 1];
+        hash_type phrase_2_hash = string_hash(phrase_2.c_str(), phrase_2.size());
+
+        // update D'
+        this->d_prime.insert(std::pair(phrase_1_hash, phrase_1));
+        if (i == parse.size() - 2) { this->d_prime.insert(std::pair(phrase_2_hash, phrase_2)); }
+
+        // update P'
+        this->p_prime.emplace_back(phrase_1_hash);
+        std::list<hash_type>::pointer phrase_1_pointer = &(*(std::prev(p_prime.end())));
+
+        this->p_prime.emplace_back(phrase_2_hash);
+
+        std::string trigger_string = phrase_1.substr(phrase_1.size() - window_length, window_length);
+        if (T_table.find(trigger_string) == T_table.end())
+        {
+            std::vector<std::list<hash_type>::pointer> pairs;
+            pairs.emplace_back(phrase_1_pointer);
+            this->T_table.insert(std::pair(trigger_string, pairs));
+        }
+        else
+        {
+            this->T_table[trigger_string].emplace_back(phrase_1_pointer);
+        }
+    }
+}
+
+vcfbwt::size_type
+vcfbwt::pfp::AuPair::compress(int threshold)
+{
+    int bytes_removed = 0;
+
+    // evaluate each trigger string
+    // for (auto& trigger_string_entry : this->T_table)
+    // {
+    //     // compute the cost of removing this trigger string
+    //     int cost_of_removing_from_D = 0, cost_of_removing_from_P = 0, cost_of_removing_tot = 0;
+
+    //     cost_of_removing_from_P = trigger_string_entry.second.size() * sizeof(size_type);
+
+    //     std::set<std::pair<hash_type, hash_type>> pairs;
+    //     std::set<hash_type> p_first, p_second, p_all;
+    //     for (auto pair_first : trigger_string_entry.second)
+    //     {
+    //         hash_type pi1 = *pair_first, pi2 = *std::next(pair_first);
+
+    //         pairs.insert(std::pair(pi1,pi2)); p_first.insert(pi1); p_second.insert(pi2);
+    //         p_all.insert(pi1); p_all.insert(pi2);
+    //     }
+
+    //     for (auto& pair : pairs)
+    //     {
+    //         cost_of_removing_from_D += (this->d_prime[pair.first].size() + this->d_prime[pair.second].size() - window_length);
+    //     }
+
+    //     for (auto& p : p_first) { cost_of_removing_from_D -= this->d_prime[p].size(); }
+    //     for (auto& p : p_second) { cost_of_removing_from_D -= this->d_prime[p].size(); }
+
+    //     cost_of_removing_tot = cost_of_removing_from_D + cost_of_removing_from_P;
+    //     cost_of_removing_tot = -1 * cost_of_removing_tot;
+
+    //     if (cost_of_removing_tot >= threshold)
+    //     {
+    //         // remove trigger string updating parse, dictionary, and t_table
+    //         bytes_removed += cost_of_removing_tot;
+
+    //         // insert merged phrases in D, update P and T accordingly
+    //         for (auto pair_first : trigger_string_entry.second)
+    //         {
+    //             auto pair_second = std::next(pair_first);
+    //             hash_type pi1 = *pair_first, pi2 = *pair_second;
+
+    //             std::string merged_phrase = d_prime[pi1].append(d_prime[pi2].substr(window_length));
+    //             hash_type merged_phrase_hash = string_hash(merged_phrase.c_str(), merged_phrase.size());
+    //             if (d_prime.find(merged_phrase_hash) == d_prime.end())
+    //             {
+    //                 d_prime.insert(std::pair(merged_phrase_hash, merged_phrase));
+    //             }
+
+
+    //             hash_type &pair_first_ptr = *pair_first;
+    //             pair_first_ptr = merged_phrase_hash; // substitute first element
+    //             this->p_prime.erase(pair_second); // erase second element
+
+    //             std::cout << *pair_second << "\t";
+    //             std::cout << *(std::next(std::next(std::prev(pair_first)))) << std::endl;
+    //         }
+
+    //         // remove old phrases from D
+    //         for (auto& p : p_all) { d_prime.erase(p); }
+    //     }
+    // }
+
+    return bytes_removed;
+}
+
+//------------------------------------------------------------------------------
+
