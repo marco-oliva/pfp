@@ -215,23 +215,29 @@ class AuPair
     std::unordered_map<hash_type, std::string> d_prime;
     std::list<hash_type> p_prime;
 
-    std::map<std::string, std::vector<std::list<hash_type>::pointer>> T_table;
+    std::map<std::string, std::list<std::list<hash_type>::iterator>> T_table;
 
     size_type window_length;
-
+    std::string out_prefix;
+    
+    bool closed = false;
 public:
 
     // Builds the structures end empties the vectors when done
-    AuPair(std::vector<std::string>& dictionary, std::vector<size_type>& parse, size_type w) : window_length(w)
+    AuPair(std::vector<std::string>& dictionary, std::vector<size_type>& parse, size_type w, std::string out_pref)
+    : window_length(w) , out_prefix(out_pref)
     {
         this->init(dictionary, parse);
 
         dictionary.resize(0);
         parse.resize(0);
     }
+    
+    ~AuPair() { this->close(); }
 
     void init(std::vector<std::string>& dictionary, std::vector<size_type>& parse);
-
+    void close();
+    
     size_type compress(int threshold);
 };
 

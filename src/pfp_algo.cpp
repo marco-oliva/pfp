@@ -626,20 +626,19 @@ vcfbwt::pfp::AuPair::init(std::vector<std::string>& dictionary, std::vector<size
 
         // update P'
         this->p_prime.emplace_back(phrase_1_hash);
-        std::list<hash_type>::pointer phrase_1_pointer = &(*(std::prev(p_prime.end())));
-
-        this->p_prime.emplace_back(phrase_2_hash);
+        std::list<hash_type>::iterator phrase_1_iterator = std::prev(p_prime.end());
+        if (i == parse.size() - 2) { this->p_prime.emplace_back(phrase_2_hash); }
 
         std::string trigger_string = phrase_1.substr(phrase_1.size() - window_length, window_length);
         if (T_table.find(trigger_string) == T_table.end())
         {
-            std::vector<std::list<hash_type>::pointer> pairs;
-            pairs.emplace_back(phrase_1_pointer);
+            std::list<std::list<hash_type>::iterator> pairs;
+            pairs.push_back(phrase_1_iterator);
             this->T_table.insert(std::pair(trigger_string, pairs));
         }
         else
         {
-            this->T_table[trigger_string].emplace_back(phrase_1_pointer);
+            this->T_table[trigger_string].push_back(phrase_1_iterator);
         }
     }
 }
@@ -648,69 +647,136 @@ vcfbwt::size_type
 vcfbwt::pfp::AuPair::compress(int threshold)
 {
     int bytes_removed = 0;
+    
+    std::set<std::string> ts_to_be_erased;
+    std::set<hash_type> phrases_to_be_erased;
 
     // evaluate each trigger string
-    // for (auto& trigger_string_entry : this->T_table)
-    // {
-    //     // compute the cost of removing this trigger string
-    //     int cost_of_removing_from_D = 0, cost_of_removing_from_P = 0, cost_of_removing_tot = 0;
+     for (auto& trigger_string_entry : this->T_table)
+     {
+         // compute the cost of removing this trigger string
+         int cost_of_removing_from_D = 0, cost_of_removing_from_P = 0, cost_of_removing_tot = 0;
 
-    //     cost_of_removing_from_P = trigger_string_entry.second.size() * sizeof(size_type);
+         cost_of_removing_from_P = trigger_string_entry.second.size() * sizeof(size_type);
 
-    //     std::set<std::pair<hash_type, hash_type>> pairs;
-    //     std::set<hash_type> p_first, p_second, p_all;
-    //     for (auto pair_first : trigger_string_entry.second)
-    //     {
-    //         hash_type pi1 = *pair_first, pi2 = *std::next(pair_first);
+         std::set<std::pair<hash_type, hash_type>> pairs;
+         std::set<hash_type> p_first, p_second, p_all;
+         for (auto pair_first : trigger_string_entry.second)
+         {
+             hash_type pi1 = *pair_first;
+             if (std::next(pair_first) == p_prime.end()) { continue; }
+             hash_type pi2 = *std::next(pair_first);
 
-    //         pairs.insert(std::pair(pi1,pi2)); p_first.insert(pi1); p_second.insert(pi2);
-    //         p_all.insert(pi1); p_all.insert(pi2);
-    //     }
+             pairs.insert(std::pair(pi1,pi2)); p_first.insert(pi1); p_second.insert(pi2);
+             p_all.insert(pi1); p_all.insert(pi2);
+         }
 
-    //     for (auto& pair : pairs)
-    //     {
-    //         cost_of_removing_from_D += (this->d_prime[pair.first].size() + this->d_prime[pair.second].size() - window_length);
-    //     }
+         for (auto& pair : pairs)
+         {
+             cost_of_removing_from_D += (this->d_prime[pair.first].size() + this->d_prime[pair.second].size() - window_length);
+         }
 
-    //     for (auto& p : p_first) { cost_of_removing_from_D -= this->d_prime[p].size(); }
-    //     for (auto& p : p_second) { cost_of_removing_from_D -= this->d_prime[p].size(); }
+         for (auto& p : p_first) { cost_of_removing_from_D -= this->d_prime[p].size(); }
+         for (auto& p : p_second) { cost_of_removing_from_D -= this->d_prime[p].size(); }
 
-    //     cost_of_removing_tot = cost_of_removing_from_D + cost_of_removing_from_P;
-    //     cost_of_removing_tot = -1 * cost_of_removing_tot;
+         cost_of_removing_tot = cost_of_removing_from_D + cost_of_removing_from_P;
+         cost_of_removing_tot = -1 * cost_of_removing_tot;
 
-    //     if (cost_of_removing_tot >= threshold)
-    //     {
-    //         // remove trigger string updating parse, dictionary, and t_table
-    //         bytes_removed += cost_of_removing_tot;
+         if (cost_of_removing_tot >= threshold)
+         {
+             ts_to_be_erased.insert(trigger_string_entry.first);
+             
+             // remove trigger string updating parse, dictionary, and t_table
+             bytes_removed += cost_of_removing_tot;
 
-    //         // insert merged phrases in D, update P and T accordingly
-    //         for (auto pair_first : trigger_string_entry.second)
-    //         {
-    //             auto pair_second = std::next(pair_first);
-    //             hash_type pi1 = *pair_first, pi2 = *pair_second;
+             // insert merged phrases in D, update P and T accordingly
+             for (auto pair_first : trigger_string_entry.second)
+             {
+                 auto pair_second = std::next(pair_first);
+                 if (pair_second == p_prime.end()) { continue; }
+                 hash_type pi1 = *pair_first, pi2 = *pair_second;
 
-    //             std::string merged_phrase = d_prime[pi1].append(d_prime[pi2].substr(window_length));
-    //             hash_type merged_phrase_hash = string_hash(merged_phrase.c_str(), merged_phrase.size());
-    //             if (d_prime.find(merged_phrase_hash) == d_prime.end())
-    //             {
-    //                 d_prime.insert(std::pair(merged_phrase_hash, merged_phrase));
-    //             }
+                 std::string merged_phrase = d_prime[pi1].append(d_prime[pi2].substr(window_length));
+                 hash_type merged_phrase_hash = string_hash(merged_phrase.c_str(), merged_phrase.size());
+                 if (d_prime.find(merged_phrase_hash) == d_prime.end())
+                 {
+                     d_prime.insert(std::pair(merged_phrase_hash, merged_phrase));
+                 }
+    
+                 // remove pair_second from t_table
+                 std::string pair_second_ending_ts = d_prime[*pair_second].substr(d_prime[*pair_second].size() - window_length);
+                 T_table[pair_second_ending_ts].remove_if([pair_second](std::list<hash_type>::iterator p){ return *p == *pair_second; });
+                 
+                 hash_type &pair_first_ptr = *pair_first;
+                 pair_first_ptr = merged_phrase_hash; // substitute first element
+                 this->p_prime.erase(pair_second); // erase second element
+             }
 
-
-    //             hash_type &pair_first_ptr = *pair_first;
-    //             pair_first_ptr = merged_phrase_hash; // substitute first element
-    //             this->p_prime.erase(pair_second); // erase second element
-
-    //             std::cout << *pair_second << "\t";
-    //             std::cout << *(std::next(std::next(std::prev(pair_first)))) << std::endl;
-    //         }
-
-    //         // remove old phrases from D
-    //         for (auto& p : p_all) { d_prime.erase(p); }
-    //     }
-    // }
+             // remove old phrases from D
+             for (auto& p : p_all) { phrases_to_be_erased.insert(p); }
+             
+             // update t_table?
+             // ogni entry della tabella è ts : lista di puntatori al primo elemento della coppia
+             // quindi per ogni coppia che unisco c'è o un (pi, pm) che non è un problema perchè ho sostituito
+             // oppure (pm, pj) ora quel pm non esiste più perchè era il secondo della coppia e va
+             // sostituito con il vero pm.
+             // (P1, p2) (P2, p3) (P3, p4) (P4, p5) ... unendo p2-p3, va solo rimosso dalla tabella p3
+         }
+     }
+     
+     // remove processed trigger strings from T_table
+     for (auto& ts : ts_to_be_erased) { T_table.erase(ts); }
+     for (auto& p : phrases_to_be_erased) {d_prime.erase(p); }
 
     return bytes_removed;
+}
+
+void
+vcfbwt::pfp::AuPair::close()
+{
+    if (this->closed) { return; }
+    this->closed = true;
+    
+    // sort dictionary
+    std::vector<std::pair<std::reference_wrapper<std::string>, hash_type>> sorted_phrases;
+    for (auto& d_pair : d_prime) { sorted_phrases.push_back(std::pair(std::ref(d_pair.second), d_pair.first)); }
+    
+    std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller);
+    
+    std::unordered_map<hash_type, size_type> hash_to_rank;
+    for (std::size_t i = 0; i < sorted_phrases.size(); i++) { hash_to_rank[sorted_phrases[i].second] = i + 1; }
+    
+    spdlog::info("AuPair: writing dictionary to disk NOT COMPRESSED");
+    std::string dict_file_name = this->out_prefix + ".dict";
+    std::ofstream dict(dict_file_name);
+    
+    for (size_type i = 0; i < sorted_phrases.size(); i++)
+    {
+        dict.write(sorted_phrases[i].first.get().c_str(), sorted_phrases[i].first.get().size());
+        dict.put(ENDOFWORD);
+    }
+    dict.put(ENDOFDICT);
+    vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
+    dict.close();
+    
+    spdlog::info("AuPair: writing parse to disk");
+    std::string parse_file_name = this->out_prefix + ".parse";
+    std::ofstream parse(parse_file_name);
+    
+    for (auto& parse_element : p_prime)
+    {
+        if (hash_to_rank.find(parse_element) == hash_to_rank.end())
+        {
+            std::cout << "Error";
+        }
+        else
+        {
+            parse.write((char*) &(hash_to_rank.at(parse_element)), sizeof(hash_type));
+        }
+    }
+    
+    vcfbwt::DiskWrites::update(parse.tellp()); // Disk Stats
+    parse.close();
 }
 
 //------------------------------------------------------------------------------
