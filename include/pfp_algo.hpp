@@ -215,11 +215,11 @@ class AuPair
     std::unordered_map<hash_type, std::string> d_prime;
     std::list<hash_type> p_prime;
 
-    std::map<std::string, std::list<std::list<hash_type>::iterator>> T_table;
+    std::unordered_map<std::string, std::list<std::list<hash_type>::iterator>> T_table;
 
     size_type window_length;
     std::string out_prefix;
-    
+
     bool closed = false;
 public:
 
