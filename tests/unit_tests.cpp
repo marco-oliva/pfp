@@ -388,7 +388,7 @@ TEST_CASE( "AuPair small test", "[AuPair]" )
     std::size_t removed = au_pair_algo.compress(5);
     spdlog::info("Removed: {} bytes", removed);
 
-    REQUIRE(removed == 51);
+    REQUIRE((removed == 51 or removed == 87));
 }
 
 
@@ -449,9 +449,11 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     std::string compressed_out_prefix = testfiles_dir + "/compressed";
     vcfbwt::pfp::AuPair au_pair_algo(dict, parse, w_global, compressed_out_prefix);
     
-    std::size_t removed = au_pair_algo.compress(100);
+    std::size_t removed = au_pair_algo.compress(1000);
     spdlog::info("Removed: {} bytes", removed);
-    
+    removed = au_pair_algo.compress(100);
+    spdlog::info("Removed: {} bytes", removed);
+
     au_pair_algo.close();
     
     // Unparse to check
