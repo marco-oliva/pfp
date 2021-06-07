@@ -20,11 +20,12 @@ int main(int argc, char **argv)
     std::string parse_file;
     std::string occ_file;
     std::size_t window_size;
+    std::size_t threshold;
 
     app.add_option("-o,--out-file", out_file, "Output file")->check(CLI::NonexistentPath)->required();
     app.add_option("-d,--dictionary", dict_file, "Dictionary file")->check(CLI::ExistingFile)->required();
     app.add_option("-p,--parse", parse_file, "Parse file")->check(CLI::ExistingFile)->required();
-    app.add_option("-f,--occurrences", occ_file, "Occurrences file")->check(CLI::ExistingFile)->required();
+    app.add_option("-t,--threshold", threshold, "Threshold")->required();
     app.add_option("-w, --window", window_size, "Window size")->required();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
     app.allow_windows_style_options();
@@ -39,16 +40,17 @@ int main(int argc, char **argv)
     std::vector<std::string> dict;
     vcfbwt::pfp::Parser::read_dictionary(dict_file, dict);
 
-//    spdlog::info("Reading Occurrences");
-//    std::vector<vcfbwt::size_type> occurrences(dict.size());
-//    std::ifstream occurrences_stream(occ_file, std::ios::binary);
-//    occurrences_stream.read((char*) &occurrences[0], occurrences.size() * sizeof(vcfbwt::size_type));
 
     spdlog::info("Reading Parse");
     std::vector<vcfbwt::size_type> parse;
     vcfbwt::pfp::Parser::read_parse(parse_file, parse);
 
-    spdlog::info("Initializing Trigger strings map");
-    std::unordered_map<std::string, std::vector<std::size_t>> trigger_strings_info;
+    std::size_t dict_size = 0;
+    for (auto& d : dict) { dict_size += d.size(); }
+    spdlog::info("Parse + Dicionary: {} bytes", (parse.size() * sizeof(vcfbwt::size_type)) + (dict_size));
 
+    vcfbwt::pfp::AuPair au_pair_algo(dict, parse, window_size, out_file);
+
+    std::size_t removed = au_pair_algo.compress(threshold);
+    spdlog::info("Removed: {} bytes", removed);
 }
