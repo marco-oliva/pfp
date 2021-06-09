@@ -388,7 +388,7 @@ TEST_CASE( "AuPair small test", "[AuPair]" )
     std::size_t removed = au_pair_algo.compress(5);
     spdlog::info("Removed: {} bytes", removed);
 
-    REQUIRE((removed == 51 or removed == 87));
+    REQUIRE(au_pair_algo._TESTING_unparse() == S);
 }
 
 
@@ -424,7 +424,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 
     // Close the main parser
     main_parser.close();
-    
+
     // Generate the desired outcome from the test files, reference first
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
@@ -439,29 +439,29 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-    
+
     // Unparse for AuPair
     std::vector<vcfbwt::size_type>  parse;
     vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
     std::vector<std::string> dict;
     vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
-    
+
     std::string compressed_out_prefix = testfiles_dir + "/compressed";
     vcfbwt::pfp::AuPair au_pair_algo(dict, parse, w_global, compressed_out_prefix);
-    
+
     std::size_t removed = au_pair_algo.compress(1000);
     spdlog::info("Removed: {} bytes", removed);
     removed = au_pair_algo.compress(100);
     spdlog::info("Removed: {} bytes", removed);
 
     au_pair_algo.close();
-    
+
     // Unparse to check
     std::vector<vcfbwt::size_type>  parse_compressed;
     vcfbwt::pfp::Parser::read_parse(compressed_out_prefix + ".parse", parse_compressed);
     std::vector<std::string> dict_compressed;
     vcfbwt::pfp::Parser::read_dictionary(compressed_out_prefix + ".dict", dict_compressed);
-    
+
     std::string unparsed;
     for (auto& p : parse_compressed)
     {
