@@ -211,36 +211,36 @@ public:
 
 class AuPair
 {
-
-    std::unordered_map<hash_type, std::string> d_prime;
-    std::list<hash_type> p_prime;
-
-    std::unordered_map<std::string, std::unordered_map<hash_type, std::list<std::list<hash_type>::iterator>>> T_table;
+    
+    // Dictionary
+    std::vector<std::string> d_prime;
+    
+    // Table to compute the cost of removing each trigger string.
+    std::unordered_map<std::string_view, std::map<std::pair<size_type, size_type>, size_type>> T_table;
 
     size_type window_length;
-    std::string out_prefix;
+    std::string in_prefix, out_prefix;
+    
+    std::size_t curr_id;
 
     bool closed = false;
 public:
 
     // Builds the structures end empties the vectors when done
-    AuPair(std::vector<std::string>& dictionary, std::vector<size_type>& parse, size_type w, std::string out_pref)
-    : window_length(w) , out_prefix(out_pref)
+    AuPair(std::string in, std::string out, size_type w)
+    : window_length(w) , in_prefix(in) , out_prefix(out)
     {
-        this->init(dictionary, parse);
-
-        dictionary.resize(0);
-        parse.resize(0);
+        this->init();
     }
     
     ~AuPair() { this->close(); }
 
-    void init(std::vector<std::string>& dictionary, std::vector<size_type>& parse);
+    void init();
     void close();
 
     std::string _TESTING_unparse();
     
-    size_type compress(int threshold);
+    std::size_t compress(std::set<std::string>& removed_trigger_strings, int threshold);
 };
 
 } // end namespace pfp

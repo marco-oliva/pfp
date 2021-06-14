@@ -610,44 +610,36 @@ vcfbwt::pfp::Parser::merge(std::string left_prefix, std::string right_prefix, st
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::pfp::AuPair::init(std::vector<std::string>& dictionary, std::vector<size_type>& parse)
+vcfbwt::pfp::AuPair::init()
 {
-    spdlog::info("Initializing AuPair structures");
-    for (std::size_t i = 0; i < parse.size() - 1; i++)
+    spdlog::info("Reading Dictionary");
+    vcfbwt::pfp::Parser::read_dictionary(in_prefix + ".dict", this->d_prime);
+    this->curr_id = this->d_prime.size() + 1;
+    
+    mio::mmap_source in_parse(in_prefix + ".parse");
+    for (std::size_t i = 0; i < in_parse.size(); i += sizeof(size_type))
     {
-        std::string& phrase_1 = dictionary[parse[i] - 1];
-        hash_type phrase_1_hash = string_hash(phrase_1.c_str(), phrase_1.size());
-
-        std::string& phrase_2 = dictionary[parse[i + 1] - 1];
-        hash_type phrase_2_hash = string_hash(phrase_2.c_str(), phrase_2.size());
-
-        // update D'
-        this->d_prime.insert(std::pair(phrase_1_hash, phrase_1));
-        if (i == parse.size() - 2) { this->d_prime.insert(std::pair(phrase_2_hash, phrase_2)); }
-
-        // update P'
-        this->p_prime.emplace_back(phrase_1_hash);
-        auto phrase_1_iterator = std::prev(p_prime.end());
-        if (i == parse.size() - 2) { this->p_prime.emplace_back(phrase_2_hash); }
+        size_type curr_element = 0, next_element = 0;
+        std::memcpy(&(in_parse[i]), &curr_element, sizeof(size_type));
+        std::memcpy(&(in_parse[i + sizeof(size_type)]), &next_element, sizeof(size_type));
+        
+        std::string_view phrase_1 = d_prime[curr_element - 1];
+        std::string_view phrase_2 = d_prime[next_element - 1];
 
         // update T
-        std::string trigger_string = phrase_1.substr(phrase_1.size() - window_length, window_length);
-        this->T_table[trigger_string][phrase_1_hash].push_back(phrase_1_iterator);
+        std::string_view trigger_string = phrase_1.substr(phrase_1.size() - window_length, window_length);
+        this->T_table[trigger_string][std::make_pair(curr_element - 1, next_element - 1)] += 1;
     }
 }
 
 vcfbwt::size_type
-vcfbwt::pfp::AuPair::compress(int threshold)
+vcfbwt::pfp::AuPair::compress(std::set<std::string>& removed_trigger_strings, int threshold)
 {
     spdlog::info("Start compressing with threshold {}", threshold);
     int bytes_removed = 0;
     
-    std::set<std::string> ts_to_be_erased;
-    std::set<hash_type> phrases_to_be_erased;
-
     spdlog::info("Initial TS count: {}", T_table.size());
     if (T_table.size() <= 1) { return 0; }
-
 
     // itearate over T
     for (auto& table_entry : this->T_table)
@@ -742,7 +734,7 @@ vcfbwt::pfp::AuPair::compress(int threshold)
             }
         }
     }
-     
+
      // remove processed trigger strings from T_table
      for (auto& ts : ts_to_be_erased) { T_table.erase(ts); }
      for (auto& p : phrases_to_be_erased) { d_prime.erase(p); }
@@ -753,61 +745,61 @@ vcfbwt::pfp::AuPair::compress(int threshold)
 void
 vcfbwt::pfp::AuPair::close()
 {
-    if (this->closed) { return; }
-    this->closed = true;
-    
-    // sort dictionary
-    std::vector<std::pair<std::reference_wrapper<std::string>, hash_type>> sorted_phrases;
-    for (auto& d_pair : d_prime) { sorted_phrases.push_back(std::pair(std::ref(d_pair.second), d_pair.first)); }
-    
-    std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller);
-    
-    std::unordered_map<hash_type, size_type> hash_to_rank;
-    for (std::size_t i = 0; i < sorted_phrases.size(); i++) { hash_to_rank[sorted_phrases[i].second] = i + 1; }
-    
-    spdlog::info("AuPair: writing dictionary to disk NOT COMPRESSED");
-    std::string dict_file_name = this->out_prefix + ".dict";
-    std::ofstream dict(dict_file_name);
-    
-    for (size_type i = 0; i < sorted_phrases.size(); i++)
-    {
-        dict.write(sorted_phrases[i].first.get().c_str(), sorted_phrases[i].first.get().size());
-        dict.put(ENDOFWORD);
-    }
-    dict.put(ENDOFDICT);
-    vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
-    dict.close();
-    
-    spdlog::info("AuPair: writing parse to disk");
-    std::string parse_file_name = this->out_prefix + ".parse";
-    std::ofstream parse(parse_file_name);
-    
-    for (auto& parse_element : p_prime)
-    {
-        if (hash_to_rank.find(parse_element) == hash_to_rank.end())
-        {
-            std::cout << "Error " << parse_element << std::endl;
-        }
-        else
-        {
-            parse.write((char*) &(hash_to_rank.at(parse_element)), sizeof(size_type));
-        }
-    }
-    
-    vcfbwt::DiskWrites::update(parse.tellp()); // Disk Stats
-    parse.close();
+//    if (this->closed) { return; }
+//    this->closed = true;
+//
+//    // sort dictionary
+//    std::vector<std::pair<std::reference_wrapper<std::string>, hash_type>> sorted_phrases;
+//    for (auto& d_pair : d_prime) { sorted_phrases.push_back(std::pair(std::ref(d_pair.second), d_pair.first)); }
+//
+//    std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller);
+//
+//    std::unordered_map<hash_type, size_type> hash_to_rank;
+//    for (std::size_t i = 0; i < sorted_phrases.size(); i++) { hash_to_rank.at(sorted_phrases[i].second) = i + 1; }
+//
+//    spdlog::info("AuPair: writing dictionary to disk NOT COMPRESSED");
+//    std::string dict_file_name = this->out_prefix + ".dict";
+//    std::ofstream dict(dict_file_name);
+//
+//    for (size_type i = 0; i < sorted_phrases.size(); i++)
+//    {
+//        dict.write(sorted_phrases[i].first.get().c_str(), sorted_phrases[i].first.get().size());
+//        dict.put(ENDOFWORD);
+//    }
+//    dict.put(ENDOFDICT);
+//    vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
+//    dict.close();
+//
+//    spdlog::info("AuPair: writing parse to disk");
+//    std::string parse_file_name = this->out_prefix + ".parse";
+//    std::ofstream parse(parse_file_name);
+//
+//    for (auto& parse_element : p_prime)
+//    {
+//        if (hash_to_rank.find(parse_element) == hash_to_rank.end())
+//        {
+//            std::cout << "Error " << parse_element << std::endl;
+//        }
+//        else
+//        {
+//            parse.write((char*) &(hash_to_rank.at(parse_element)), sizeof(size_type));
+//        }
+//    }
+//
+//    vcfbwt::DiskWrites::update(parse.tellp()); // Disk Stats
+//    parse.close();
 }
 
 std::string
 vcfbwt::pfp::AuPair::_TESTING_unparse()
 {
-    std::string out;
-    for (auto& p : p_prime)
-    {
-        out += d_prime[p].substr(0, d_prime[p].size() - window_length);
-    }
-    out += d_prime[p_prime.back()].substr(d_prime[p_prime.back()].size() - window_length);
-    return out;
+//    std::string out;
+//    for (auto& p : p_prime)
+//    {
+//        out += d_prime[p].substr(0, d_prime[p].size() - window_length);
+//    }
+//    out += d_prime[p_prime.back()].substr(d_prime[p_prime.back()].size() - window_length);
+//    return out;
 }
 
 //------------------------------------------------------------------------------
