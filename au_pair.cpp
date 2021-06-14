@@ -52,10 +52,6 @@ int main(int argc, char **argv)
     vcfbwt::pfp::AuPair au_pair_algo(dict, parse, window_size, out_file);
 
     std::size_t iteration = 0, max_iterations = 10, removed = 1;
-    while (removed != 0 and iteration < max_iterations)
-    {
-        removed = au_pair_algo.compress(threshold);
-        spdlog::info("[{}]Removed: {} bytes", iteration, removed);
-        iteration++;
-    }
+    removed = au_pair_algo.compress(threshold);
+    spdlog::info("[{}]Removed: {} bytes", iteration, removed);
 }
