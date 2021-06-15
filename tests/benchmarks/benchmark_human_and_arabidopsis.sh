@@ -20,10 +20,10 @@ BASE_DIR_EXP="/blue/boucher/marco.oliva/projects/experiments/pfp"
 PROFILER="/usr/bin/time --verbose"
 
 BENCHMARK_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmark_human.py"
-SAMPLES_LIST_BASE_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/samples_list/input_list"
+SAMPLES_LIST_BASE_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/samples_lists/input_list"
 
 BENCHMARK_ARABIDOPSIS="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmark_arabidopsis.py"
-SAMPLES_LIST_BASE_ARABIDOPSIS="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/samples_list/arabidopsis_input_list"
+SAMPLES_LIST_BASE_ARABIDOPSIS="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/samples_lists/arabidopsis_input_list"
 
 module load python/3.6
 module load htslib
