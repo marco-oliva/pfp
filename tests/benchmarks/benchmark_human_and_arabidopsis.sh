@@ -25,7 +25,7 @@ SAMPLES_LIST_BASE_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/repo
 BENCHMARK_ARABIDOPSIS="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmark_arabidopsis.py"
 SAMPLES_LIST_BASE_ARABIDOPSIS="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/arabidopsis_input_list"
 
-module load python
+module load python/3.6
 module load htslib
 module load bcftools
 module load git
