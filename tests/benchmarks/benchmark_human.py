@@ -39,7 +39,6 @@ def execute_command(command, time_it=False, seconds=1000000):
     try:
         if time_it:
             command = '/usr/bin/time --verbose {}'.format(command)
-        rootLogger.info("Executing: {}".format(command))
         process = subprocess.Popen(command.split(), preexec_fn=os.setsid, stdout=subprocess.PIPE)
         (output, err) = process.communicate()
         process.wait(timeout=seconds)
@@ -58,7 +57,10 @@ def execute_command(command, time_it=False, seconds=1000000):
     if err:
         err = err.decode("utf-8")
         rootLogger.error(err)
-    return output
+    formatted_output = "[Command]\n{}\n[Output]\n{}\n[Error]\n{}".format(command, output, error)
+    rootLogger.info(formatted_output)
+    return formatted_output
+
 
 
 def get_pscan(work_dir):
@@ -172,7 +174,7 @@ def main():
     rootLogger = logging.getLogger()
     rootLogger.setLevel(logging.DEBUG)
 
-    fileHandler = logging.FileHandler("{0}/{1}.log".format('.', 'logfile'))
+    fileHandler = logging.FileHandler("{}/{}_logfile.log".format('.', date_string))
     fileHandler.setFormatter(logFormatter)
     rootLogger.addHandler(fileHandler)
 
