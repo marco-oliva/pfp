@@ -31,6 +31,7 @@ p_value  = 100
 n_threads  = 32
 
 def get_vcf_files(out_dir):
+    rootLogger = logging.getLogger()
     vcf_files_list = list()
     for chromosome_id in [str(c) for c in range(1,23)]:
         chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
@@ -56,6 +57,7 @@ def get_vcf_files(out_dir):
     return vcf_files_list
 
 def get_reference_files(out_dir):
+    rootLogger = logging.getLogger()
     out_fasta_list = list()
     for chromosome_id in [str(c) for c in chromosomes_list]:
         if (os.path.exists(pre_download_data_dir + '/reference/' + chromosome_id + '.fa.gz')):
@@ -68,6 +70,7 @@ def get_reference_files(out_dir):
     return out_fasta_list
 
 def per_sample_fasta(samples_dir, ref_dir, vcf_files_list, sample):
+    rootLogger = logging.getLogger()
     rootLogger.info('Running on sample: {}'.format(sample))
 
     sample_dir = samples_dir + '/' + sample
@@ -86,7 +89,6 @@ def per_sample_fasta(samples_dir, ref_dir, vcf_files_list, sample):
     out_fasta_all.close()
 
 def main():
-    global rootLogger
     logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
     rootLogger = logging.getLogger()
     rootLogger.setLevel(logging.DEBUG)

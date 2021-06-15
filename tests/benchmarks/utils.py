@@ -7,6 +7,7 @@ import tqdm
 #------------------------------------------------------------
 # execute command: return command's stdout if everything OK, None otherwise
 def execute_command(command, time_it=False, seconds=1000000):
+    rootLogger = logging.getLogger()
     try:
         if time_it:
             command = '/usr/bin/time --verbose {}'.format(command)
@@ -32,6 +33,7 @@ def execute_command(command, time_it=False, seconds=1000000):
 #------------------------------------------------------------
 # download and compile pscan
 def get_pscan(work_dir):
+    rootLogger = logging.getLogger()
     if os.path.exists(work_dir + '/Big-BWT/newscan.x'):
         rootLogger.info('newscan.x already exists')
     else:
@@ -46,11 +48,13 @@ def get_pscan(work_dir):
 #------------------------------------------------------------
 # download and compile aupair
 def get_au_pair(work_dir):
+    rootLogger = logging.getLogger()
     return "binary_path"
 
 #------------------------------------------------------------
 # download and compile pfp++
 def get_pfp(work_dir):
+    rootLogger = logging.getLogger()
     if os.path.exists('../../build/pfp++'):
         pfp_realpath = os.path.relpath('../../build/pfp++')
         execute_command('cp {} {}'.format(pfp_realpath, work_dir))
@@ -66,6 +70,7 @@ def get_pfp(work_dir):
 #------------------------------------------------------------
 # extract fasta using bcftools
 def extract_fasta(out_file_path, ref_file, vcf_file, sample_id):
+    rootLogger = logging.getLogger()
     bcf_command = "bcftools consensus -H 1 -f {} -s {} {} -o {}".format(
         ref_file, sample_id, vcf_file, out_file_path)
     execute_command(bcf_command, time_it=True)
@@ -73,6 +78,7 @@ def extract_fasta(out_file_path, ref_file, vcf_file, sample_id):
 #------------------------------------------------------------
 # mkdir
 def mkdir_p(path):
+    rootLogger = logging.getLogger()
     try:
         os.makedirs(path)
     except OSError as exc:  # Python ≥ 2.5
@@ -82,6 +88,7 @@ def mkdir_p(path):
             raise # nop
 
 def create_pfp_config_file(vcf_list, ref_list, out_dir):
+    rootLogger = logging.getLogger()
     # Generate config file
     with open(out_dir + '/config.ini', 'w') as config_file:
         config_file.write('# Generated config file\n')

@@ -31,6 +31,7 @@ p_value  = 100
 n_threads  = 32
 
 def get_vcf_files(out_dir):
+    rootLogger = logging.getLogger()
     vcf_files_list = list()
     for chromosome_id in [str(c) for c in chromosomes_list]:
         chromosome_file_name = '1001genomes_snp-short-indel_only_ACGTN_chr{}.vcf.gz'.format(chromosome_id)
@@ -55,6 +56,7 @@ def get_vcf_files(out_dir):
     return vcf_files_list
 
 def get_reference_files(out_dir):
+    rootLogger = logging.getLogger()
     out_fasta_list = list()
     for chromosome_id in [str(c) for c in chromosomes_list]:
         if (os.path.exists(pre_download_data_dir + '/reference/' + chromosome_id + '.fas.gz')):
@@ -67,8 +69,8 @@ def get_reference_files(out_dir):
     return out_fasta_list
 
 def per_sample_fasta(samples_dir, ref_dir, vcf_files_list, sample):
+    rootLogger = logging.getLogger()
     rootLogger.info('Running on sample: {}'.format(sample))
-
     sample_dir = samples_dir + '/' + sample
     mkdir_p(sample_dir)
     out_fasta_all_path = sample_dir + '/' + sample + '_ALL.fa'
