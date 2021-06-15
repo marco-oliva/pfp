@@ -364,120 +364,93 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
 }
 
-//TEST_CASE( "AuPair small test", "[AuPair]" )
-//{
-//    std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"
-//                    "ACCACATAGGTGAACCTTGAAAATGTTACATTGTGTGAAAAAGTCAGATACAAGAGGCC!!!!";
-//
-//    std::vector<std::string> dictionary =
-//    {
-//            "!ACCACATAGGTG",
-//            "####ACCACATAGGTG",
-//            "AATGTTACACTGTGTGAAAAAGTCAG",
-//            "AATGTTACATTGTGTGAAAAAGTCAG",
-//            "CTTGAAAATG",
-//            "GGTGAACCTTG",
-//            "TCAGATACAAGAGGCC!!!!",
-//            "TCAGATACAAGAGGCC####"
-//    };
-//    std::vector<vcfbwt::size_type> parse = {1, 6, 5, 3, 8, 2, 6, 5, 4, 7};
-//
-//    std::string compressed_out_prefix = testfiles_dir + "/compressed";
-//    vcfbwt::pfp::AuPair au_pair_algo(dictionary, parse, 4, compressed_out_prefix);
-//
-//    std::size_t removed = au_pair_algo.compress(5);
-//    spdlog::info("Removed: {} bytes", removed);
-//
-//    REQUIRE(au_pair_algo._TESTING_unparse() == S);
-//}
-//
-//
-//TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
-//{
-//    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-//    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-//    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
-//
-//    // Only work on sample HG00096
-//    vcf.set_max_samples(1);
-//
-//    // Produce dictionary and parsing
-//    vcfbwt::pfp::Params params;
-//    params.w = w_global; params.p = p_global;
-//    params.use_acceleration = false;
-//    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-//
-//    std::string out_prefix = testfiles_dir + "/parser_out";
-//    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
-//
-//    vcfbwt::pfp::Parser worker;
-//    std::size_t tag = 0;
-//    tag = tag | vcfbwt::pfp::Parser::WORKER;
-//    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-//    tag = tag | vcfbwt::pfp::Parser::LAST;
-//
-//    worker.init(params, out_prefix, reference_parse, tag);
-//    main_parser.register_worker(worker);
-//
-//    // Run
-//    worker(vcf[0]);
-//
-//    // Close the main parser
-//    main_parser.close();
-//
-//    // Generate the desired outcome from the test files, reference first
-//    std::string what_it_should_be;
-//    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
-//    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-//    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
-//
-//    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-//    std::ifstream in_stream(test_sample_path);
-//    zstr::istream is(in_stream);
-//    std::string line, from_fasta;
-//    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-//
-//    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-//    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-//
-//    // Unparse for AuPair
-//    std::vector<vcfbwt::size_type>  parse;
-//    vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
-//    std::vector<std::string> dict;
-//    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
-//
-//    std::string compressed_out_prefix = testfiles_dir + "/compressed";
-//    vcfbwt::pfp::AuPair au_pair_algo(dict, parse, w_global, compressed_out_prefix);
-//
-//    std::size_t removed = au_pair_algo.compress(1000);
-//    spdlog::info("Removed: {} bytes", removed);
-//    removed = au_pair_algo.compress(100);
-//    spdlog::info("Removed: {} bytes", removed);
-//
-//    au_pair_algo.close();
-//
-//    // Unparse to check
-//    std::vector<vcfbwt::size_type>  parse_compressed;
-//    vcfbwt::pfp::Parser::read_parse(compressed_out_prefix + ".parse", parse_compressed);
-//    std::vector<std::string> dict_compressed;
-//    vcfbwt::pfp::Parser::read_dictionary(compressed_out_prefix + ".dict", dict_compressed);
-//
-//    std::string unparsed;
-//    for (auto& p : parse_compressed)
-//    {
-//        if (p > dict_compressed.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
-//        std::string dict_string = dict_compressed[p - 1].substr(0, dict_compressed[p - 1].size() - params.w);
-//        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
-//    }
-//    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
-//
-//
-//    // Compare the two strings
-//    std::size_t i = 0;
-//    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
-//    and (unparsed[i] == what_it_should_be[i])) { i++; }
-//    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
-//}
+TEST_CASE( "AuPair small test", "[AuPair]" )
+{
+    std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"
+                    "ACCACATAGGTGAACCTTGAAAATGTTACATTGTGTGAAAAAGTCAGATACAAGAGGCC!!!!";
+
+    std::vector<std::string> dictionary =
+    {
+            "!ACCACATAGGTG",
+            "####ACCACATAGGTG",
+            "AATGTTACACTGTGTGAAAAAGTCAG",
+            "AATGTTACATTGTGTGAAAAAGTCAG",
+            "CTTGAAAATG",
+            "GGTGAACCTTG",
+            "TCAGATACAAGAGGCC!!!!",
+            "TCAGATACAAGAGGCC####"
+    };
+
+    std::ofstream dict_file(testfiles_dir + "/au_pair_test_1.dict");
+    for (auto& phrase : dictionary)
+    {
+        dict_file.write(phrase.c_str(), phrase.size());
+        dict_file.put(vcfbwt::pfp::ENDOFWORD);
+    }
+    dict_file.put(vcfbwt::pfp::ENDOFDICT);
+    dict_file.close();
+
+    std::vector<vcfbwt::size_type> parse = {1, 6, 5, 3, 8, 2, 6, 5, 4, 7};
+    std::ofstream parse_file(testfiles_dir + "/au_pair_test_1.parse");
+    parse_file.write((char*)&parse[0], parse.size() * sizeof(vcfbwt::size_type));
+    parse_file.close();
+
+    vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4);
+
+    std::set<std::string_view> removed_trigger_strings;
+    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 5);
+
+    REQUIRE(removed_trigger_strings.size() > 0);
+    REQUIRE(removed_bytes > 0);
+}
+
+
+TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
+{
+    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+
+    // Only work on sample HG00096
+    vcf.set_max_samples(1);
+
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    params.use_acceleration = false;
+    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+
+    std::string out_prefix = testfiles_dir + "/parser_out";
+    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+
+    vcfbwt::pfp::Parser worker;
+    std::size_t tag = 0;
+    tag = tag | vcfbwt::pfp::Parser::WORKER;
+    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
+    tag = tag | vcfbwt::pfp::Parser::LAST;
+
+    worker.init(params, out_prefix, reference_parse, tag);
+    main_parser.register_worker(worker);
+
+    // Run
+    worker(vcf[0]);
+
+    // Close the main parser
+    main_parser.close();
+
+    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global);
+
+    std::set<std::string_view> removed_trigger_strings;
+    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
+    spdlog::info("Removed: {} bytes", removed_bytes);
+    removed_bytes = au_pair_algo.compress(removed_trigger_strings, 100);
+    spdlog::info("Removed: {} bytes", removed_bytes);
+
+    au_pair_algo.close();
+
+    REQUIRE(removed_trigger_strings.size() > 0);
+    REQUIRE(removed_bytes > 0);
+}
 
 //------------------------------------------------------------------------------
 

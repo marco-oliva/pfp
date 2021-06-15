@@ -211,24 +211,29 @@ public:
 
 class AuPair
 {
-    
-    // Dictionary
-    std::vector<std::string> d_prime;
-    
     // Table to compute the cost of removing each trigger string.
     std::unordered_map<std::string_view, std::map<std::pair<size_type, size_type>, size_type>> T_table;
 
     size_type window_length;
-    std::string in_prefix, out_prefix;
+    std::string in_prefix;
     
     std::size_t curr_id;
 
     bool closed = false;
+
+    struct d_prime
+    {
+        std::vector<std::string> d_prime_vector;
+        std::map<size_type, std::string> d_prime_map;
+
+        const std::string& at(std::size_t i) const;
+    } D_prime;
+
 public:
 
     // Builds the structures end empties the vectors when done
-    AuPair(std::string in, std::string out, size_type w)
-    : window_length(w) , in_prefix(in) , out_prefix(out)
+    AuPair(std::string in, size_type w)
+    : window_length(w) , in_prefix(in)
     {
         this->init();
     }
@@ -238,9 +243,7 @@ public:
     void init();
     void close();
 
-    std::string _TESTING_unparse();
-    
-    std::size_t compress(std::set<std::string>& removed_trigger_strings, int threshold);
+    int compress(std::set<std::string_view>& removed_trigger_strings, int threshold);
 };
 
 } // end namespace pfp
