@@ -29,7 +29,7 @@ vcfbwt::pfp::Dictionary::add(const std::string& phrase)
     this->sorted = false;
     
     hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
-    if (hash_string_map.find(phrase_hash) != hash_string_map.end())
+    if (hash_string_map.contains(phrase_hash))
     {
         spdlog::error("Hash collision! Hash already in the dictionary");
         std::exit(EXIT_FAILURE);
@@ -170,7 +170,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         {
             std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
             hash_type ts_hash = KarpRabinHash::string_hash(ts);
-            if (to_ignore_ts_hash.find(ts_hash) != to_ignore_ts_hash.end()) { continue; }
+            if (to_ignore_ts_hash.contains(ts_hash)) { continue; }
             
             hash_type hash = this->dictionary.check_and_add(phrase);
             
@@ -286,7 +286,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
         {
             std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
             hash_type ts_hash = KarpRabinHash::string_hash(ts);
-            if (this->reference_parse->to_ignore_ts_hash.find(ts_hash) != this->reference_parse->to_ignore_ts_hash.end()) { continue; }
+            if (this->reference_parse->to_ignore_ts_hash.contains(ts_hash)) { continue; }
             
             hash_type hash = this->dictionary->check_and_add(phrase);
         
@@ -695,7 +695,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         // removing from P
         for (auto& pair : table_entry.second)
         {
-            cost_of_removing_from_P -= pair.second * sizeof(size_type);
+            cost_of_removing_from_P -= (pair.second * sizeof(size_type));
         }
 
         // removing from D
@@ -705,7 +705,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         {
             pair_firsts.insert(pair.first.first);
             pair_seconds.insert(pair.first.second);
-            pairs.insert(std::pair(pair.first.first, pair.first.second));
+            pairs.insert(pair.first);
 
             std::string_view f_ts(&(D_prime.at(pair.first.first )[0]), window_length);
             std::string_view l_ts(&(D_prime.at(pair.first.second)[D_prime.at(pair.first.second).size() - window_length]), window_length);
@@ -755,7 +755,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 std::string_view second_ts(&(D_prime.at(second)[D_prime.at(second).size() - window_length]) , window_length);
 
                 std::vector<std::pair<std::pair<size_type, size_type>, size_type>> to_remove, to_add;
-                if (T_table.find(first_ts) != T_table.end())
+                if (T_table.contains(first_ts))
                 {
                     for (auto& pair : T_table.at(first_ts))
                     {
@@ -767,7 +767,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                     }
                 }
 
-                if (T_table.find(second_ts) != T_table.end())
+                if (T_table.contains(second_ts))
                 {
                     for (auto& pair : T_table.at(second_ts))
                     {

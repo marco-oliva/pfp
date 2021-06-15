@@ -93,6 +93,7 @@ struct Params
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
     bool compute_occurrences = false;
+    bool auPair = false;
     std::string ignore_ts_file;
 };
 
