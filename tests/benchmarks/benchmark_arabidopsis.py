@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import utils.py
+from utils import *
 
 # Set this dir
 data_base_dir = '/blue/boucher/marco.oliva/projects/experiments/pfp'
