@@ -130,6 +130,25 @@ vcfbwt::pfp::Dictionary::hash_to_rank(hash_type hash)
 void
 vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
 {
+    std::set<hash_type> to_ignore_ts_hash;
+    if (params.ignore_ts_file.size() > 0)
+    {
+        std::ifstream ts_file(params.ignore_ts_file);
+        if (not ts_file.is_open()) { spdlog::error("ERROR!"); std::exit(EXIT_FAILURE); }
+    
+        char c = '\5';
+        while (c != ENDOFDICT)
+        {
+            std::string ts = "";
+            while ((c = ts_file.get()) != ENDOFWORD and c != ENDOFDICT)
+            {
+                ts.push_back(c);
+            }
+            if (ts.size() != 0) { this->to_ignore_ts_hash.insert(KarpRabinHash::string_hash(ts)); }
+        }
+        ts_file.close();
+    }
+    
     std::string phrase;
     spdlog::info("Parsing reference");
     
@@ -146,9 +165,13 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         phrase.push_back(c);
         if (phrase.size() == params.w) { kr_hash.initialize(phrase); }
         else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
-
+        
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
+            std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
+            hash_type ts_hash = KarpRabinHash::string_hash(ts);
+            if (to_ignore_ts_hash.find(ts_hash) != to_ignore_ts_hash.end()) { continue; }
+            
             hash_type hash = this->dictionary.check_and_add(phrase);
             
             this->parse.push_back(hash);
@@ -261,6 +284,10 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
     
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
+            std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
+            hash_type ts_hash = KarpRabinHash::string_hash(ts);
+            if (this->reference_parse->to_ignore_ts_hash.find(ts_hash) != this->reference_parse->to_ignore_ts_hash.end()) { continue; }
+            
             hash_type hash = this->dictionary->check_and_add(phrase);
         
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
@@ -624,6 +651,7 @@ vcfbwt::pfp::AuPair::init()
     vcfbwt::pfp::Parser::read_dictionary(in_prefix + ".dict", this->D_prime.d_prime_vector);
     this->curr_id = this->D_prime.d_prime_vector.size() + 1;
     
+    spdlog::info("Reading Parse");
     mio::mmap_source in_parse(in_prefix + ".parse");
     for (std::size_t i = 0; i < in_parse.size() - sizeof(size_type); i += sizeof(size_type))
     {
@@ -705,7 +733,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         // remove trigger string if cost over threshold
         if (cost_of_removing_tot >= threshold and not starts_and_ends_with_same_ts)
         {
-            spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}", table_entry.first, cost_of_removing_tot, bytes_removed);
+            spdlog::debug("{}\tcost:\t{}\tbytes removed:\t{}", table_entry.first, cost_of_removing_tot, bytes_removed);
 
             bytes_removed += cost_of_removing_tot;
             removed_trigger_strings.insert(table_entry.first);
@@ -768,11 +796,6 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     }
 
     return bytes_removed;
-}
-
-void
-vcfbwt::pfp::AuPair::close()
-{
 }
 
 //------------------------------------------------------------------------------

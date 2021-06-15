@@ -102,6 +102,27 @@ TEST_CASE( "Periodic string of Ns", "[KR Window]" )
     REQUIRE(after  == 2071690116);
 }
 
+TEST_CASE( "String Hash", "[KR Window]" )
+{
+    std::string test_string = "12345";
+    
+    vcfbwt::KarpRabinHash kr_window(5);
+    kr_window.initialize(test_string);
+    
+    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash(test_string));
+}
+
+TEST_CASE( "String Hash 2", "[KR Window]" )
+{
+    std::string test_string = "12345";
+    
+    vcfbwt::KarpRabinHash kr_window(5);
+    kr_window.initialize(test_string);
+    kr_window.update('1', '6');
+    
+    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash("23456"));
+}
+
 //------------------------------------------------------------------------------
 
 TEST_CASE( "Constructor", "[VCF parser]" )
@@ -445,9 +466,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     spdlog::info("Removed: {} bytes", removed_bytes);
     removed_bytes = au_pair_algo.compress(removed_trigger_strings, 100);
     spdlog::info("Removed: {} bytes", removed_bytes);
-
-    au_pair_algo.close();
-
+    
     REQUIRE(removed_trigger_strings.size() > 0);
     REQUIRE(removed_bytes > 0);
 }

@@ -93,6 +93,7 @@ struct Params
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
     bool compute_occurrences = false;
+    std::string ignore_ts_file;
 };
 
 struct Statistics
@@ -109,6 +110,7 @@ public :
     Dictionary dictionary;
     std::vector<hash_type> parse;
     std::vector<size_type> trigger_strings_position; // position of first char of each trigger string
+    std::set<hash_type> to_ignore_ts_hash;
     
     const Params& params;
     
@@ -238,11 +240,8 @@ public:
         this->init();
     }
     
-    ~AuPair() { this->close(); }
-
     void init();
-    void close();
-
+    
     int compress(std::set<std::string_view>& removed_trigger_strings, int threshold);
 };
 

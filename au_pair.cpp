@@ -38,4 +38,15 @@ int main(int argc, char **argv)
     int removed_bytes = au_pair_algo.compress(removed_trigger_strings, threshold);
 
     spdlog::info("Removed {} bytes", removed_bytes);
+    
+    std::ofstream out_ts(out_file);
+    for (auto& rts : removed_trigger_strings)
+    {
+        for (auto& c : rts) { out_ts.put(c); }
+        out_ts.put(vcfbwt::pfp::ENDOFWORD);
+    }
+    out_ts.put(vcfbwt::pfp::ENDOFDICT);
+    
+    vcfbwt::DiskWrites::update(out_ts.tellp());
+    out_ts.close();
 }

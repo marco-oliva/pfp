@@ -127,6 +127,8 @@ private:
 public:
     constexpr static hash_type kr_prime    = 1999999973;
     constexpr static hash_type kr_constant = 256;
+    
+    static hash_type string_hash(const std::string_view& s);
 };
 
 
