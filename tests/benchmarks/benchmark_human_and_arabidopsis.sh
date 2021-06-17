@@ -29,6 +29,7 @@ module load python/3.6
 module load htslib
 module load bcftools
 module load git
+module load gcc/9.3.0
 
 ${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_10.txt"
 ${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_100.txt"

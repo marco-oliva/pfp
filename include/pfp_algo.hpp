@@ -214,8 +214,14 @@ public:
 
 class AuPair
 {
+private:
     // Table to compute the cost of removing each trigger string.
-    std::unordered_map<std::string_view, std::map<std::pair<size_type, size_type>, size_type>> T_table;
+    std::map<std::string_view, std::map<std::pair<size_type, size_type>, size_type>> T_table;
+
+    // Priority queue
+    indexMaxPQ priority_queue;
+    std::map<std::string_view, size_type> trigger_string_pq_ids;
+    std::map<size_type, std::string_view> trigger_string_pq_ids_inv;
 
     size_type window_length;
     std::string in_prefix;
@@ -231,6 +237,8 @@ class AuPair
 
         const std::string& at(std::size_t i) const;
     } D_prime;
+
+    int cost_of_removing_trigger_string(const std::string_view& ts);
 
 public:
 
