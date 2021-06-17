@@ -754,7 +754,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     {
         std::string_view& current_trigger_string = this->trigger_string_pq_ids_inv.at(max_cost_trigger_string.second);
         // remove trigger string if cost over threshold
-        spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}", current_trigger_string, max_cost_trigger_string.first, bytes_removed);
+        spdlog::debug("{}\tcost:\t{}\tbytes removed:\t{}", current_trigger_string, max_cost_trigger_string.first, bytes_removed);
 
         bytes_removed += max_cost_trigger_string.first;
         removed_trigger_strings.insert(current_trigger_string);
