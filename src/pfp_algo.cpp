@@ -171,7 +171,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         {
             std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
             hash_type ts_hash = KarpRabinHash::string_hash(ts);
-            if (to_ignore_ts_hash.contains(ts_hash)) { spdlog::info("Skipping {}", ts); continue; }
+            if (to_ignore_ts_hash.contains(ts_hash)) { continue; }
             
             hash_type hash = this->dictionary.check_and_add(phrase);
             
@@ -693,7 +693,8 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     cost_of_removing_tot = cost_of_removing_from_D + cost_of_removing_from_P;
     cost_of_removing_tot = cost_of_removing_tot * -1;
 
-    return  cost_of_removing_tot;
+    if (starts_and_ends_with_same_ts) { return 0; }
+    else { return cost_of_removing_tot; }
 }
 
 void
@@ -759,7 +760,6 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         removed_trigger_strings.insert(current_trigger_string);
 
         std::set<std::string_view> to_update_cost;
-
         for (auto& pair_with_freq : T_table.at(current_trigger_string))
         {
             size_type first = pair_with_freq.first.first;
@@ -768,12 +768,13 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             // New phrase
             std::string merged_phrase = D_prime.at(first) + D_prime.at(second).substr(window_length);
             size_type merged_phrase_id = curr_id++;
+            
             D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
 
             // update entry of T where first appear as second or second appear as a first
             std::string_view first_ts(&(D_prime.at(first)[0]), window_length);
             std::string_view second_ts(&(D_prime.at(second)[D_prime.at(second).size() - window_length]) , window_length);
-
+            
             std::vector<std::pair<std::pair<size_type, size_type>, size_type>> to_remove, to_add;
             if (T_table.contains(first_ts))
             {
@@ -810,6 +811,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             {
                 std::string_view ts(&(D_prime.at(pair.first.second)[0]), window_length);
                 T_table[ts].insert(pair);
+                
                 to_update_cost.insert(ts);
             }
         }

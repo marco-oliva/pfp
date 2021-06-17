@@ -13,7 +13,7 @@ vcfbwt::size_type deleted_element = 0; // parse elements start at 1
 
 int main(int argc, char **argv)
 {
-    CLI::App app("Aupair");
+    CLI::App app("AuPair");
 
     std::string out_file;
     std::string input_prefix;
