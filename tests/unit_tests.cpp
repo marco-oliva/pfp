@@ -423,6 +423,7 @@ TEST_CASE( "AuPair small test", "[AuPair]" )
 
     REQUIRE(removed_trigger_strings.size() > 0);
     REQUIRE(removed_bytes > 0);
+    REQUIRE(removed_bytes == 36);
 }
 
 
@@ -523,3 +524,4 @@ int main( int argc, char* argv[] )
 
     session.run();
 }
+

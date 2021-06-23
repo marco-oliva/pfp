@@ -104,6 +104,7 @@ def main():
     parser = argparse.ArgumentParser(description='Testing stuff.')
     parser.add_argument('-s', dest='samples_file', type=str, help='File containing list of samples', required=True)
     parser.add_argument('-t', dest='threads', type=int, help='Number of threads to be used', required=True)
+    parser.add_argument('--skip-pscan', dest='skip_pscan', help='Skip pscan, run only pfp', action='store_true')
     args = parser.parse_args()
 
     # Get executables
@@ -111,60 +112,65 @@ def main():
     pfp_exe = get_pfp(common_tools_dir)
     pscan_exe = get_pscan(common_tools_dir)
 
+    # ============================================================
+
     # Start extracting samples
-    if not os.path.exists(args.samples_file):
-        rootLogger.info('{} does not exist'.format(args.samples_file))
-        return
+    if (not args.skip_pscan):
+        if not os.path.exists(args.samples_file):
+            rootLogger.info('{} does not exist'.format(args.samples_file))
+            return
 
-    with open(args.samples_file) as f_handler:
-        samples = f_handler.readlines()
-    samples = [x.strip() for x in samples]
+        with open(args.samples_file) as f_handler:
+            samples = f_handler.readlines()
+        samples = [x.strip() for x in samples]
 
-    vcf_dir = common_data_dir + '/vcf'
-    mkdir_p(vcf_dir)
-    vcf_files_list = get_vcf_files(vcf_dir)
+        vcf_dir = common_data_dir + '/vcf'
+        mkdir_p(vcf_dir)
+        vcf_files_list = get_vcf_files(vcf_dir)
 
-    ref_dir = common_data_dir + '/ref'
-    mkdir_p(ref_dir)
-    ref_files_list = get_reference_files(ref_dir)
-    ref_files_list = ref_files_list[0:22]
+        ref_dir = common_data_dir + '/ref'
+        mkdir_p(ref_dir)
+        ref_files_list = get_reference_files(ref_dir)
+        ref_files_list = ref_files_list[0:22]
 
-    samples_dir = common_data_dir + '/samples'
-    mkdir_p(samples_dir)
+        samples_dir = common_data_dir + '/samples'
+        mkdir_p(samples_dir)
 
     # ============================================================
 
     # ------------------------------------------------------------
-    # Parallel section
-    pool = Pool(processes=args.threads)
-    fixed_args = [samples_dir, ref_dir, vcf_files_list]
-    execs = []
-    for sample in samples:
-        execs.append(fixed_args + [sample])
+        # Parallel section
+        pool = Pool(processes=args.threads)
+        fixed_args = [samples_dir, ref_dir, vcf_files_list]
+        execs = []
+        for sample in samples:
+            execs.append(fixed_args + [sample])
 
-    for _ in tqdm.tqdm(pool.starmap(per_sample_fasta, execs), total=len(execs)):
-        pass
+        for _ in tqdm.tqdm(pool.starmap(per_sample_fasta, execs), total=len(execs)):
+            pass
     # ------------------------------------------------------------
 
-    out_fasta_multi_sample = samples_dir + '/' + str(len(samples)) + '_samples.fa'
-    if os.path.exists(out_fasta_multi_sample):
-        rootLogger.info('{} already exists, overwriting it'.format(out_fasta_multi_sample))
+        out_fasta_multi_sample = samples_dir + '/' + str(len(samples)) + '_samples.fa'
+        if os.path.exists(out_fasta_multi_sample):
+            rootLogger.info('{} already exists, overwriting it'.format(out_fasta_multi_sample))
 
-    multi_sample_file = open(out_fasta_multi_sample, 'w')
-    for sample in samples:
-        sample_file_path = samples_dir + '/' + sample + '/' + sample + '_ALL.fa'
-        with open(sample_file_path) as sample_file:
-            multi_sample_file.write(sample_file.read())
-    multi_sample_file.close()
+        multi_sample_file = open(out_fasta_multi_sample, 'w')
+        for sample in samples:
+            sample_file_path = samples_dir + '/' + sample + '/' + sample + '_ALL.fa'
+            with open(sample_file_path) as sample_file:
+                multi_sample_file.write(sample_file.read())
+        multi_sample_file.close()
 
     # ------------------------------------------------------------
 
-    # Run pscan.x
-    base_command = "{pscan} -t {c_threads} -f {file} -w {window} -p {modulo}"
-    command = base_command.format(pscan=pscan_exe, c_threads=n_threads, file=out_fasta_multi_sample, window=w_value,
-                                  modulo=p_value)
-    execute_command(command, time_it=True)
+        # Run pscan.x
+        base_command = "{pscan} -t {c_threads} -f {file} -w {window} -p {modulo}"
+        command = base_command.format(pscan=pscan_exe, c_threads=n_threads, file=out_fasta_multi_sample, window=w_value,
+                                      modulo=p_value)
+        execute_command(command, time_it=True)
 
+    else:
+        rootLogger.info('Skipped extraction and pscan.x')
     # ============================================================
 
     # Run pfp++
