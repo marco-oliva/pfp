@@ -5,11 +5,13 @@
 #SBATCH --mail-user=marco.oliva@ufl.edu
 #SBATCH --exclusive
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
-#SBATCH --mem=60gb
+#SBATCH --cpus-per-task=33
+#SBATCH --mem=120gb
 #SBATCH --time=240:00:00
 #SBATCH --output=%j_ex-h&a.log
-#SBATCH --nodelist=c0713a-s13
+#SBATCH --constraint='hpg3&amd&milan&infiniband'
+#
+# Asking for hpg-milan 	64 	8 	8 	1 	512 	hpg3;amd;milan;infiniband 	AMD EPYC 75F3 32-Core Processor
 
 ##----------------------------------------------------------
 # Print Some statistics
