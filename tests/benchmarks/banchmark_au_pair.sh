@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ex-h&a
+#SBATCH --job-name=aupbA
 #SBATCH --account=boucher
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=marco.oliva@ufl.edu
@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=120gb
 #SBATCH --time=240:00:00
-#SBATCH --output=%j_ex-h&a.log
+#SBATCH --output=%j_aupbA.log
 #SBATCH --constraint='hpg3&amd&milan&infiniband'
 #
 # Asking for hpg-milan 	64 	8 	8 	1 	512 	hpg3;amd;milan;infiniband 	AMD EPYC 75F3 32-Core Processor
