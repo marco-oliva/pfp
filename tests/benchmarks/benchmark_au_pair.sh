@@ -41,9 +41,9 @@ d1000_path="${BASE_DIR_PD}/06-06-2021_00-18-48"
 
 ${PROFILER} python ${AUPAIR} -w 10 -t 100 -b 100 ${d25_path}/pfp
 ${PROFILER} python ${AUPAIR} -w 10 -t 100 -b 100 ${d125_path}/pfp
-${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d250_path}/pfp
-${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d500_path}/pfp
-${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d1000_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 100 -b 100 ${d250_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 1000 -b 100 ${d500_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 1000 -b 100 ${d1000_path}/pfp
 
 
 
