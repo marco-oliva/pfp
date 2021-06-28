@@ -22,7 +22,7 @@ pwd; hostname; date
 BASE_DIR_EXP="/blue/boucher/marco.oliva/projects/experiments/pfp"
 BASE_DIR_PD="${BASE_DIR_EXP}/arabidopsis_tests"
 PROFILER="/usr/bin/time --verbose"
-AUPAIR="/blue/boucher/marco.oliva/projects/experiments/pfp/AuPair/aupair"
+AUPAIR="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/AuPair/aupair"
 
 module load python/3.6
 module load htslib
@@ -39,11 +39,11 @@ d1000_path="${BASE_DIR_PD}/06-06-2021_00-18-48"
 ##----------------------------------------------------------
 # Run
 
-${PROFILER} python ${AUPAIR} -w 10 -t 1000 -b 100 ${d25_path}/pfp
-${PROFILER} python ${AUPAIR} -w 10 -t 1000 -b 100 ${d125_path}
-${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d250_path}
-${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d500_path}
-${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d1000_path}
+${PROFILER} python ${AUPAIR} -w 10 -t 100 -b 100 ${d25_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 100 -b 100 ${d125_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d250_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d500_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d1000_path}/pfp
 
 
 
