@@ -20,6 +20,7 @@ pwd; hostname; date
 ##----------------------------------------------------------
 # Setup
 BASE_DIR_EXP="/blue/boucher/marco.oliva/projects/experiments/pfp"
+BASE_DIR_PD="${BASE_DIR_EXP}/arabidopsis_tests"
 PROFILER="/usr/bin/time --verbose"
 AUPAIR="/blue/boucher/marco.oliva/projects/experiments/pfp/AuPair/aupair"
 
@@ -29,20 +30,20 @@ module load bcftools
 module load git
 module load gcc/9.3.0
 
-25_path="${BASE_DIR_EXP}/arabidopsis_tests/05-06-2021_09-09-31/pfp"
-125_path="${BASE_DIR_EXP}/arabidopsis_tests/05-06-2021_10-30-33/pfp"
-250_path="${BASE_DIR_EXP}/arabidopsis_tests/05-06-2021_13-01-29/pfp"
-500_path="${BASE_DIR_EXP}/arabidopsis_tests/05-06-2021_16-59-18/pfp"
-1000_path="${BASE_DIR_EXP}/arabidopsis_tests/06-06-2021_00-18-48/pfp"
+d25_path="${BASE_DIR_PD}/05-06-2021_09-09-31"
+d125_path="${BASE_DIR_PD}/05-06-2021_10-30-33"
+d250_path="${BASE_DIR_PD}/05-06-2021_13-01-29"
+d500_path="${BASE_DIR_PD}/05-06-2021_16-59-18"
+d1000_path="${BASE_DIR_PD}/06-06-2021_00-18-48"
 
 ##----------------------------------------------------------
 # Run
 
-${PROFILER} python ${AUPAIR} -w 10 -t 1000 - b 100 ${25_path}
-#${PROFILER} python ${AUPAIR} -w 10 -t 1000 - b 100 ${125_path}
-#${PROFILER} python ${AUPAIR} -w 10 -t 10000 - b 100 ${250_path}
-#${PROFILER} python ${AUPAIR} -w 10 -t 10000 - b 100 ${500_path}
-#${PROFILER} python ${AUPAIR} -w 10 -t 10000 - b 100 ${1000_path}
+${PROFILER} python ${AUPAIR} -w 10 -t 1000 -b 100 ${d25_path}/pfp
+${PROFILER} python ${AUPAIR} -w 10 -t 1000 -b 100 ${d125_path}
+${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d250_path}
+${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d500_path}
+${PROFILER} python ${AUPAIR} -w 10 -t 10000 -b 100 ${d1000_path}
 
 
 
