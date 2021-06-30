@@ -52,7 +52,6 @@ int main(int argc, char **argv)
         if (curr_parse_element > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
         if (curr_parse_element == 0) { spdlog::error("Element in the parse is 0, skipping"); continue; }
 
-
         // Check Trigger Strings
         std::string_view ts_prev(&(dict[prev_parse_element - 1][dict[prev_parse_element - 1].size() - window_size]), window_size);
         std::string_view ts_curr(&(dict[curr_parse_element - 1][0]), window_size);
@@ -60,9 +59,9 @@ int main(int argc, char **argv)
         if (ts_prev != ts_curr)
         {
             spdlog::error("\n[{}] {}\n[{}] {}",
-                          prev_parse_element,
+                          prev_parse_element - 1,
                           dict[prev_parse_element - 1],
-                          curr_parse_element,
+                          curr_parse_element - 1,
                           dict[curr_parse_element - 1]);
         }
 
