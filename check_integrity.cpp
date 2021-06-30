@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
         if (ts_prev != ts_curr)
         {
-            spdlog::error("[{}] {}\t[{}] {}",
+            spdlog::error("\n[{}] {}\n[{}] {}",
                           prev_parse_element,
                           dict[prev_parse_element - 1],
                           curr_parse_element,
