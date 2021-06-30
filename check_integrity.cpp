@@ -57,7 +57,14 @@ int main(int argc, char **argv)
         std::string_view ts_prev(&(dict[prev_parse_element - 1][dict[prev_parse_element - 1].size() - window_size]), window_size);
         std::string_view ts_curr(&(dict[curr_parse_element - 1][0]), window_size);
 
-        if (ts_prev != ts_curr) { spdlog::error("Two consecutive elements do not share same trigger string"); break;}
+        if (ts_prev != ts_curr)
+        {
+            spdlog::error("[{}] {}\t[{}] {}",
+                          prev_parse_element,
+                          dict[prev_parse_element - 1],
+                          curr_parse_element,
+                          dict[curr_parse_element - 1]);
+        }
 
         prev_parse_element = curr_parse_element;
     }
