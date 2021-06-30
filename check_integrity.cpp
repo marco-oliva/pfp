@@ -58,10 +58,10 @@ int main(int argc, char **argv)
 
         if (ts_prev != ts_curr)
         {
-            spdlog::error("\n[{}] {}\n[{}] {}",
-                          prev_parse_element - 1,
+            spdlog::error("\n[{}, {}] {}\n[{}, {}] {}",
+                          prev_parse_element, vcfbwt::string_hash(dict[prev_parse_element - 1].c_str(), dict[prev_parse_element - 1].size()),
                           dict[prev_parse_element - 1],
-                          curr_parse_element - 1,
+                          curr_parse_element, vcfbwt::string_hash(dict[curr_parse_element - 1].c_str(), dict[curr_parse_element - 1].size()),
                           dict[curr_parse_element - 1]);
         }
 
