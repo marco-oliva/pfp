@@ -27,17 +27,9 @@ enum SPECIAL_TYPES
     ENDOFDICT = 0,
     ENDOFWORD = 1,
     DOLLAR = 2,
-    DOLLAR_PRIME = 3
+    DOLLAR_SEQUENCE = 3,
+    DOLLAR_PRIME = 5
 };
-
-inline bool
-is_all_dollars(std::string& s)
-{
-    bool out = true;
-    for (auto& c : s) { out = (out and (c == DOLLAR or c == DOLLAR_PRIME )); }
-    
-    return out;
-}
 
 //------------------------------------------------------------------------------
 

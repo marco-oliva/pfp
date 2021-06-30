@@ -148,7 +148,12 @@ add_executable(unparse64 unparse.cpp)
 target_compile_options(unparse64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(unparse64 pfp64 ${VCF_LIB_DEPS})
 
-
+# Integrity Check
+add_executable(check check_integrity.cpp)
+target_link_libraries(check pfp ${VCF_LIB_DEPS})
+add_executable(check64 check_integrity.cpp)
+target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
+target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 
 
 
