@@ -175,6 +175,28 @@ def main():
 
     # Run pfp++
     mkdir_p(data_dir_pfp)
+
+    if (args.skip_pscan):
+        vcf_files_list = list()
+        for chromosome_id in [str(c) for c in range(1,23)]:
+            chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
+                                   "genotypes.vcf.gz".format(chromosome_id, version_letter)
+
+            if (os.path.exists(pre_download_data_dir + '/vcf/' + chromosome_file_name)):
+                vcf_files_list.append(pre_download_data_dir + '/vcf/' + chromosome_file_name)
+            else:
+                rootLogger.info('VCF files have to be in {}'.format(pre_download_data_dir + '/vcf/'))
+                exit()
+
+
+        ref_files_list = list()
+        for chromosome_id in [str(c) for c in chromosomes_list]:
+            if (os.path.exists(pre_download_data_dir + '/reference/' + chromosome_id + '.fa.gz')):
+                ref_files_list.append(pre_download_data_dir + '/reference/' + chromosome_id + '.fa.gz')
+            else:
+                rootLogger.info('Reference files have to be in {}'.format(pre_download_data_dir + '/reference/'))
+                exit()
+        
     pfp_config_file = create_pfp_config_file(vcf_files_list, ref_files_list, data_dir_pfp)
     base_command = "{pfp} --configure {config_file} -t {c_threads} -m {n_samples} " \
                    "--use-acceleration --print-statistics --occurrences -w {window} -p {modulo} -o {out_dir}"
