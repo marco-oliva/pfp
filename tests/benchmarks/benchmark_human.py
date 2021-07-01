@@ -112,18 +112,19 @@ def main():
     pfp_exe = get_pfp(common_tools_dir)
     pscan_exe = get_pscan(common_tools_dir)
 
+
+    if not os.path.exists(args.samples_file):
+        rootLogger.info('{} does not exist'.format(args.samples_file))
+        return
+
+    with open(args.samples_file) as f_handler:
+        samples = f_handler.readlines()
+    samples = [x.strip() for x in samples]
+
     # ============================================================
 
     # Start extracting samples
     if (not args.skip_pscan):
-        if not os.path.exists(args.samples_file):
-            rootLogger.info('{} does not exist'.format(args.samples_file))
-            return
-
-        with open(args.samples_file) as f_handler:
-            samples = f_handler.readlines()
-        samples = [x.strip() for x in samples]
-
         vcf_dir = common_data_dir + '/vcf'
         mkdir_p(vcf_dir)
         vcf_files_list = get_vcf_files(vcf_dir)
@@ -196,7 +197,7 @@ def main():
             else:
                 rootLogger.info('Reference files have to be in {}'.format(pre_download_data_dir + '/reference/'))
                 exit()
-        
+
     pfp_config_file = create_pfp_config_file(vcf_files_list, ref_files_list, data_dir_pfp)
     base_command = "{pfp} --configure {config_file} -t {c_threads} -m {n_samples} " \
                    "--use-acceleration --print-statistics --occurrences -w {window} -p {modulo} -o {out_dir}"
