@@ -37,9 +37,9 @@ vcfbwt::pfp::Dictionary::add(const std::string& phrase)
     
     DictionaryEntry entry(phrase);
     hash_string_map.insert(std::make_pair(phrase_hash, entry));
-    
-    if (this->size() == std::numeric_limits<size_type>::max())
-    { spdlog::error("Dictionary too big for {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
+
+    if (this->size() >= (std::numeric_limits<size_type>::max() - insertions_safe_guard))
+    { spdlog::error("Dictionary too big for type {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
     
     return phrase_hash;
 }
@@ -66,8 +66,8 @@ vcfbwt::pfp::Dictionary::check_and_add(const std::string &phrase)
     DictionaryEntry entry(phrase);
     hash_string_map.insert(std::make_pair(phrase_hash, entry));
 
-    if (this->size() == std::numeric_limits<size_type>::max())
-    { spdlog::error("Dictionary too big for {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
+    if (this->size() >= (std::numeric_limits<size_type>::max() - insertions_safe_guard))
+    { spdlog::error("Dictionary too big for type {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
 
     return phrase_hash;
 }
@@ -95,7 +95,7 @@ vcfbwt::pfp::Dictionary::sort()
     // sort the dictionary
     for (auto& entry : this->hash_string_map)
     {
-        this->sorted_phrases.push_back(std::make_pair(std::ref(entry.second.phrase), entry.first));
+        this->sorted_phrases.emplace_back(std::ref(entry.second.phrase), entry.first);
     }
     std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller);
     

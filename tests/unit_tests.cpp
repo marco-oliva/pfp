@@ -10,6 +10,7 @@
 #include <vcf.hpp>
 #include <utils.hpp>
 #include <pfp_algo.hpp>
+#include <internals.hpp>
 
 //------------------------------------------------------------------------------
 
@@ -32,474 +33,610 @@ std::size_t p_global = 75;
 std::size_t w_global = 20;
 
 //------------------------------------------------------------------------------
-TEST_CASE( "Initializaiton", "[KR Window]" )
+TEST_CASE( "Initialization", "[LinkedList]" )
 {
-    std::string test_string = "12345";
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i; }
 
-    REQUIRE(kr_window.get_hash() == 842216599);
+    bool all_set = true;
+    for (vcfbwt::size_type i = 0; i < 10; i++) { all_set = all_set and (linked_list[i] == i); }
+
+    REQUIRE(all_set);
 }
 
-TEST_CASE( "Update 1 charachter", "[KR Window]" )
+TEST_CASE( "Delete from the middle", "[LinkedList]" )
 {
-    std::string test_string = "12345";
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    kr_window.update('1', '6');
+    linked_list.remove(4);
+    linked_list.remove(5);
+    linked_list.remove(6);
+    linked_list.remove(3);
 
-    REQUIRE(kr_window.get_hash() == 859059610);
+    REQUIRE(*(linked_list.next(2)) == 107);
 }
 
-TEST_CASE( "Update 2 charachter", "[KR Window]" )
+TEST_CASE( "Meet deletions", "[LinkedList]" )
 {
-    std::string test_string = "12345";
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    kr_window.update('1', '6');
-    kr_window.update('2', '7');
+    linked_list.remove(7);
+    linked_list.remove(8);
+    linked_list.remove(5);
+    linked_list.remove(6);
 
-    REQUIRE(kr_window.get_hash() == 875902621);
+    REQUIRE(*(linked_list.next(4)) == 109);
 }
 
-TEST_CASE( "Periodic string", "[KR Window]" )
+TEST_CASE( "Meet deletions and prev,next", "[LinkedList]" )
 {
-    std::string test_string = "11111";
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    vcfbwt::hash_type before = kr_window.get_hash();
-    kr_window.update('1', '1');
-    vcfbwt::hash_type after = kr_window.get_hash();
+    linked_list.remove(7U);
+    linked_list.remove(8U);
+    linked_list.remove(5U);
+    linked_list.remove(6U);
 
-    REQUIRE(before == 825307539);
-    REQUIRE(after  == 825307539);
+    REQUIRE(*(linked_list.next(4U)) == 109);
+    REQUIRE(*(linked_list.prev(linked_list.next(4U))) == 104);
 }
 
-TEST_CASE( "Periodic string of Ns", "[KR Window]" )
+TEST_CASE( "Remove last and meet", "[LinkedList]" )
 {
-    std::string test_string = "NNNNNNNNNNNNNNNNNNNN";
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    vcfbwt::KarpRabinHash kr_window(test_string.size());
-    kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    vcfbwt::hash_type before = kr_window.get_hash();
-    kr_window.update('N', 'N');
-    vcfbwt::hash_type after = kr_window.get_hash();
+    linked_list.remove(7U);
+    linked_list.remove(8U);
+    linked_list.remove(5U);
+    linked_list.remove(6U);
+    linked_list.remove(9U);
 
-    REQUIRE(before == 2071690116);
-    REQUIRE(after  == 2071690116);
+    REQUIRE(linked_list.next(4U) == linked_list.end());
 }
 
-TEST_CASE( "String Hash", "[KR Window]" )
+TEST_CASE( "Remove first and meet", "[LinkedList]" )
 {
-    std::string test_string = "12345";
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.initialize(test_string);
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash(test_string));
+    linked_list.remove(3U);
+    linked_list.remove(1U);
+    linked_list.remove(2U);
+    linked_list.remove(0U);
+
+    REQUIRE(*(linked_list.begin()) == 104);
+    REQUIRE(*(linked_list.next(linked_list.begin())) == 105);
 }
 
-TEST_CASE( "String Hash 2", "[KR Window]" )
+TEST_CASE( "Remove last but don't meet", "[LinkedList]" )
 {
-    std::string test_string = "12345";
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.initialize(test_string);
-    kr_window.update('1', '6');
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash("23456"));
+    linked_list.remove(7U);
+    linked_list.remove(5U);
+    linked_list.remove(6U);
+    linked_list.remove(9U);
+
+    REQUIRE(*(linked_list.next(4U)) == 108);
+    REQUIRE(linked_list.next(linked_list.next(4U)) == linked_list.end());
 }
 
-//------------------------------------------------------------------------------
-
-TEST_CASE( "Constructor", "[VCF parser]" )
+TEST_CASE( "Remove first but don't meet", "[LinkedList]" )
 {
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
 
-    // read_samples list from file
-    std::ifstream samples_file(testfiles_dir + "/samples_list.txt");
-    std::vector<std::string> samples_list;
-    std::copy(std::istream_iterator<std::string>(samples_file),
-              std::istream_iterator<std::string>(),
-              std::back_inserter(samples_list));
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    bool all_match = true;
-    for (std::size_t i = 0; i < vcf.size(); i++)
-    {
-        all_match = all_match  & (vcf[i].id() == samples_list[i]);
-    }
+    linked_list.remove(3U);
+    linked_list.remove(2U);
+    linked_list.remove(0U);
 
-    REQUIRE(vcf.size() == samples_list.size());
-    REQUIRE(all_match);
+    REQUIRE(*(linked_list.begin()) == 101);
+    REQUIRE(*(linked_list.next(linked_list.begin())) == 104);
 }
 
-TEST_CASE( "Sample: HG00096", "[VCF parser]" )
-{
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
-
-    REQUIRE(vcf[0].id() == "HG00096");
-
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
-
-    REQUIRE(vcfbwt::is_gzipped(in_stream));
-
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-
-    vcfbwt::Sample::iterator it(vcf[0]);
-    std::string from_vcf;
-    while (not it.end()) { from_vcf.push_back(*it); ++it; }
-
-    std::size_t i = 0;
-    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
-            and (from_vcf[i] == from_fasta[i])) { i++; }
-    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
-}
-
-TEST_CASE( "Sample: HG00103", "[VCF parser]" )
-{
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 3);
-
-    REQUIRE(vcf[2].id() == "HG00103");
-
-    std::string test_sample_path = testfiles_dir + "/HG00103_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
-
-    REQUIRE(vcfbwt::is_gzipped(in_stream));
-
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-
-    vcfbwt::Sample::iterator it(vcf[2]);
-    std::string from_vcf;
-    while (not it.end()) { from_vcf.push_back(*it); ++it; }
-
-    std::size_t i = 0;
-    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
-    and (from_vcf[i] == from_fasta[i])) { i++; }
-    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
-}
-
-TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
-{
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
-
-    // Only work on sample HG00096
-    vcf.set_max_samples(1);
-
-    // Produce dictionary and parsing
-    vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global;
-    params.use_acceleration = false;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-
-    std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
-
-    vcfbwt::pfp::Parser worker;
-    std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::Parser::WORKER;
-    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::Parser::LAST;
-
-    worker.init(params, out_prefix, reference_parse, tag);
-    main_parser.register_worker(worker);
-
-    // Run
-    worker(vcf[0]);
-
-    // Close the main parser
-    main_parser.close();
-
-    // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
-    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
-
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-
-    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-
-    // Unparse
-    std::vector<vcfbwt::size_type>  parse;
-    vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
-    std::vector<std::string> dict;
-    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
-
-    std::string unparsed;
-    for (auto& p : parse)
-    {
-        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
-        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
-        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
-    }
-    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
-
-
-    // Compare the two strings
-    std::size_t i = 0;
-    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
-    and (unparsed[i] == what_it_should_be[i])) { i++; }
-    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
-}
-
-TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
-{
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
-
-    // Only work on sample HG00096
-    vcf.set_max_samples(1);
-
-    // Produce dictionary and parsing
-    vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global;
-    params.use_acceleration = true;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-
-    std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
-
-    vcfbwt::pfp::Parser worker;
-    std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::Parser::WORKER;
-    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::Parser::LAST;
-
-    worker.init(params, out_prefix, reference_parse, tag);
-    main_parser.register_worker(worker);
-
-    // Run
-    worker(vcf[0]);
-
-    // Close the main parser
-    main_parser.close();
-
-    // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
-    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
-
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-
-    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-
-    // Unparse
-    std::vector<vcfbwt::size_type>  parse;
-    vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
-    std::vector<std::string> dict;
-    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
-
-    std::string unparsed;
-    for (auto& p : parse)
-    {
-        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
-        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
-        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
-    }
-    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
-
-    // Compare the two strings
-    std::size_t i = 0;
-    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
-            and (unparsed[i] == what_it_should_be[i])) { i++; }
-    spdlog::info("First missmatch: {}", i);
-    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
-}
-
-TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
-{
-    std::vector<std::string> vcf_file_names =
-            {
-                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
-                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz"
-            };
-
-    std::vector<std::string> ref_file_names =
-            {
-                    testfiles_dir + "/Y.fa.gz",
-                    testfiles_dir + "/Y.fa.gz"
-            };
-
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, 1);
-
-    REQUIRE(vcf[0].id() == "HG00096");
-
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
-
-    REQUIRE(vcfbwt::is_gzipped(in_stream));
-
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-    from_fasta.push_back(vcfbwt::pfp::SPECIAL_TYPES::DOLLAR_PRIME);
-    from_fasta.append(from_fasta);
-    from_fasta.pop_back();
-
-
-    vcfbwt::Sample::iterator it(vcf[0]);
-    std::string from_vcf;
-    while (not it.end()) { from_vcf.push_back(*it); ++it; }
-
-    std::size_t i = 0;
-    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
-            and (from_vcf[i] == from_fasta[i])) { i++; }
-    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
-}
-
-TEST_CASE( "AuPair small test", "[AuPair]" )
-{
-    std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"
-                    "ACCACATAGGTGAACCTTGAAAATGTTACATTGTGTGAAAAAGTCAGATACAAGAGGCC!!!!";
-
-    std::vector<std::string> dictionary =
-    {
-            "!ACCACATAGGTG",
-            "####ACCACATAGGTG",
-            "AATGTTACACTGTGTGAAAAAGTCAG",
-            "AATGTTACATTGTGTGAAAAAGTCAG",
-            "CTTGAAAATG",
-            "GGTGAACCTTG",
-            "TCAGATACAAGAGGCC!!!!",
-            "TCAGATACAAGAGGCC####"
-    };
-
-    std::ofstream dict_file(testfiles_dir + "/au_pair_test_1.dict");
-    for (auto& phrase : dictionary)
-    {
-        dict_file.write(phrase.c_str(), phrase.size());
-        dict_file.put(vcfbwt::pfp::ENDOFWORD);
-    }
-    dict_file.put(vcfbwt::pfp::ENDOFDICT);
-    dict_file.close();
-
-    std::vector<vcfbwt::size_type> parse = {1, 6, 5, 3, 8, 2, 6, 5, 4, 7};
-    std::ofstream parse_file(testfiles_dir + "/au_pair_test_1.parse");
-    parse_file.write((char*)&parse[0], parse.size() * sizeof(vcfbwt::size_type));
-    parse_file.close();
-
-    vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4);
-
-    std::set<std::string_view> removed_trigger_strings;
-    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 5);
-
-    REQUIRE(removed_trigger_strings.size() > 0);
-    REQUIRE(removed_bytes > 0);
-    REQUIRE(removed_bytes == 36);
-}
-
-
-TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
-{
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
-
-    // Only work on sample HG00096
-    vcf.set_max_samples(1);
-
-    // Produce dictionary and parsing
-    vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global;
-    params.use_acceleration = false;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-
-    std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
-
-    vcfbwt::pfp::Parser worker;
-    std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::Parser::WORKER;
-    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::Parser::LAST;
-
-    worker.init(params, out_prefix, reference_parse, tag);
-    main_parser.register_worker(worker);
-
-    // Run
-    worker(vcf[0]);
-
-    // Close the main parser
-    main_parser.close();
-
-    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global);
-
-    std::set<std::string_view> removed_trigger_strings;
-    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
-    spdlog::info("Removed: {} bytes", removed_bytes);
-    removed_bytes = au_pair_algo.compress(removed_trigger_strings, 100);
-    spdlog::info("Removed: {} bytes", removed_bytes);
-
-    REQUIRE(removed_trigger_strings.size() > 0);
-    REQUIRE(removed_bytes > 0);
-}
-
-//------------------------------------------------------------------------------
-
-#include <indexed_pq/indexMaxPQ.h>
-TEST_CASE("understanding pq", "[PQ]")
-{
-    std::map<std::string, vcfbwt::size_type> ts_ids;
-    ts_ids["TEST1"] = 0;
-    ts_ids["TEST2"] = 1;
-    ts_ids["TEST3"] = 2;
-
-    indexMaxPQ pq; pq.init(ts_ids.size());
-    pq.push(ts_ids["TEST1"], 10);
-    pq.push(ts_ids["TEST2"], 20);
-    pq.push(ts_ids["TEST3"], 30);
-
-    std::pair<int, int> max = pq.get_max();
-    REQUIRE((max.first == 30 and max.second == 2));
-
-    pq.demote(ts_ids["TEST3"], 15);
-    max = pq.get_max();
-
-    REQUIRE((max.first == 20 and max.second == 1));
-
-    pq.promote(ts_ids["TEST1"], 40);
-    max = pq.get_max();
-
-    REQUIRE((max.first == 40 and max.second == 0));
-}
+////------------------------------------------------------------------------------
+//TEST_CASE( "Initializaiton", "[KR Window]" )
+//{
+//    std::string test_string = "12345";
+//
+//    vcfbwt::KarpRabinHash kr_window(5);
+//    kr_window.set_constant(256); kr_window.set_prime(2147483647);
+//    kr_window.initialize(test_string);
+//
+//    REQUIRE(kr_window.get_hash() == 842216599);
+//}
+//
+//TEST_CASE( "Update 1 charachter", "[KR Window]" )
+//{
+//    std::string test_string = "12345";
+//
+//    vcfbwt::KarpRabinHash kr_window(5);
+//    kr_window.set_constant(256); kr_window.set_prime(2147483647);
+//    kr_window.initialize(test_string);
+//
+//    kr_window.update('1', '6');
+//
+//    REQUIRE(kr_window.get_hash() == 859059610);
+//}
+//
+//TEST_CASE( "Update 2 charachter", "[KR Window]" )
+//{
+//    std::string test_string = "12345";
+//
+//    vcfbwt::KarpRabinHash kr_window(5);
+//    kr_window.set_constant(256); kr_window.set_prime(2147483647);
+//    kr_window.initialize(test_string);
+//
+//    kr_window.update('1', '6');
+//    kr_window.update('2', '7');
+//
+//    REQUIRE(kr_window.get_hash() == 875902621);
+//}
+//
+//TEST_CASE( "Periodic string", "[KR Window]" )
+//{
+//    std::string test_string = "11111";
+//
+//    vcfbwt::KarpRabinHash kr_window(5);
+//    kr_window.set_constant(256); kr_window.set_prime(2147483647);
+//    kr_window.initialize(test_string);
+//
+//    vcfbwt::hash_type before = kr_window.get_hash();
+//    kr_window.update('1', '1');
+//    vcfbwt::hash_type after = kr_window.get_hash();
+//
+//    REQUIRE(before == 825307539);
+//    REQUIRE(after  == 825307539);
+//}
+//
+//TEST_CASE( "Periodic string of Ns", "[KR Window]" )
+//{
+//    std::string test_string = "NNNNNNNNNNNNNNNNNNNN";
+//
+//    vcfbwt::KarpRabinHash kr_window(test_string.size());
+//    kr_window.set_constant(256); kr_window.set_prime(2147483647);
+//    kr_window.initialize(test_string);
+//
+//    vcfbwt::hash_type before = kr_window.get_hash();
+//    kr_window.update('N', 'N');
+//    vcfbwt::hash_type after = kr_window.get_hash();
+//
+//    REQUIRE(before == 2071690116);
+//    REQUIRE(after  == 2071690116);
+//}
+//
+//TEST_CASE( "String Hash", "[KR Window]" )
+//{
+//    std::string test_string = "12345";
+//
+//    vcfbwt::KarpRabinHash kr_window(5);
+//    kr_window.initialize(test_string);
+//
+//    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash(test_string));
+//}
+//
+//TEST_CASE( "String Hash 2", "[KR Window]" )
+//{
+//    std::string test_string = "12345";
+//
+//    vcfbwt::KarpRabinHash kr_window(5);
+//    kr_window.initialize(test_string);
+//    kr_window.update('1', '6');
+//
+//    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash("23456"));
+//}
+//
+////------------------------------------------------------------------------------
+//
+//TEST_CASE( "Dictionary size", "[Dictionary]")
+//{
+//    vcfbwt::pfp::Dictionary dictionary;
+//
+//    vcfbwt::size_type elem, tot_elem = 100000;
+//    for (elem = 0; elem < tot_elem; elem++)
+//    {
+//        dictionary.check_and_add(std::to_string(elem));
+//    }
+//
+//    bool all_elements_in_dict = true;
+//    for (elem = 0; elem < tot_elem; elem++)
+//    {
+//        all_elements_in_dict + all_elements_in_dict and dictionary.contains(std::to_string(elem));
+//    }
+//    REQUIRE(all_elements_in_dict);
+//    REQUIRE(dictionary.size() == elem);
+//}
+//
+////------------------------------------------------------------------------------
+//
+//TEST_CASE( "Constructor", "[VCF parser]" )
+//{
+//    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+//    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+//    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+//
+//    // read_samples list from file
+//    std::ifstream samples_file(testfiles_dir + "/samples_list.txt");
+//    std::vector<std::string> samples_list;
+//    std::copy(std::istream_iterator<std::string>(samples_file),
+//              std::istream_iterator<std::string>(),
+//              std::back_inserter(samples_list));
+//
+//    bool all_match = true;
+//    for (std::size_t i = 0; i < vcf.size(); i++)
+//    {
+//        all_match = all_match  & (vcf[i].id() == samples_list[i]);
+//    }
+//
+//    REQUIRE(vcf.size() == samples_list.size());
+//    REQUIRE(all_match);
+//}
+//
+//TEST_CASE( "Sample: HG00096", "[VCF parser]" )
+//{
+//    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+//    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+//    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+//
+//    REQUIRE(vcf[0].id() == "HG00096");
+//
+//    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+//    std::ifstream in_stream(test_sample_path);
+//
+//    REQUIRE(vcfbwt::is_gzipped(in_stream));
+//
+//    zstr::istream is(in_stream);
+//    std::string line, from_fasta;
+//    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+//
+//    vcfbwt::Sample::iterator it(vcf[0]);
+//    std::string from_vcf;
+//    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+//
+//    std::size_t i = 0;
+//    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
+//            and (from_vcf[i] == from_fasta[i])) { i++; }
+//    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+//}
+//
+//TEST_CASE( "Sample: HG00103", "[VCF parser]" )
+//{
+//    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+//    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+//    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 3);
+//
+//    REQUIRE(vcf[2].id() == "HG00103");
+//
+//    std::string test_sample_path = testfiles_dir + "/HG00103_chrY_H1.fa.gz";
+//    std::ifstream in_stream(test_sample_path);
+//
+//    REQUIRE(vcfbwt::is_gzipped(in_stream));
+//
+//    zstr::istream is(in_stream);
+//    std::string line, from_fasta;
+//    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+//
+//    vcfbwt::Sample::iterator it(vcf[2]);
+//    std::string from_vcf;
+//    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+//
+//    std::size_t i = 0;
+//    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
+//    and (from_vcf[i] == from_fasta[i])) { i++; }
+//    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+//}
+//
+//TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
+//{
+//    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+//    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+//    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+//
+//    // Only work on sample HG00096
+//    vcf.set_max_samples(1);
+//
+//    // Produce dictionary and parsing
+//    vcfbwt::pfp::Params params;
+//    params.w = w_global; params.p = p_global;
+//    params.use_acceleration = false;
+//    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+//
+//    std::string out_prefix = testfiles_dir + "/parser_out";
+//    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+//
+//    vcfbwt::pfp::Parser worker;
+//    std::size_t tag = 0;
+//    tag = tag | vcfbwt::pfp::Parser::WORKER;
+//    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
+//    tag = tag | vcfbwt::pfp::Parser::LAST;
+//
+//    worker.init(params, out_prefix, reference_parse, tag);
+//    main_parser.register_worker(worker);
+//
+//    // Run
+//    worker(vcf[0]);
+//
+//    // Close the main parser
+//    main_parser.close();
+//
+//    // Generate the desired outcome from the test files, reference first
+//    std::string what_it_should_be;
+//    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+//    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
+//    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+//
+//    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+//    std::ifstream in_stream(test_sample_path);
+//    zstr::istream is(in_stream);
+//    std::string line, from_fasta;
+//    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+//
+//    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+//    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+//
+//    // Unparse
+//    std::vector<vcfbwt::size_type>  parse;
+//    vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
+//    std::vector<std::string> dict;
+//    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
+//
+//    std::string unparsed;
+//    for (auto& p : parse)
+//    {
+//        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+//        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
+//        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
+//    }
+//    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
+//
+//
+//    // Compare the two strings
+//    std::size_t i = 0;
+//    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
+//    and (unparsed[i] == what_it_should_be[i])) { i++; }
+//    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
+//}
+//
+//TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
+//{
+//    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+//    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+//    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+//
+//    // Only work on sample HG00096
+//    vcf.set_max_samples(1);
+//
+//    // Produce dictionary and parsing
+//    vcfbwt::pfp::Params params;
+//    params.w = w_global; params.p = p_global;
+//    params.use_acceleration = true;
+//    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+//
+//    std::string out_prefix = testfiles_dir + "/parser_out";
+//    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+//
+//    vcfbwt::pfp::Parser worker;
+//    std::size_t tag = 0;
+//    tag = tag | vcfbwt::pfp::Parser::WORKER;
+//    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
+//    tag = tag | vcfbwt::pfp::Parser::LAST;
+//
+//    worker.init(params, out_prefix, reference_parse, tag);
+//    main_parser.register_worker(worker);
+//
+//    // Run
+//    worker(vcf[0]);
+//
+//    // Close the main parser
+//    main_parser.close();
+//
+//    // Generate the desired outcome from the test files, reference first
+//    std::string what_it_should_be;
+//    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+//    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
+//    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+//
+//    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+//    std::ifstream in_stream(test_sample_path);
+//    zstr::istream is(in_stream);
+//    std::string line, from_fasta;
+//    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+//
+//    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+//    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+//
+//    // Unparse
+//    std::vector<vcfbwt::size_type>  parse;
+//    vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
+//    std::vector<std::string> dict;
+//    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
+//
+//    std::string unparsed;
+//    for (auto& p : parse)
+//    {
+//        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+//        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
+//        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
+//    }
+//    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
+//
+//    // Compare the two strings
+//    std::size_t i = 0;
+//    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
+//            and (unparsed[i] == what_it_should_be[i])) { i++; }
+//    spdlog::info("First missmatch: {}", i);
+//    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
+//}
+//
+//TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
+//{
+//    std::vector<std::string> vcf_file_names =
+//            {
+//                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
+//                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz"
+//            };
+//
+//    std::vector<std::string> ref_file_names =
+//            {
+//                    testfiles_dir + "/Y.fa.gz",
+//                    testfiles_dir + "/Y.fa.gz"
+//            };
+//
+//    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, 1);
+//
+//    REQUIRE(vcf[0].id() == "HG00096");
+//
+//    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+//    std::ifstream in_stream(test_sample_path);
+//
+//    REQUIRE(vcfbwt::is_gzipped(in_stream));
+//
+//    zstr::istream is(in_stream);
+//    std::string line, from_fasta;
+//    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+//    from_fasta.push_back(vcfbwt::pfp::SPECIAL_TYPES::DOLLAR_PRIME);
+//    from_fasta.append(from_fasta);
+//    from_fasta.pop_back();
+//
+//
+//    vcfbwt::Sample::iterator it(vcf[0]);
+//    std::string from_vcf;
+//    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+//
+//    std::size_t i = 0;
+//    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
+//            and (from_vcf[i] == from_fasta[i])) { i++; }
+//    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+//}
+//
+//TEST_CASE( "AuPair small test", "[AuPair]" )
+//{
+//    std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"
+//                    "ACCACATAGGTGAACCTTGAAAATGTTACATTGTGTGAAAAAGTCAGATACAAGAGGCC!!!!";
+//
+//    std::vector<std::string> dictionary =
+//    {
+//            "!ACCACATAGGTG",
+//            "####ACCACATAGGTG",
+//            "AATGTTACACTGTGTGAAAAAGTCAG",
+//            "AATGTTACATTGTGTGAAAAAGTCAG",
+//            "CTTGAAAATG",
+//            "GGTGAACCTTG",
+//            "TCAGATACAAGAGGCC!!!!",
+//            "TCAGATACAAGAGGCC####"
+//    };
+//
+//    std::ofstream dict_file(testfiles_dir + "/au_pair_test_1.dict");
+//    for (auto& phrase : dictionary)
+//    {
+//        dict_file.write(phrase.c_str(), phrase.size());
+//        dict_file.put(vcfbwt::pfp::ENDOFWORD);
+//    }
+//    dict_file.put(vcfbwt::pfp::ENDOFDICT);
+//    dict_file.close();
+//
+//    std::vector<vcfbwt::size_type> parse = {1, 6, 5, 3, 8, 2, 6, 5, 4, 7};
+//    std::ofstream parse_file(testfiles_dir + "/au_pair_test_1.parse");
+//    parse_file.write((char*)&parse[0], parse.size() * sizeof(vcfbwt::size_type));
+//    parse_file.close();
+//
+//    vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4);
+//
+//    std::set<std::string_view> removed_trigger_strings;
+//    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 5);
+//
+//    REQUIRE(removed_trigger_strings.size() > 0);
+//    REQUIRE(removed_bytes > 0);
+//    REQUIRE(removed_bytes == 36);
+//}
+//
+//
+//TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
+//{
+//    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+//    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+//    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+//
+//    // Only work on sample HG00096
+//    vcf.set_max_samples(1);
+//
+//    // Produce dictionary and parsing
+//    vcfbwt::pfp::Params params;
+//    params.w = w_global; params.p = p_global;
+//    params.use_acceleration = false;
+//    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+//
+//    std::string out_prefix = testfiles_dir + "/parser_out";
+//    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+//
+//    vcfbwt::pfp::Parser worker;
+//    std::size_t tag = 0;
+//    tag = tag | vcfbwt::pfp::Parser::WORKER;
+//    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
+//    tag = tag | vcfbwt::pfp::Parser::LAST;
+//
+//    worker.init(params, out_prefix, reference_parse, tag);
+//    main_parser.register_worker(worker);
+//
+//    // Run
+//    worker(vcf[0]);
+//
+//    // Close the main parser
+//    main_parser.close();
+//
+//    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global);
+//
+//    std::set<std::string_view> removed_trigger_strings;
+//    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
+//    spdlog::info("Removed: {} bytes", removed_bytes);
+//    removed_bytes = au_pair_algo.compress(removed_trigger_strings, 100);
+//    spdlog::info("Removed: {} bytes", removed_bytes);
+//
+//    REQUIRE(removed_trigger_strings.size() > 0);
+//    REQUIRE(removed_bytes > 0);
+//}
+//
+////------------------------------------------------------------------------------
+//
+//#include <indexed_pq/indexMaxPQ.h>
+//TEST_CASE("understanding pq", "[PQ]")
+//{
+//    std::map<std::string, vcfbwt::size_type> ts_ids;
+//    ts_ids["TEST1"] = 0;
+//    ts_ids["TEST2"] = 1;
+//    ts_ids["TEST3"] = 2;
+//
+//    indexMaxPQ pq; pq.init(ts_ids.size());
+//    pq.push(ts_ids["TEST1"], 10);
+//    pq.push(ts_ids["TEST2"], 20);
+//    pq.push(ts_ids["TEST3"], 30);
+//
+//    std::pair<int, int> max = pq.get_max();
+//    REQUIRE((max.first == 30 and max.second == 2));
+//
+//    pq.demote(ts_ids["TEST3"], 15);
+//    max = pq.get_max();
+//
+//    REQUIRE((max.first == 20 and max.second == 1));
+//
+//    pq.promote(ts_ids["TEST1"], 40);
+//    max = pq.get_max();
+//
+//    REQUIRE((max.first == 40 and max.second == 0));
+//}
 
 //------------------------------------------------------------------------------
 

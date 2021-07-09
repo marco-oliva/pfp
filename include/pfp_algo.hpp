@@ -37,6 +37,8 @@ class Dictionary
 {
 private:
 
+    vcfbwt::size_type insertions_safe_guard = 1000;
+
     std::mutex dictionary_mutex;
 
     bool sorted = false;

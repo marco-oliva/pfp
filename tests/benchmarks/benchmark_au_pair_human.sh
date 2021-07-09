@@ -6,7 +6,7 @@
 #SBATCH --exclusive
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=120gb
+#SBATCH --mem=512gb
 #SBATCH --time=240:00:00
 #SBATCH --output=%j_aupbH.log
 #SBATCH --constraint='hpg3&amd&milan&infiniband'
