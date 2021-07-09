@@ -79,13 +79,13 @@ TEST_CASE( "Meet deletions and prev,next", "[LinkedList]" )
 
     for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    linked_list.remove(7U);
-    linked_list.remove(8U);
-    linked_list.remove(5U);
-    linked_list.remove(6U);
+    linked_list.remove(7);
+    linked_list.remove(8);
+    linked_list.remove(5);
+    linked_list.remove(6);
 
-    REQUIRE(*(linked_list.next(4U)) == 109);
-    REQUIRE(*(linked_list.prev(linked_list.next(4U))) == 104);
+    REQUIRE(*(linked_list.next(4)) == 109);
+    REQUIRE(*(linked_list.prev(linked_list.next(4))) == 104);
 }
 
 TEST_CASE( "Remove last and meet", "[LinkedList]" )
@@ -94,13 +94,13 @@ TEST_CASE( "Remove last and meet", "[LinkedList]" )
 
     for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    linked_list.remove(7U);
-    linked_list.remove(8U);
-    linked_list.remove(5U);
-    linked_list.remove(6U);
-    linked_list.remove(9U);
+    linked_list.remove(7);
+    linked_list.remove(8);
+    linked_list.remove(5);
+    linked_list.remove(6);
+    linked_list.remove(9);
 
-    REQUIRE(linked_list.next(4U) == linked_list.end());
+    REQUIRE(linked_list.next(4) == linked_list.end());
 }
 
 TEST_CASE( "Remove first and meet", "[LinkedList]" )
@@ -109,10 +109,10 @@ TEST_CASE( "Remove first and meet", "[LinkedList]" )
 
     for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    linked_list.remove(3U);
-    linked_list.remove(1U);
-    linked_list.remove(2U);
-    linked_list.remove(0U);
+    linked_list.remove(3);
+    linked_list.remove(1);
+    linked_list.remove(2);
+    linked_list.remove(0);
 
     REQUIRE(*(linked_list.begin()) == 104);
     REQUIRE(*(linked_list.next(linked_list.begin())) == 105);
@@ -124,13 +124,13 @@ TEST_CASE( "Remove last but don't meet", "[LinkedList]" )
 
     for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    linked_list.remove(7U);
-    linked_list.remove(5U);
-    linked_list.remove(6U);
-    linked_list.remove(9U);
+    linked_list.remove(7);
+    linked_list.remove(5);
+    linked_list.remove(6);
+    linked_list.remove(9);
 
-    REQUIRE(*(linked_list.next(4U)) == 108);
-    REQUIRE(linked_list.next(linked_list.next(4U)) == linked_list.end());
+    REQUIRE(*(linked_list.next(4)) == 108);
+    REQUIRE(linked_list.next(linked_list.next(4)) == linked_list.end());
 }
 
 TEST_CASE( "Remove first but don't meet", "[LinkedList]" )
@@ -139,12 +139,69 @@ TEST_CASE( "Remove first but don't meet", "[LinkedList]" )
 
     for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
 
-    linked_list.remove(3U);
-    linked_list.remove(2U);
-    linked_list.remove(0U);
+    linked_list.remove(3);
+    linked_list.remove(2);
+    linked_list.remove(0);
 
     REQUIRE(*(linked_list.begin()) == 101);
     REQUIRE(*(linked_list.next(linked_list.begin())) == 104);
+}
+
+TEST_CASE( "Remove everything but first and last", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove(7);
+    linked_list.remove(2);
+    linked_list.remove(5);
+    linked_list.remove(6);
+    linked_list.remove(3);
+    linked_list.remove(1);
+    linked_list.remove(4);
+    linked_list.remove(8);
+
+    REQUIRE(*(linked_list.begin()) == 100);
+    REQUIRE(*(linked_list.next(linked_list.begin())) == 109);
+}
+
+TEST_CASE( "Remove everything but second and second to last", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove(7);
+    linked_list.remove(2);
+    linked_list.remove(6);
+    linked_list.remove(3);
+    linked_list.remove(0);
+    linked_list.remove(5);
+    linked_list.remove(4);
+    linked_list.remove(9);
+
+    REQUIRE(*(linked_list.begin()) == 101);
+    REQUIRE(*(linked_list.next(linked_list.begin())) == 108);
+}
+
+TEST_CASE( "Remove everything but third and third to last", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove(8);
+    linked_list.remove(2);
+    linked_list.remove(6);
+    linked_list.remove(1);
+    linked_list.remove(0);
+    linked_list.remove(5);
+    linked_list.remove(4);
+    linked_list.remove(9);
+
+    REQUIRE(*(linked_list.begin()) == 103);
+    REQUIRE(*(linked_list.next(linked_list.begin())) == 107);
 }
 
 ////------------------------------------------------------------------------------

@@ -13,7 +13,7 @@ namespace vcfbwt
 namespace pfp
 {
 
-template <typename DataType>
+template <typename DataType> // intended to be an integer
 class LinkedList
 {
 private:
@@ -25,12 +25,12 @@ private:
     DataType out_of_range;
 
     // Start pointer
-    size_type start_pointer;
+    long_type start_pointer;
 
     // Bitvector to mark deleted elements
     std::vector<bool> deleted_elements;
 
-    size_type convert(const DataType* ptr)
+    long_type convert(const DataType* ptr)
     {
         DataType* start = &(data[0]);
         return ptr - start;
@@ -38,12 +38,12 @@ private:
 
 public:
 
-    explicit LinkedList(size_type size) : data(size), deleted_elements(size, false), start_pointer(0) {}
+    explicit LinkedList(long_type size) : data(size), deleted_elements(size, false), start_pointer(0) {}
 
-    DataType& operator[](size_type i) { assert(not deleted_elements[i]); return data[i]; }
-    DataType& at(size_type i) const { assert(not deleted_elements[i]); return data.at(i); }
+    DataType& operator[](long_type i) { assert(not deleted_elements[i]); return data[i]; }
+    DataType& at(long_type i) const { assert(not deleted_elements[i]); return data.at(i); }
 
-    DataType* next(size_type i)
+    DataType* next(long_type i)
     {
         assert(not deleted_elements[i]);
 
@@ -56,7 +56,7 @@ public:
     }
 
 
-    DataType* prev(size_type i)
+    DataType* prev(long_type i)
     {
         assert(not deleted_elements[i]);
 
@@ -69,7 +69,7 @@ public:
     }
 
 
-    void remove(size_type i)
+    void remove(long_type i)
     {
         assert(not deleted_elements[i]);
 
@@ -114,7 +114,7 @@ public:
         // check left and right
         if (deleted_elements[i - 1] and deleted_elements[i + 1])
         {
-            size_type gap = data[i - 1] + data[i + 1] + 1;
+            DataType gap = data[i - 1] + data[i + 1] + 1;
 
             // update left
             data[i - data[i - 1]] = gap;
@@ -138,7 +138,7 @@ public:
 
     DataType* next(DataType* d) { return this->next(convert(d)); }
     DataType* prev(DataType* d) { return this->prev(convert(d)); }
-    void remove(DataType* d) { this->remove(convert(d)); }
+    //void remove(DataType* d) { this->remove(convert(d)); }
 
     DataType* end() { return &(out_of_range); }
     DataType* begin() { return &(data[start_pointer]); }
