@@ -5,6 +5,7 @@
 //
 
 #include <pfp_algo.hpp>
+#include <tic.h>
 
 //------------------------------------------------------------------------------
 
@@ -648,7 +649,7 @@ vcfbwt::pfp::AuPair::d_prime::at(std::size_t i) const
 int
 vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
 {
-    auto& table_entry_pairs = T_table.at(ts);
+    auto& table_entry = T_table.at(ts);
 
     // compute the cost of removing this trigger string -----------
     int cost_of_removing_from_D = 0, cost_of_removing_from_P = 0, cost_of_removing_tot = 0;
@@ -656,22 +657,21 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     bool starts_and_ends_with_same_ts = false;
 
     // removing from P
-    for (auto& pair : table_entry_pairs)
-    {
-        cost_of_removing_from_P -= (pair.second * sizeof(size_type));
-    }
-
+    cost_of_removing_from_P -= table_entry.size() * sizeof(size_type);
+    
     // removing from D
-    std::set<size_type> pair_seconds, pair_firsts;
+    std::set<has_type> pair_seconds, pair_firsts;
     std::set<std::pair<hash_type, hash_type>> pairs;
-    for (auto& pair : table_entry_pairs)
+    for (auto pair_first_ptr : table_entry)
     {
-        pair_firsts.insert(pair.first.first);
-        pair_seconds.insert(pair.first.second);
-        pairs.insert(pair.first);
+        size_type pair_first_v = (*pair_first_ptr) - 1;
+        size_type pair_second_v = (*(parse.next(pair_first_ptr))) - 1;
+        pair_firsts.insert(pair_first_v);
+        pair_seconds.insert(pair_second_v);
+        pairs.insert(std::make_pair(pair_first_v, pair_second_v));
 
-        std::string_view f_ts(&(D_prime.at(pair.first.first )[0]), window_length);
-        std::string_view l_ts(&(D_prime.at(pair.first.second)[D_prime.at(pair.first.second).size() - window_length]), window_length);
+        std::string_view f_ts(&(D_prime.at(pair_first_v)[0]), window_length);
+        std::string_view l_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]), window_length);
         if (f_ts == ts or l_ts == ts) { starts_and_ends_with_same_ts = true; }
     }
 
@@ -706,24 +706,23 @@ vcfbwt::pfp::AuPair::init()
     
     spdlog::info("Reading Parse");
     mio::mmap_source in_parse(in_prefix + ".parse");
-    for (std::size_t i = 0; i < in_parse.size() - sizeof(size_type); i += sizeof(size_type))
+    this->parse.init((const size_type*) in_parse.data(), in_parse.size());
+    
+    spdlog::info("Initializing data structures to compute costs");
+    for (std::size_t i = 0; i < this->parse.size() - 1; i += sizeof(size_type))
     {
-        size_type curr_element = 0, next_element = 0;
-        std::memcpy(&curr_element, &(in_parse[i]), sizeof(size_type));
-        std::memcpy(&next_element, &(in_parse[i + sizeof(size_type)]), sizeof(size_type));
-        
-        const std::string& phrase_1 = D_prime.at(curr_element - 1);
+        const std::string& phrase_1 = D_prime.at(this->parse.at(i) - 1);
 
         // update T
         std::string_view trigger_string(&(phrase_1[phrase_1.size() - window_length]), window_length);
-        this->T_table[trigger_string][std::make_pair(curr_element - 1, next_element - 1)] += 1;
-
-        if (i == (in_parse.size() - (2*(sizeof(size_type)))))
-        {
-            const std::string& phrase_2 = D_prime.at(next_element - 1);
-            std::string_view trigger_string_last(&(phrase_2[phrase_2.size() - window_length]), window_length);
-            auto& default_adding = this->T_table[trigger_string_last];
-        }
+        this->T_table[trigger_string].push_back(&(this->parse.at(i)));
+        
+//        if (i == (in_parse.size() - (2*(sizeof(size_type)))))
+//        {
+//            const std::string& phrase_2 = D_prime.at(next_element - 1);
+//            std::string_view trigger_string_last(&(phrase_2[phrase_2.size() - window_length]), window_length);
+//            auto& default_adding = this->T_table[trigger_string_last];
+//        }
     }
 
     spdlog::info("Initializing priority queue");
@@ -760,20 +759,25 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         removed_trigger_strings.insert(current_trigger_string);
 
         std::set<std::string_view> to_update_cost;
-        for (auto& pair_with_freq : T_table.at(current_trigger_string))
+        std::set<std::pair<hash_type, hash_type>> merged_pairs;
+        for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
-            size_type first = pair_with_freq.first.first;
-            size_type second = pair_with_freq.first.second;
+            size_type pair_first_v = (*pair_first_ptr) - 1;
+            size_type pair_second_v = (*(parse.next(pair_first_ptr))) - 1;
 
             // New phrase
-            std::string merged_phrase = D_prime.at(first) + D_prime.at(second).substr(window_length);
+            std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
             size_type merged_phrase_id = curr_id++;
             
-            D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
-
+            if (not merged_pairs.contains(std::make_pair(pair_first_v, pair_second_v)))
+            {
+                D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
+                merged_pairs.add(std::make_pair(pair_first_v, pair_second_v));
+            }
+            
             // update entry of T where first appear as second or second appear as a first
-            std::string_view first_ts(&(D_prime.at(first)[0]), window_length);
-            std::string_view second_ts(&(D_prime.at(second)[D_prime.at(second).size() - window_length]) , window_length);
+            std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
+            std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
             
             std::vector<std::pair<std::pair<size_type, size_type>, size_type>> to_remove, to_add;
             if (T_table.contains(first_ts))

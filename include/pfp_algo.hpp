@@ -14,6 +14,7 @@
 #include <fstream>
 #include <vcf.hpp>
 #include <utils.hpp>
+#include <internals.hpp>
 
 namespace vcfbwt
 {
@@ -210,13 +211,16 @@ class AuPair
 {
 private:
     // Table to compute the cost of removing each trigger string.
-    std::map<std::string_view, std::map<std::pair<size_type, size_type>, size_type>> T_table;
+    std::map<std::string_view, std::list<size_type*>> T_table;
 
     // Priority queue
     indexMaxPQ priority_queue;
     std::map<std::string_view, size_type> trigger_string_pq_ids;
     std::map<size_type, std::string_view> trigger_string_pq_ids_inv;
-
+    
+    // Parse
+    LinkedList<size_type> parse;
+    
     size_type window_length;
     std::string in_prefix;
     
@@ -237,11 +241,7 @@ private:
 public:
 
     // Builds the structures end empties the vectors when done
-    AuPair(std::string in, size_type w)
-    : window_length(w) , in_prefix(in)
-    {
-        this->init();
-    }
+    AuPair(std::string in, size_type w) : window_length(w), in_prefix(in) { this->init(); }
     
     void init();
     

@@ -21,6 +21,7 @@
 #include <fstream>
 #include <list>
 #include <unordered_map>
+#include <cstring>
 
 #include <unistd.h>
 #include <math.h>
