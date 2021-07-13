@@ -43,9 +43,9 @@ public:
 
     LinkedList(long_type size) :
         data(size), deleted_elements(size, false), start_pointer(0), initialized(true),
-        num_of_elements(size), out_of_range(110) {}
+        num_of_elements(size), out_of_range(0) {}
     
-    LinkedList() : data(0), deleted_elements(0), start_pointer(0), initialized(false), out_of_range(110) {}
+    LinkedList() : data(0), deleted_elements(0), start_pointer(0), initialized(false), out_of_range(0) {}
     
     void init(const DataType* in, long_type size)
     {
@@ -119,6 +119,7 @@ public:
         {
             data[i] = data[i + 1] + 1;
             data[i + data[i] - 1] = data[i];
+            if (data[i + 1] == 0) { data[i] = 0; } // propagate end zeros
             if (data[i] > 2) { data[i + 1] = 0; }
         }
 
@@ -136,7 +137,8 @@ public:
             DataType gap = data[i - 1] + data[i + 1] + 1;
 
             // update left
-            data[i - data[i - 1]] = gap;
+            if (data[i + 1] == 0) { data[i - data[i - 1]] = 0; }
+            else { data[i - data[i - 1]] = gap; }
             if (data[i - 1] != gap) { data[i - 1] = 0; }
 
             // update right

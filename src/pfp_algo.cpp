@@ -764,6 +764,9 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     // To update the dictionary at the end
     std::set<size_type> removed_phrases;
 
+    // To update T in batch
+    std::set<std::string_view> to_update_cost;
+
     // iterate over priority queue
     std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
     while (max_cost_trigger_string.first > threshold)
@@ -776,11 +779,13 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         bytes_removed += max_cost_trigger_string.first;
         removed_trigger_strings.insert(current_trigger_string);
 
-        std::set<std::string_view> to_update_cost;
         std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
-            if(parse.removed(pair_first_ptr)) { continue; }
+            if(parse.removed(pair_first_ptr)) // sono su un elemento che era il destro di una coppia unita
+            {
+                continue;
+            }
 
             size_type pair_first_v = (*pair_first_ptr) - 1;
             size_type pair_second_v = 0;
@@ -803,9 +808,13 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
                 std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
 
+                // non sto modificando. Chi inizia von il secondo elemento della coppia ora deve iniziare con il primo
+
                 // T updates
                 to_update_cost.insert(first_ts);
                 to_update_cost.insert(second_ts);
+
+                T_table.at(second_ts).push_back(pair_first_ptr);
 
                 removed_phrases.insert(pair_first_v);
                 removed_phrases.insert(pair_second_v);
@@ -813,6 +822,8 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             else
             {
                 merged_phrase_id = merged_pairs.at(std::make_pair(pair_first_v, pair_second_v));
+                std::string_view second_ts(&(D_prime.at(merged_phrase_id)[D_prime.at(merged_phrase_id).size() - window_length]) , window_length);
+                T_table.at(second_ts).push_back(pair_first_ptr);
             }
 
             // update parse, first pointer
@@ -822,11 +833,15 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             parse.remove(parse.next(pair_first_ptr));
         }
 
-        // Update Priority queue
-        for (auto& ts : to_update_cost)
+        // Update Priority queue, batch
+        if (removed_trigger_strings.size() % this->batch_size == 0)
         {
-            int ts_index = this->trigger_string_pq_ids.at(ts);
-            this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
+            for (auto &ts : to_update_cost)
+            {
+                int ts_index = this->trigger_string_pq_ids.at(ts);
+                this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
+            }
+            to_update_cost.clear();
         }
 
         this->priority_queue.push(max_cost_trigger_string.second, 0);
@@ -880,9 +895,9 @@ vcfbwt::pfp::AuPair::close()
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
     dict.close();
 
-    spdlog::info("AuPair: writing parse to disk");
+    spdlog::info("AuPair: writing parse_file to disk");
     std::string parse_file_name = this->in_prefix + ".nparse";
-    std::ofstream parse(parse_file_name);
+    std::ofstream parse_file(parse_file_name);
 
     auto* parse_it = this->parse.begin();
     while (parse_it != this->parse.end())
@@ -894,13 +909,13 @@ vcfbwt::pfp::AuPair::close()
         }
         else
         {
-            parse.write((char*) &(hash_to_rank.at((*parse_it) - 1)), sizeof(size_type));
+            parse_file.write((char*) &(hash_to_rank.at((*parse_it) - 1)), sizeof(size_type));
         }
         parse_it = this->parse.next(parse_it);
     }
 
-    vcfbwt::DiskWrites::update(parse.tellp()); // Disk Stats
-    parse.close();
+    vcfbwt::DiskWrites::update(parse_file.tellp()); // Disk Stats
+    parse_file.close();
 }
 
 //------------------------------------------------------------------------------

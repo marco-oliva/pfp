@@ -19,11 +19,13 @@ int main(int argc, char **argv)
     std::string input_prefix;
     std::size_t window_size;
     std::size_t threshold;
+    std::size_t batch_size = 1;
 
     app.add_option("-o,--out-file", out_file, "Output file")->check(CLI::NonexistentPath)->required();
     app.add_option("-i,--input", input_prefix, "Input Prefix")->required();
     app.add_option("-t,--threshold", threshold, "Threshold")->required();
     app.add_option("-w, --window", window_size, "Window size")->required();
+    app.add_option("-b, --batch-size", batch_size, "Batch size");
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
     app.allow_windows_style_options();
 
@@ -32,7 +34,7 @@ int main(int argc, char **argv)
     // Print out configurations
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
 
-    vcfbwt::pfp::AuPair au_pair_algo(input_prefix, window_size);
+    vcfbwt::pfp::AuPair au_pair_algo(input_prefix, window_size, batch_size);
 
     std::set<std::string_view> removed_trigger_strings;
     int removed_bytes = au_pair_algo.compress(removed_trigger_strings, threshold);

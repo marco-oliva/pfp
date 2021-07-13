@@ -73,6 +73,86 @@ TEST_CASE( "Meet deletions", "[LinkedList]" )
     REQUIRE(*(linked_list.next_at(4)) == 109);
 }
 
+TEST_CASE( "Remove first 3 left to right", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove_at(0);
+    linked_list.remove_at(1);
+    linked_list.remove_at(2);
+
+    REQUIRE(*(linked_list.begin()) == 103);
+}
+
+TEST_CASE( "Remove first 3 right to left", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove_at(2);
+    linked_list.remove_at(1);
+    linked_list.remove_at(0);
+
+    REQUIRE(*(linked_list.begin()) == 103);
+}
+
+TEST_CASE( "Remove first 3, 021", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove_at(0);
+    linked_list.remove_at(2);
+    linked_list.remove_at(1);
+
+    REQUIRE(*(linked_list.begin()) == 103);
+}
+
+TEST_CASE( "Remove last 3 in order, left to right", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove_at(7);
+    linked_list.remove_at(8);
+    linked_list.remove_at(9);
+
+    REQUIRE(linked_list.next_at(6) == linked_list.end());
+}
+
+TEST_CASE( "Remove last 3 in order, right to left", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove_at(9);
+    linked_list.remove_at(8);
+    linked_list.remove_at(7);
+
+    REQUIRE(linked_list.next_at(6) == linked_list.end());
+}
+
+TEST_CASE( "Meet deletions at the end", "[LinkedList]" )
+{
+    vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
+
+    for (vcfbwt::size_type i = 0; i < 10; i++) { linked_list[i] = i + 100; }
+
+    linked_list.remove_at(5);
+    linked_list.remove_at(6);
+    linked_list.remove_at(9);
+    linked_list.remove_at(7);
+    linked_list.remove_at(8);
+
+    REQUIRE(linked_list.next_at(4) == linked_list.end());
+}
+
 TEST_CASE( "Meet deletions and prev,next", "[LinkedList]" )
 {
     vcfbwt::pfp::LinkedList<vcfbwt::size_type> linked_list(10);
@@ -617,9 +697,8 @@ TEST_CASE( "AuPair small test", "[AuPair]" )
 
     REQUIRE(!removed_trigger_strings.empty());
     REQUIRE(removed_bytes > 0);
-    REQUIRE(removed_bytes == 36);
+    REQUIRE(removed_bytes == 55);
 }
-
 
 TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 {

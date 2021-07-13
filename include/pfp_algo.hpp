@@ -223,6 +223,7 @@ private:
     
     size_type window_length;
     std::string in_prefix;
+    size_type batch_size;
     
     std::size_t curr_id;
 
@@ -242,7 +243,7 @@ private:
 public:
 
     // Builds the structures end empties the vectors when done
-    AuPair(std::string in, size_type w) : window_length(w), in_prefix(in) { this->init(); }
+    AuPair(std::string in, size_type w, size_type batch_s = 1) : window_length(w), in_prefix(std::move(in)), batch_size(batch_s) { this->init(); }
 
     ~AuPair() { this->close(); }
 
