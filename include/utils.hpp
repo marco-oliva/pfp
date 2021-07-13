@@ -20,6 +20,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <forward_list>
 #include <unordered_map>
 #include <cstring>
 

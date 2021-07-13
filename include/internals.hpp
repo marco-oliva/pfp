@@ -43,9 +43,9 @@ public:
 
     LinkedList(long_type size) :
         data(size), deleted_elements(size, false), start_pointer(0), initialized(true),
-        num_of_elements(size) {}
+        num_of_elements(size), out_of_range(110) {}
     
-    LinkedList() : data(0), deleted_elements(0), start_pointer(0), initialized(false) {}
+    LinkedList() : data(0), deleted_elements(0), start_pointer(0), initialized(false), out_of_range(110) {}
     
     void init(const DataType* in, long_type size)
     {
@@ -64,9 +64,10 @@ public:
     {
         assert(not deleted_elements[i]);
 
-        if (deleted_elements[i + 1])
+        if (i >= (data.size() - 1)) { return &(out_of_range); }
+        else if (deleted_elements[i + 1])
         {
-            if (data[i + 1] == 0) { return &out_of_range; }
+            if (data[i + 1] == 0) { return &(out_of_range); }
             else { return &(data[i + data[i + 1] + 1]); }
         }
         else { return &(data[i + 1]); }
@@ -79,7 +80,7 @@ public:
 
         if (deleted_elements[i - 1])
         {
-            if (data[i - 1] == 0) { return &out_of_range; }
+            if (data[i - 1] == 0) { return &(out_of_range); }
             else { return &(data[i - data[i - 1] - 1]); }
         }
         else { return &(data[i - 1]); }
@@ -152,11 +153,14 @@ public:
             data[i] = 1;
         }
     }
+
+    bool removed_at(long_type i) { return deleted_elements[i]; }
     
-    DataType* next(DataType* d) { return this->next_at(convert(d)); }
+    DataType* next(DataType* d) { assert(d != &(out_of_range)); return this->next_at(convert(d)); }
     DataType* prev(DataType* d) { return this->prev_at(convert(d)); }
-    void remove(DataType* d) { this->remove(convert_at(d)); }
+    void remove(DataType* d) { this->remove_at(convert(d)); }
     long_type size() const { return this->num_of_elements; }
+    bool removed(DataType* d) { return this->removed_at(convert(d)); }
 
     DataType* end() { return &(out_of_range); }
     DataType* begin() { return &(data[start_pointer]); }

@@ -211,7 +211,7 @@ class AuPair
 {
 private:
     // Table to compute the cost of removing each trigger string.
-    std::map<std::string_view, std::list<size_type*>> T_table;
+    std::map<std::string_view, std::vector<size_type*>> T_table;
 
     // Priority queue
     indexMaxPQ priority_queue;
@@ -233,6 +233,7 @@ private:
         std::vector<std::string> d_prime_vector;
         std::map<size_type, std::string> d_prime_map;
 
+        void remove(size_type i);
         const std::string& at(std::size_t i) const;
     } D_prime;
 
@@ -242,8 +243,11 @@ public:
 
     // Builds the structures end empties the vectors when done
     AuPair(std::string in, size_type w) : window_length(w), in_prefix(in) { this->init(); }
-    
+
+    ~AuPair() { this->close(); }
+
     void init();
+    void close();
     
     int compress(std::set<std::string_view>& removed_trigger_strings, int threshold);
 };

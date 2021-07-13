@@ -5,7 +5,6 @@
 //
 
 #include <pfp_algo.hpp>
-#include <tic.h>
 
 //------------------------------------------------------------------------------
 
@@ -57,7 +56,7 @@ vcfbwt::pfp::Dictionary::check_and_add(const std::string &phrase)
 
     if ((ptr != hash_string_map.end()) and (ptr->second.phrase != phrase))
     {
-        spdlog::error("Hash collision! Hash already in the dictionary");
+        spdlog::error("Hash collision! Hash already in the dictionary for a different phrase");
         std::exit(EXIT_FAILURE);
     }
     else if (ptr != hash_string_map.end()) { return phrase_hash; }
@@ -645,6 +644,12 @@ vcfbwt::pfp::AuPair::d_prime::at(std::size_t i) const
     else { return d_prime_map.at(i); }
 }
 
+void vcfbwt::pfp::AuPair::d_prime::remove(vcfbwt::size_type i)
+{
+    if (i < d_prime_vector.size()) { d_prime_vector[i] = ""; }
+    else { d_prime_map.erase(i); }
+}
+
 
 int
 vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
@@ -660,12 +665,16 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     cost_of_removing_from_P -= table_entry.size() * sizeof(size_type);
     
     // removing from D
-    std::set<has_type> pair_seconds, pair_firsts;
+    std::set<hash_type> pair_seconds, pair_firsts;
     std::set<std::pair<hash_type, hash_type>> pairs;
     for (auto pair_first_ptr : table_entry)
     {
+        if(parse.removed(pair_first_ptr)) { continue; }
+
         size_type pair_first_v = (*pair_first_ptr) - 1;
-        size_type pair_second_v = (*(parse.next(pair_first_ptr))) - 1;
+        size_type pair_second_v = 0;
+        if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
+        else { continue; }
         pair_firsts.insert(pair_first_v);
         pair_seconds.insert(pair_second_v);
         pairs.insert(std::make_pair(pair_first_v, pair_second_v));
@@ -702,27 +711,32 @@ vcfbwt::pfp::AuPair::init()
 {
     spdlog::info("Reading Dictionary");
     vcfbwt::pfp::Parser::read_dictionary(in_prefix + ".dict", this->D_prime.d_prime_vector);
-    this->curr_id = this->D_prime.d_prime_vector.size() + 1;
+    this->curr_id = this->D_prime.d_prime_vector.size() + 10;
     
     spdlog::info("Reading Parse");
-    mio::mmap_source in_parse(in_prefix + ".parse");
-    this->parse.init((const size_type*) in_parse.data(), in_parse.size());
+    mio::basic_mmap_source<char> in_parse(in_prefix + ".parse");
+    this->parse.init((const size_type*) in_parse.data(), in_parse.size() / sizeof(size_type));
     
     spdlog::info("Initializing data structures to compute costs");
-    for (std::size_t i = 0; i < this->parse.size() - 1; i += sizeof(size_type))
+    for (std::size_t i = 0; i < this->parse.size() - 1; i++)
     {
         const std::string& phrase_1 = D_prime.at(this->parse.at(i) - 1);
 
         // update T
         std::string_view trigger_string(&(phrase_1[phrase_1.size() - window_length]), window_length);
         this->T_table[trigger_string].push_back(&(this->parse.at(i)));
-        
-//        if (i == (in_parse.size() - (2*(sizeof(size_type)))))
-//        {
-//            const std::string& phrase_2 = D_prime.at(next_element - 1);
-//            std::string_view trigger_string_last(&(phrase_2[phrase_2.size() - window_length]), window_length);
-//            auto& default_adding = this->T_table[trigger_string_last];
-//        }
+
+        if (i == 0)
+        {
+            std::string_view trigger_string_first(&(D_prime.at(0))[0], window_length);
+            auto& default_adding = this->T_table[trigger_string_first];
+        }
+        if (i == (this->parse.size() - 2))
+        {
+            const std::string& phrase_2 = D_prime.at(this->parse.at(i + 1) - 1);
+            std::string_view trigger_string_last(&(phrase_2[phrase_2.size() - window_length]), window_length);
+            auto& default_adding = this->T_table[trigger_string_last];
+        }
     }
 
     spdlog::info("Initializing priority queue");
@@ -747,77 +761,65 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     spdlog::info("Initial TS count: {}", T_table.size());
     if (T_table.size() <= 1) { return 0; }
 
-    // itearate over priority queue
+    // To update the dictionary at the end
+    std::set<size_type> removed_phrases;
+
+    // iterate over priority queue
     std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
     while (max_cost_trigger_string.first > threshold)
     {
         std::string_view& current_trigger_string = this->trigger_string_pq_ids_inv.at(max_cost_trigger_string.second);
+
         // remove trigger string if cost over threshold
-        spdlog::debug("{}\tcost:\t{}\tbytes removed:\t{}", current_trigger_string, max_cost_trigger_string.first, bytes_removed);
+        spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}", current_trigger_string, max_cost_trigger_string.first, bytes_removed);
 
         bytes_removed += max_cost_trigger_string.first;
         removed_trigger_strings.insert(current_trigger_string);
 
         std::set<std::string_view> to_update_cost;
-        std::set<std::pair<hash_type, hash_type>> merged_pairs;
+        std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
+            if(parse.removed(pair_first_ptr)) { continue; }
+
             size_type pair_first_v = (*pair_first_ptr) - 1;
-            size_type pair_second_v = (*(parse.next(pair_first_ptr))) - 1;
+            size_type pair_second_v = 0;
+            if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
+            else { continue; }
 
-            // New phrase
-            std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
-            size_type merged_phrase_id = curr_id++;
-            
-            if (not merged_pairs.contains(std::make_pair(pair_first_v, pair_second_v)))
+            // new phrase
+            size_type merged_phrase_id = 0;
+            if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
             {
+                std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
+                if (curr_id > (std::numeric_limits<size_type>::max() - 10)) { spdlog::error("Error"); std::exit(EXIT_FAILURE); }
+
+                merged_phrase_id = curr_id++;
+                merged_phrase_id = merged_phrase_id - 1; // compatibility with values from the parse
                 D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
-                merged_pairs.add(std::make_pair(pair_first_v, pair_second_v));
+                merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
+
+                // update entry of T where first appear as second or second appear as a first
+                std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
+                std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
+
+                // T updates
+                to_update_cost.insert(first_ts);
+                to_update_cost.insert(second_ts);
+
+                removed_phrases.insert(pair_first_v);
+                removed_phrases.insert(pair_second_v);
             }
-            
-            // update entry of T where first appear as second or second appear as a first
-            std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
-            std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
-            
-            std::vector<std::pair<std::pair<size_type, size_type>, size_type>> to_remove, to_add;
-            if (T_table.contains(first_ts))
+            else
             {
-                for (auto& pair : T_table.at(first_ts))
-                {
-                    if (pair.first.second == first)
-                    {
-                        to_remove.push_back(pair);
-                        to_add.push_back(std::pair(std::pair(pair.first.first, merged_phrase_id), pair.second));
-                    }
-                }
+                merged_phrase_id = merged_pairs.at(std::make_pair(pair_first_v, pair_second_v));
             }
 
-            if (T_table.contains(second_ts))
-            {
-                for (auto& pair : T_table.at(second_ts))
-                {
-                    if (pair.first.first == second)
-                    {
-                        to_remove.push_back(pair);
-                        to_add.push_back(std::pair(std::pair(merged_phrase_id, pair.first.second), pair.second));
-                    }
-                }
-            }
+            // update parse, first pointer
+            *pair_first_ptr = merged_phrase_id + 1; // compatibility with rest of values
 
-            // Perform updates
-            for (auto& pair : to_remove)
-            {
-                std::string_view ts(&(D_prime.at(pair.first.second)[0]), window_length);
-                T_table[ts].erase(pair.first);
-            }
-
-            for (auto& pair : to_add)
-            {
-                std::string_view ts(&(D_prime.at(pair.first.second)[0]), window_length);
-                T_table[ts].insert(pair);
-                
-                to_update_cost.insert(ts);
-            }
+            // update parse, delete second
+            parse.remove(parse.next(pair_first_ptr));
         }
 
         // Update Priority queue
@@ -833,7 +835,72 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         max_cost_trigger_string = priority_queue.get_max();
     }
 
+    // Remove phrases from dictionary
+    for (auto phrase_id : removed_phrases) { this->D_prime.remove(phrase_id); }
+
     return bytes_removed;
+}
+
+void
+vcfbwt::pfp::AuPair::close()
+{
+    if (this->closed) { return; }
+    this->closed = true;
+
+    // sort dictionary
+    std::vector<std::pair<std::reference_wrapper<std::string>, hash_type>> sorted_phrases;
+
+    for (std::size_t i = 0; i < D_prime.d_prime_vector.size(); i++)
+    {
+        if (D_prime.d_prime_vector[i].size() > 0)
+        {
+            sorted_phrases.emplace_back(std::ref(D_prime.d_prime_vector[i]), i);
+        }
+    }
+    for (auto& d_pair : D_prime.d_prime_map)
+    {
+        sorted_phrases.emplace_back(std::pair(std::ref(d_pair.second), d_pair.first));
+    }
+
+    std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller);
+
+    std::unordered_map<hash_type, size_type> hash_to_rank;
+    for (std::size_t i = 0; i < sorted_phrases.size(); i++) { hash_to_rank[sorted_phrases[i].second] = i + 1; }
+
+    spdlog::info("AuPair: writing dictionary to disk NOT COMPRESSED");
+    std::string dict_file_name = this->in_prefix + ".ndict";
+    std::ofstream dict(dict_file_name);
+
+    for (auto& sorted_phrase : sorted_phrases)
+    {
+        dict.write(sorted_phrase.first.get().c_str(), sorted_phrase.first.get().size());
+        dict.put(ENDOFWORD);
+    }
+    dict.put(ENDOFDICT);
+    vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
+    dict.close();
+
+    spdlog::info("AuPair: writing parse to disk");
+    std::string parse_file_name = this->in_prefix + ".nparse";
+    std::ofstream parse(parse_file_name);
+
+    auto* parse_it = this->parse.begin();
+    while (parse_it != this->parse.end())
+    {
+        if (hash_to_rank.find((*parse_it) - 1) == hash_to_rank.end())
+        {
+            // TODO: some deleted elements show up here, fix this
+            std::cout << "Error: " << (*parse_it) - 1 << std::endl;
+        }
+        else
+        {
+            parse.write((char*) &(hash_to_rank.at((*parse_it) - 1)), sizeof(size_type));
+        }
+        parse_it = this->parse.next(parse_it);
+    }
+
+    vcfbwt::DiskWrites::update(parse.tellp()); // Disk Stats
+    parse.close();
 }
 
 //------------------------------------------------------------------------------
