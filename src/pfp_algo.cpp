@@ -672,8 +672,15 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
 
         size_type pair_first_v = (*pair_first_ptr) - 1;
         size_type pair_second_v = 0;
+
         if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
         else { continue; }
+
+        // check ts
+        std::string_view check_f(&(D_prime.at(pair_first_v)[D_prime.at(pair_first_v).size() - window_length]) , window_length);
+        std::string_view check_s(&(D_prime.at(pair_second_v)[0]), window_length);
+        if (check_f != check_s) { return 0; }
+
         pair_firsts.insert(pair_first_v);
         pair_seconds.insert(pair_second_v);
         pairs.insert(std::make_pair(pair_first_v, pair_second_v));
@@ -774,9 +781,11 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     {
         std::string_view& current_trigger_string = this->trigger_string_pq_ids_inv.at(max_cost_trigger_string.second);
 
-        if (removed_trigger_strings.contains(current_trigger_string))
+        // checks for integrity when batch updating
+        if ((removed_trigger_strings.contains(current_trigger_string)) or
+            (current_trigger_string[0] == DOLLAR or current_trigger_string[0] == DOLLAR_PRIME))
         {
-            // Keep iterating
+            // keep iterating
             this->priority_queue.push(max_cost_trigger_string.second, 0);
             max_cost_trigger_string = priority_queue.get_max();
             continue;
@@ -839,7 +848,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
 
         this->priority_queue.push(max_cost_trigger_string.second, 0);
 
-        // Update Priority queue, batch
+        // update Priority queue, batch
         if (removed_trigger_strings.size() % this->batch_size == 0)
         {
             for (auto &ts : to_update_cost)
@@ -850,11 +859,11 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             to_update_cost.clear();
         }
 
-        // Keep iterating
+        // keep iterating
         max_cost_trigger_string = priority_queue.get_max();
     }
 
-    // Remove phrases from dictionary
+    // remove phrases from dictionary
     for (auto phrase_id : removed_phrases) { this->D_prime.remove(phrase_id); }
 
     return bytes_removed;
@@ -909,7 +918,7 @@ vcfbwt::pfp::AuPair::close()
         if (hash_to_rank.find((*parse_it) - 1) == hash_to_rank.end())
         {
             // TODO: some deleted elements show up here, fix this
-            std::cout << "Error: " << (*parse_it) - 1 << std::endl;
+            //std::cout << "Error: " << (*parse_it) - 1 << std::endl;
         }
         else
         {
