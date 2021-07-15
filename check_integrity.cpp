@@ -18,7 +18,6 @@ int main(int argc, char **argv)
     std::string input_dict_path;
     std::string input_parse_path;
     std::size_t window_size;
-    std::size_t threshold;
 
     app.add_option("-d,--dictionary", input_dict_path, "Dictionary")->required();
     app.add_option("-p,--parse", input_parse_path, "Parse")->required();

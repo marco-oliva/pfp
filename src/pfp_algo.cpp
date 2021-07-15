@@ -654,12 +654,11 @@ void vcfbwt::pfp::AuPair::d_prime::remove(vcfbwt::size_type i)
 int
 vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
 {
+    if (ts[0] == DOLLAR or ts[0] == DOLLAR_PRIME) { return 0; } // don't want to move structural dollar signs
     auto& table_entry = T_table.at(ts);
 
     // compute the cost of removing this trigger string -----------
     int cost_of_removing_from_D = 0, cost_of_removing_from_P = 0, cost_of_removing_tot = 0;
-
-    bool starts_and_ends_with_same_ts = false;
 
     // removing from P
     cost_of_removing_from_P -= table_entry.size() * sizeof(size_type);
@@ -669,7 +668,7 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     std::set<std::pair<hash_type, hash_type>> pairs;
     for (auto pair_first_ptr : table_entry)
     {
-        if(parse.removed(pair_first_ptr)) { continue; }
+        if (parse.removed(pair_first_ptr)) { continue; }
 
         size_type pair_first_v = (*pair_first_ptr) - 1;
         size_type pair_second_v = 0;
@@ -681,7 +680,10 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
 
         std::string_view f_ts(&(D_prime.at(pair_first_v)[0]), window_length);
         std::string_view l_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]), window_length);
-        if (f_ts == ts or l_ts == ts) { starts_and_ends_with_same_ts = true; }
+
+        if (f_ts[0] == DOLLAR or f_ts[0] == DOLLAR_PRIME) { return 0; }
+        if (l_ts[0] == DOLLAR or l_ts[0] == DOLLAR_PRIME) { return 0; }
+        if (f_ts == ts or l_ts == ts) { return 0; }
     }
 
     for (auto& pair : pairs)
@@ -702,8 +704,7 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     cost_of_removing_tot = cost_of_removing_from_D + cost_of_removing_from_P;
     cost_of_removing_tot = cost_of_removing_tot * -1;
 
-    if (starts_and_ends_with_same_ts) { return 0; }
-    else { return cost_of_removing_tot; }
+    return cost_of_removing_tot;
 }
 
 void
@@ -773,19 +774,24 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     {
         std::string_view& current_trigger_string = this->trigger_string_pq_ids_inv.at(max_cost_trigger_string.second);
 
-        // remove trigger string if cost over threshold
-        spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}", current_trigger_string, max_cost_trigger_string.first, bytes_removed);
+        if (removed_trigger_strings.contains(current_trigger_string))
+        {
+            // Keep iterating
+            this->priority_queue.push(max_cost_trigger_string.second, 0);
+            max_cost_trigger_string = priority_queue.get_max();
+            continue;
+        }
+        removed_trigger_strings.insert(current_trigger_string);
 
         bytes_removed += max_cost_trigger_string.first;
-        removed_trigger_strings.insert(current_trigger_string);
+
+        // remove trigger string if cost over threshold
+        spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}", current_trigger_string, max_cost_trigger_string.first, bytes_removed);
 
         std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
-            if(parse.removed(pair_first_ptr)) // sono su un elemento che era il destro di una coppia unita
-            {
-                continue;
-            }
+            if (parse.removed(pair_first_ptr)) { continue; }
 
             size_type pair_first_v = (*pair_first_ptr) - 1;
             size_type pair_second_v = 0;
@@ -797,7 +803,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
             {
                 std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
-                if (curr_id > (std::numeric_limits<size_type>::max() - 10)) { spdlog::error("Error"); std::exit(EXIT_FAILURE); }
+                if (curr_id > (std::numeric_limits<size_type>::max() - 10)) { spdlog::error("Current id size (bytes) not big enough"); std::exit(EXIT_FAILURE); }
 
                 merged_phrase_id = curr_id++;
                 merged_phrase_id = merged_phrase_id - 1; // compatibility with values from the parse
@@ -807,8 +813,6 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 // update entry of T where first appear as second or second appear as a first
                 std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
                 std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
-
-                // non sto modificando. Chi inizia von il secondo elemento della coppia ora deve iniziare con il primo
 
                 // T updates
                 to_update_cost.insert(first_ts);
@@ -833,6 +837,8 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             parse.remove(parse.next(pair_first_ptr));
         }
 
+        this->priority_queue.push(max_cost_trigger_string.second, 0);
+
         // Update Priority queue, batch
         if (removed_trigger_strings.size() % this->batch_size == 0)
         {
@@ -843,8 +849,6 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             }
             to_update_cost.clear();
         }
-
-        this->priority_queue.push(max_cost_trigger_string.second, 0);
 
         // Keep iterating
         max_cost_trigger_string = priority_queue.get_max();
@@ -867,7 +871,7 @@ vcfbwt::pfp::AuPair::close()
 
     for (std::size_t i = 0; i < D_prime.d_prime_vector.size(); i++)
     {
-        if (D_prime.d_prime_vector[i].size() > 0)
+        if (!D_prime.d_prime_vector[i].empty())
         {
             sorted_phrases.emplace_back(std::ref(D_prime.d_prime_vector[i]), i);
         }

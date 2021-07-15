@@ -39,7 +39,8 @@ int main(int argc, char **argv)
     std::set<std::string_view> removed_trigger_strings;
     int removed_bytes = au_pair_algo.compress(removed_trigger_strings, threshold);
 
-    spdlog::info("Removed {} bytes", removed_bytes);
+    spdlog::info("Removed {} bytes, can be inaccurate if --batch-size > 1", removed_bytes);
+    spdlog::info("Removed {} trigger strings", removed_trigger_strings.size());
     
     std::ofstream out_ts(out_file);
     for (auto& rts : removed_trigger_strings)

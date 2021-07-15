@@ -733,6 +733,168 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     // Close the main parser
     main_parser.close();
 
+    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global, 1);
+
+    std::set<std::string_view> removed_trigger_strings;
+    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
+    spdlog::info("Removed: {} bytes", removed_bytes);
+    au_pair_algo.close();
+
+    REQUIRE(!removed_trigger_strings.empty());
+    REQUIRE(removed_bytes > 0);
+
+    // Generate the desired outcome from the test files, reference first
+    std::string what_it_should_be;
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+
+    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    // Unparse
+    std::vector<vcfbwt::size_type>  parse;
+    vcfbwt::pfp::Parser::read_parse(out_prefix + ".nparse", parse);
+    std::vector<std::string> dict;
+    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".ndict", dict);
+
+    std::string unparsed;
+    for (auto& p : parse)
+    {
+        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
+        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
+    }
+    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    // Compare the two strings
+    std::size_t i = 0;
+    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
+            and (unparsed[i] == what_it_should_be[i])) { i++; }
+    spdlog::info("First missmatch: {}", i);
+    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
+}
+
+TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration, batch size 10", "[AuPair]" )
+{
+    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+
+    // Only work on sample HG00096
+    vcf.set_max_samples(1);
+
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    params.use_acceleration = false;
+    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+
+    std::string out_prefix = testfiles_dir + "/parser_out";
+    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+
+    vcfbwt::pfp::Parser worker;
+    std::size_t tag = 0;
+    tag = tag | vcfbwt::pfp::Parser::WORKER;
+    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
+    tag = tag | vcfbwt::pfp::Parser::LAST;
+
+    worker.init(params, out_prefix, reference_parse, tag);
+    main_parser.register_worker(worker);
+
+    // Run
+    worker(vcf[0]);
+
+    // Close the main parser
+    main_parser.close();
+
+    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global, 10);
+
+    std::set<std::string_view> removed_trigger_strings;
+    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
+    spdlog::info("Removed: {} bytes", removed_bytes);
+    au_pair_algo.close();
+
+    REQUIRE(!removed_trigger_strings.empty());
+    REQUIRE(removed_bytes > 0);
+
+    // Generate the desired outcome from the test files, reference first
+    std::string what_it_should_be;
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+
+    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    // Unparse
+    std::vector<vcfbwt::size_type>  parse;
+    vcfbwt::pfp::Parser::read_parse(out_prefix + ".nparse", parse);
+    std::vector<std::string> dict;
+    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".ndict", dict);
+
+    std::string unparsed;
+    for (auto& p : parse)
+    {
+        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
+        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
+    }
+    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    // Compare the two strings
+    std::size_t i = 0;
+    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
+            and (unparsed[i] == what_it_should_be[i])) { i++; }
+    spdlog::info("First missmatch: {}", i);
+    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
+}
+
+TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
+{
+    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+
+    // Only work on sample HG00096
+    vcf.set_max_samples(1);
+
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    params.use_acceleration = true;
+    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+
+    std::string out_prefix = testfiles_dir + "/parser_out";
+    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+
+    vcfbwt::pfp::Parser worker;
+    std::size_t tag = 0;
+    tag = tag | vcfbwt::pfp::Parser::WORKER;
+    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
+    tag = tag | vcfbwt::pfp::Parser::LAST;
+
+    worker.init(params, out_prefix, reference_parse, tag);
+    main_parser.register_worker(worker);
+
+    // Run
+    worker(vcf[0]);
+
+    // Close the main parser
+    main_parser.close();
+
     vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global);
 
     std::set<std::string_view> removed_trigger_strings;
@@ -742,6 +904,43 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 
     REQUIRE(!removed_trigger_strings.empty());
     REQUIRE(removed_bytes > 0);
+
+    // Generate the desired outcome from the test files, reference first
+    std::string what_it_should_be;
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+
+    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    // Unparse
+    std::vector<vcfbwt::size_type>  parse;
+    vcfbwt::pfp::Parser::read_parse(out_prefix + ".nparse", parse);
+    std::vector<std::string> dict;
+    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".ndict", dict);
+
+    std::string unparsed;
+    for (auto& p : parse)
+    {
+        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
+        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
+    }
+    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    // Compare the two strings
+    std::size_t i = 0;
+    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
+            and (unparsed[i] == what_it_should_be[i])) { i++; }
+    spdlog::info("First missmatch: {}", i);
+    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
 }
 
 //------------------------------------------------------------------------------
