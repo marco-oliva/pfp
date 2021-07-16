@@ -868,8 +868,6 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
             }
             to_update_cost.clear();
-
-            for (auto& ts: removed_trigger_strings) { if (this->T_table.contains(ts)) { this->T_table.erase(ts); } }
         }
 
         // keep iterating
