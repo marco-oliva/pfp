@@ -838,7 +838,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 to_update_cost.insert(first_ts);
                 to_update_cost.insert(second_ts);
 
-                T_table.at(second_ts).push_back(pair_first_ptr);
+                if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
 
                 removed_phrases.insert(pair_first_v);
                 removed_phrases.insert(pair_second_v);
@@ -847,7 +847,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             {
                 merged_phrase_id = merged_pairs.at(std::make_pair(pair_first_v, pair_second_v));
                 std::string_view second_ts(&(D_prime.at(merged_phrase_id)[D_prime.at(merged_phrase_id).size() - window_length]) , window_length);
-                T_table.at(second_ts).push_back(pair_first_ptr);
+                if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
             }
 
             // update parse, first pointer
@@ -868,6 +868,8 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
             }
             to_update_cost.clear();
+
+            for (auto& ts: removed_trigger_strings) { if (this->T_table.contains(ts)) { this->T_table.erase(ts); } }
         }
 
         // keep iterating
@@ -929,7 +931,7 @@ vcfbwt::pfp::AuPair::close()
         if (hash_to_rank.find((*parse_it) - 1) == hash_to_rank.end())
         {
             // TODO: some deleted elements show up here, fix this
-            std::cout << "Error: " << (*parse_it) - 1 << std::endl;
+            // std::cout << "Error: " << (*parse_it) - 1 << std::endl;
         }
         else
         {
