@@ -659,16 +659,17 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
 
     // compute the cost of removing this trigger string -----------
     int cost_of_removing_from_D = 0, cost_of_removing_from_P = 0, cost_of_removing_tot = 0;
-
-    // removing from P
-    cost_of_removing_from_P -= table_entry.size() * sizeof(size_type);
     
     // removing from D
     std::set<hash_type> pair_seconds, pair_firsts;
     std::set<std::pair<hash_type, hash_type>> pairs;
-    for (auto pair_first_ptr : table_entry)
+    std::vector<std::size_t> positions_to_clean;
+    for (std::size_t i = 0; i < table_entry.size(); i++)
     {
-        if (parse.removed(pair_first_ptr)) { continue; }
+        size_type* pair_first_ptr = table_entry[i];
+
+        // Clean the vector to reduce memory usage, we are already iterating anyway
+        if (parse.removed(pair_first_ptr)) { positions_to_clean.push_back(i); continue; }
 
         size_type pair_first_v = (*pair_first_ptr) - 1;
         size_type pair_second_v = 0;
@@ -692,6 +693,16 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
         if (l_ts[0] == DOLLAR or l_ts[0] == DOLLAR_PRIME) { return 0; }
         if (f_ts == ts or l_ts == ts) { return 0; }
     }
+
+    // Clean up vector
+    for (auto& pos_to_clean : positions_to_clean)
+    {
+        table_entry[pos_to_clean] = table_entry.back();
+        table_entry.pop_back();
+    }
+
+    // removing from P, no empty elements here!
+    cost_of_removing_from_P -= table_entry.size() * sizeof(size_type);
 
     for (auto& pair : pairs)
     {

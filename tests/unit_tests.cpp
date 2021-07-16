@@ -697,7 +697,7 @@ TEST_CASE( "AuPair small test", "[AuPair]" )
 
     REQUIRE(!removed_trigger_strings.empty());
     REQUIRE(removed_bytes > 0);
-    REQUIRE(removed_bytes == 55);
+    REQUIRE(removed_bytes == 36);
 }
 
 TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )

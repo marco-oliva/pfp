@@ -13,7 +13,7 @@ namespace vcfbwt
 namespace pfp
 {
 
-template <typename DataType> // intended to be an integer
+template <typename DataType> // intended to be an integer (or pointer?)
 class LinkedList
 {
 private:
