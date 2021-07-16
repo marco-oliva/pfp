@@ -240,7 +240,7 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
         // Compute where we are on the reference
         std::size_t pos_on_reference = sample_iterator.get_ref_it();
         
-        if ( not ((sample_iterator.get_var_it() > 0) and (sample_iterator.prev_variation() > (pos_on_reference - (4 * this->w)))))
+        if ( not ((sample_iterator.get_var_it() > 0) and (sample_iterator.prev_variation() > (pos_on_reference - (8 * this->w)))))
         {
             // Set start postion to the position in the reference parse after the last computed phrase
             if (params.use_acceleration and ((phrase.size() == this->w) and ((pos_on_reference != 0) and (phrase[0] != DOLLAR_PRIME))))
@@ -257,13 +257,13 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
                     spdlog::debug("------------------------------------------------------------");
                     spdlog::debug("from {}", sample.get_reference().substr(tsp[start_window - 1], this->w));
                     spdlog::debug("copied from {} to {}", tsp[start_window], tsp[end_window] + this->w);
-                    spdlog::debug("next variatin: {}", sample_iterator.next_variation());
+                    spdlog::debug("next variation: {}", sample_iterator.next_variation());
                     
                     // copy from parse[start_window : end_window]
                     out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
                     this->parse_size += end_window - start_window + 1;
             
-                    // move itarators and re initialize phrase
+                    // move iterators and re initialize phrase
                     sample_iterator.go_to(tsp[end_window]);
                     phrase.clear();
                     for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}
@@ -918,7 +918,7 @@ vcfbwt::pfp::AuPair::close()
         if (hash_to_rank.find((*parse_it) - 1) == hash_to_rank.end())
         {
             // TODO: some deleted elements show up here, fix this
-            //std::cout << "Error: " << (*parse_it) - 1 << std::endl;
+            std::cout << "Error: " << (*parse_it) - 1 << std::endl;
         }
         else
         {
