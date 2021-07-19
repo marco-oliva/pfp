@@ -252,12 +252,13 @@ vcfbwt::pfp::Parser::operator()(const vcfbwt::Sample& sample)
                 while (tsp[end_window + 1] < (sample_iterator.next_variation() - (this->w + 1))) { end_window++; }
                 
                 // If the window is not empty
-                if ((start_window < end_window) and (tsp[end_window] > pos_on_reference))
+                if ((start_window < end_window - 1) and (tsp[end_window] > pos_on_reference))
                 {
                     spdlog::debug("------------------------------------------------------------");
                     spdlog::debug("from {}", sample.get_reference().substr(tsp[start_window - 1], this->w));
                     spdlog::debug("copied from {} to {}", tsp[start_window], tsp[end_window] + this->w);
                     spdlog::debug("next variation: {}", sample_iterator.next_variation());
+                    spdlog::debug("skipped phrases: {}", end_window - start_window);
                     
                     // copy from parse[start_window : end_window]
                     out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
@@ -655,6 +656,8 @@ int
 vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
 {
     if (ts[0] == DOLLAR or ts[0] == DOLLAR_PRIME) { return 0; } // don't want to move structural dollar signs
+    if (not T_table.contains(ts)) { return 0; }
+
     auto& table_entry = T_table.at(ts);
 
     // compute the cost of removing this trigger string -----------
@@ -786,6 +789,9 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     // To update T in batch
     std::set<std::string_view> to_update_cost;
 
+    // Trigger strings to be removed at each step
+    std::set<std::string_view> ts_to_remove_batch;
+
     // iterate over priority queue
     std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
     while (max_cost_trigger_string.first > threshold)
@@ -794,7 +800,8 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
 
         // checks for integrity when batch updating
         if ((removed_trigger_strings.contains(current_trigger_string)) or
-            (current_trigger_string[0] == DOLLAR or current_trigger_string[0] == DOLLAR_PRIME))
+            (to_update_cost.contains(current_trigger_string) or
+            (current_trigger_string[0] == DOLLAR or current_trigger_string[0] == DOLLAR_PRIME)))
         {
             // keep iterating
             this->priority_queue.push(max_cost_trigger_string.second, 0);
@@ -802,11 +809,13 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             continue;
         }
         removed_trigger_strings.insert(current_trigger_string);
+        ts_to_remove_batch.insert(current_trigger_string);
 
         bytes_removed += max_cost_trigger_string.first;
 
         // remove trigger string if cost over threshold
-        spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}", current_trigger_string, max_cost_trigger_string.first, bytes_removed);
+        spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
+                     current_trigger_string, max_cost_trigger_string.first, bytes_removed, removed_trigger_strings.size(), T_table.size());
 
         std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
@@ -835,8 +844,8 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
 
                 // T updates
-                to_update_cost.insert(first_ts);
-                to_update_cost.insert(second_ts);
+                if (not removed_trigger_strings.contains(first_ts)) to_update_cost.insert(first_ts);
+                if (not removed_trigger_strings.contains(second_ts)) to_update_cost.insert(second_ts);
 
                 if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
 
@@ -868,6 +877,9 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
             }
             to_update_cost.clear();
+
+            for (auto& rts : ts_to_remove_batch) { this->T_table.erase(rts); }
+            ts_to_remove_batch.clear();
         }
 
         // keep iterating
@@ -928,8 +940,7 @@ vcfbwt::pfp::AuPair::close()
     {
         if (hash_to_rank.find((*parse_it) - 1) == hash_to_rank.end())
         {
-            // TODO: some deleted elements show up here, fix this
-            // std::cout << "Error: " << (*parse_it) - 1 << std::endl;
+            spdlog::debug("Phrase {} not in the dictionary after compressing", (*parse_it) - 1);
         }
         else
         {
