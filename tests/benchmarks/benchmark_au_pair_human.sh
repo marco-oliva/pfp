@@ -6,16 +6,23 @@
 #SBATCH --exclusive
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=512gb
+#SBATCH --mem=1024gb
 #SBATCH --time=240:00:00
 #SBATCH --output=%j_aupbH.log
-#SBATCH --constraint='hpg3&amd&milan&infiniband'
+#SBATCH --constraint='hpg3&amd&rome&infiniband'
 #
-# Asking for hpg-milan 	64 	8 	8 	1 	512 	hpg3;amd;milan;infiniband 	AMD EPYC 75F3 32-Core Processor
+# Asking for hpg-default 	128 	8 	16 	1 	1028 	hpg3;amd;rome;infiniband 	AMD EPYC 7702 64-Core Processor
 
 ##----------------------------------------------------------
 # Print Some statistics
-pwd; hostname; date
+pwd; hostname; date;
+
+if command -v lshw &> /dev/null
+then
+  lshw
+else
+  echo "lshw could not be found"
+fi
 
 ##----------------------------------------------------------
 # Setup

@@ -1,21 +1,28 @@
 #!/bin/bash
-#SBATCH --job-name=ex-h&a
+#SBATCH --job-name=ex-HeA
 #SBATCH --account=boucher
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=marco.oliva@ufl.edu
 #SBATCH --exclusive
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=33
-#SBATCH --mem=120gb
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1024gb
 #SBATCH --time=240:00:00
-#SBATCH --output=%j_ex-h&a.log
-#SBATCH --constraint='hpg3&amd&milan&infiniband'
+#SBATCH --output=%j_ex-HeA.log
+#SBATCH --constraint='hpg3&amd&rome&infiniband'
 #
-# Asking for hpg-milan 	64 	8 	8 	1 	512 	hpg3;amd;milan;infiniband 	AMD EPYC 75F3 32-Core Processor
+# Asking for hpg-default 	128 	8 	16 	1 	1028 	hpg3;amd;rome;infiniband 	AMD EPYC 7702 64-Core Processor
 
 ##----------------------------------------------------------
 # Print Some statistics
-pwd; hostname; date
+pwd; hostname; date;
+
+if command -v lshw &> /dev/null
+then
+  lshw
+else
+  echo "lshw could not be found"
+fi
 
 ##----------------------------------------------------------
 # Setup
@@ -34,9 +41,9 @@ module load bcftools
 module load git
 module load gcc/9.3.0
 
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_10.txt"
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_100.txt"
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_200.txt"
+${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_10.txt"
+${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_100.txt"
+${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_200.txt"
 ${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_400.txt"
 ${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_800.txt"
 ${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_1600.txt" --skip-pscan
@@ -44,9 +51,9 @@ ${PROFILER} ${BENCHMARK_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_all.txt" --s
 
 
 
-#${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_25.txt"
-#${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_125.txt"
-#${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_250.txt"
-#${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_500.txt"
-#${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_1000.txt"
+${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_25.txt"
+${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_125.txt"
+${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_250.txt"
+${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_500.txt"
+${PROFILER} ${BENCHMARK_ARABIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_1000.txt"
 
