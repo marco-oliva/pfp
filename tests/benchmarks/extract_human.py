@@ -127,7 +127,7 @@ def main():
     ref_files_list = get_reference_files(ref_dir)
     ref_files_list = ref_files_list[0:22]
 
-    samples_dir = args.out_dir + '/samples'
+    samples_dir = args.out_dir
     mkdir_p(samples_dir)
 
     # ============================================================
