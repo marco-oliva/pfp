@@ -39,4 +39,4 @@ module load bcftools
 module load git
 module load gcc/9.3.0
 
-${PROFILER} ${EXTRACT_ARBIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_1000.txt" -o ${OUT_DIR}
+${PROFILER} python ${EXTRACT_ARBIDOPSIS} -t 32 -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_1000.txt" -o ${OUT_DIR}
