@@ -5,7 +5,7 @@
 #SBATCH --mail-user=marco.oliva@ufl.edu
 #SBATCH --exclusive
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=40
 #SBATCH --mem=1000gb
 #SBATCH --time=240:00:00
 #SBATCH --output=%j_ext-A.log
