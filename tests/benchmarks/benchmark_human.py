@@ -32,7 +32,7 @@ n_threads   = 32
 def get_vcf_files(out_dir):
     rootLogger = logging.getLogger()
     vcf_files_list = list()
-    for chromosome_id in [str(c) for c in range(1,23)]:
+    for chromosome_id in [str(c) for c in chromosomes_list]:
         chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
                                "genotypes.vcf.gz".format(chromosome_id, version_letter)
 
@@ -85,7 +85,7 @@ def main():
     parser.add_argument('-s', dest='samples_file', type=str, help='File containing list of samples', required=True)
     parser.add_argument('-t', dest='threads', type=int, help='Number of threads to be used', required=True)
     parser.add_argument('-d', dest='samples_dir', type=str, help='Folder containing pre extracted files', required=True)
-    parser.add_argument('--skip-pscan', dest='skip_pscan', help='Skip pscan, run only pfp', action='store_true')
+    parser.add_argument('--skip-pscan', dest='skip_pscan', help='Skip pscan, run only pfp', action='store_true', default=False)
     args = parser.parse_args()
 
     # Get executables
@@ -107,7 +107,7 @@ def main():
     # ------------------------------------------------------------
 
     mkdir_p(data_dir_bigbwt)
-    
+
     out_fasta_multi_sample = data_dir_bigbwt + '/' + str(len(samples)) + '_samples.fa'
     if os.path.exists(out_fasta_multi_sample):
         rootLogger.info('{} already exists, overwriting it'.format(out_fasta_multi_sample))
@@ -135,7 +135,7 @@ def main():
     mkdir_p(data_dir_pfp)
 
     vcf_files_list = list()
-    for chromosome_id in [str(c) for c in range(1,23)]:
+    for chromosome_id in [str(c) for c in chromosomes_list]:
         chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
                                "genotypes.vcf.gz".format(chromosome_id, version_letter)
 
