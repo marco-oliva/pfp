@@ -26,7 +26,7 @@ fi
 
 ##----------------------------------------------------------
 # Setup
-BASE_DIR_EXP="${BASE_DIR_EXP}"
+BASE_DIR_EXP="/blue/boucher/marco.oliva/projects/experiments/pfp"
 PROFILER="/usr/bin/time --verbose"
 
 BENCHMARK_HUMAN="${BASE_DIR_EXP}/repo/pfp/tests/benchmarks/benchmark_human.py"
