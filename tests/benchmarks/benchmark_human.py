@@ -85,7 +85,7 @@ def main():
     parser.add_argument('-s', dest='samples_file', type=str, help='File containing list of samples', required=True)
     parser.add_argument('-t', dest='threads', type=int, help='Number of threads to be used', required=True)
     parser.add_argument('-d', dest='samples_dir', type=str, help='Folder containing pre extracted files', required=True)
-    parser.add_argument('--skip-pscan', dest='skip_pscan', help='Skip pscan, run only pfp', action='store_true', default=False)
+    parser.add_argument('--skip-pscan', dest='skip_pscan', type=bool, help='Skip pscan, run only pfp', action='store_true', default=False)
     args = parser.parse_args()
 
     # Get executables
