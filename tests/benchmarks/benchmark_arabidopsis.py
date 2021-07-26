@@ -132,7 +132,7 @@ def main():
     mkdir_p(data_dir_pfp)
 
     vcf_files_list = list()
-    for chromosome_id in [str(c) for c in range(1,23)]:
+    for chromosome_id in [str(c) for c in chromosomes_list]:
         chromosome_file_name ='1001genomes_snp-short-indel_only_ACGTN_chr{}.vcf.gz'.format(chromosome_id)
 
         if (os.path.exists(pre_download_data_dir + '/vcf/' + chromosome_file_name)):
