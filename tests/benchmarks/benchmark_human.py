@@ -106,6 +106,8 @@ def main():
 
     # ------------------------------------------------------------
 
+    mkdir_p(data_dir_bigbwt)
+    
     out_fasta_multi_sample = data_dir_bigbwt + '/' + str(len(samples)) + '_samples.fa'
     if os.path.exists(out_fasta_multi_sample):
         rootLogger.info('{} already exists, overwriting it'.format(out_fasta_multi_sample))
