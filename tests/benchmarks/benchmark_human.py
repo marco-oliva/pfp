@@ -88,9 +88,6 @@ def main():
     parser.add_argument('--skip-pscan', dest='skip_pscan', help='Skip pscan, run only pfp', action='store_true', default=False)
     args = parser.parse_args()
 
-    if (args.skip_pscan):
-        print("Skipping pscan")
-
     # Get executables
     mkdir_p(common_tools_dir)
     pfp_exe = get_pfp(common_tools_dir)
@@ -123,7 +120,7 @@ def main():
     multi_sample_file.close()
 
     # ------------------------------------------------------------
-    if (args.skip_pscan):
+    if (not args.skip_pscan):
         # Run pscan.x
         base_command = "{pscan} -t {c_threads} -f {file} -w {window} -p {modulo}"
         command = base_command.format(pscan=pscan_exe, c_threads=n_threads, file=out_fasta_multi_sample, window=w_value,
