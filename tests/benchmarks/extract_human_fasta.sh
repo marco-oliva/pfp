@@ -39,4 +39,4 @@ module load bcftools
 module load git
 module load gcc/9.3.0
 
-${PROFILER} python ${EXTRACT_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_1600.txt" -o ${OUT_DIR}
+${PROFILER} python ${EXTRACT_HUMAN} -t 32 -s "${SAMPLES_LIST_BASE_HUMAN}_1600_last_250.txt" -o ${OUT_DIR}
