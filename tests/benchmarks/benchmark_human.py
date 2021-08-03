@@ -104,23 +104,21 @@ def main():
 
     # ============================================================
 
-    # ------------------------------------------------------------
-
     mkdir_p(data_dir_bigbwt)
-
-    out_fasta_multi_sample = data_dir_bigbwt + '/' + str(len(samples)) + '_samples.fa'
-    if os.path.exists(out_fasta_multi_sample):
-        rootLogger.info('{} already exists, overwriting it'.format(out_fasta_multi_sample))
-
-    multi_sample_file = open(out_fasta_multi_sample, 'w')
-    for sample in samples:
-        sample_file_path = args.samples_dir + '/' + sample + '/' + sample + '_ALL.fa'
-        with open(sample_file_path) as sample_file:
-            multi_sample_file.write(sample_file.read())
-    multi_sample_file.close()
 
     # ------------------------------------------------------------
     if (not args.skip_pscan):
+        out_fasta_multi_sample = data_dir_bigbwt + '/' + str(len(samples)) + '_samples.fa'
+        if os.path.exists(out_fasta_multi_sample):
+            rootLogger.info('{} already exists, overwriting it'.format(out_fasta_multi_sample))
+
+        multi_sample_file = open(out_fasta_multi_sample, 'w')
+        for sample in samples:
+            sample_file_path = args.samples_dir + '/' + sample + '/' + sample + '_ALL.fa'
+            with open(sample_file_path) as sample_file:
+                multi_sample_file.write(sample_file.read())
+        multi_sample_file.close()
+
         # Run pscan.x
         base_command = "{pscan} -t {c_threads} -f {file} -w {window} -p {modulo}"
         command = base_command.format(pscan=pscan_exe, c_threads=n_threads, file=out_fasta_multi_sample, window=w_value,
