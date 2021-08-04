@@ -211,12 +211,12 @@ class AuPair
 {
 private:
     // Table to compute the cost of removing each trigger string.
-    std::map<std::string, std::vector<size_type*>> T_table;
+    std::map<std::string_view, std::vector<size_type*>> T_table;
 
     // Priority queue
     indexMaxPQ priority_queue;
-    std::map<std::string, size_type> trigger_string_pq_ids;
-    std::map<size_type, std::string> trigger_string_pq_ids_inv;
+    std::map<std::string_view, size_type> trigger_string_pq_ids;
+    std::map<size_type, std::string_view> trigger_string_pq_ids_inv;
     
     // Parse
     LinkedList<size_type> parse;
@@ -232,14 +232,13 @@ private:
     struct d_prime
     {
         std::vector<std::string> d_prime_vector;
-        // std::map<size_type, std::string> d_prime_map;
+        std::map<size_type, std::string> d_prime_map;
 
         void remove(size_type i);
-        std::string& operator[](std::size_t i) { return d_prime_vector[i]; }
         const std::string& at(std::size_t i) const;
     } D_prime;
 
-    int cost_of_removing_trigger_string(const std::string& ts);
+    int cost_of_removing_trigger_string(const std::string_view& ts);
 
 public:
 
@@ -251,7 +250,7 @@ public:
     void init();
     void close();
     
-    int compress(std::set<std::string>& removed_trigger_strings, int threshold);
+    int compress(std::set<std::string_view>& removed_trigger_strings, int threshold);
 };
 
 } // end namespace pfp
