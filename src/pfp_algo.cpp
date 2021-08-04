@@ -926,6 +926,7 @@ vcfbwt::pfp::AuPair::close()
     {
         dict.write(sorted_phrase.first.get().c_str(), sorted_phrase.first.get().size());
         dict.put(ENDOFWORD);
+        
     }
     dict.put(ENDOFDICT);
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
@@ -934,7 +935,11 @@ vcfbwt::pfp::AuPair::close()
     spdlog::info("AuPair: writing parse_file to disk");
     std::string parse_file_name = this->in_prefix + ".nparse";
     std::ofstream parse_file(parse_file_name);
-
+    
+    std::vector<size_type> occurrences(sorted_phrases.size(), 0);
+    std::string occ_file_name = this->in_prefix + ".nocc";
+    std::ofstream occ_file(occ_file_name);
+    
     auto* parse_it = this->parse.begin();
     while (parse_it != this->parse.end())
     {
@@ -945,12 +950,17 @@ vcfbwt::pfp::AuPair::close()
         else
         {
             parse_file.write((char*) &(hash_to_rank.at((*parse_it) - 1)), sizeof(size_type));
+            occurrences[hash_to_rank.at((*parse_it) - 1) - 1] += 1;
         }
         parse_it = this->parse.next(parse_it);
     }
 
     vcfbwt::DiskWrites::update(parse_file.tellp()); // Disk Stats
     parse_file.close();
+    
+    occ_file.write(reinterpret_cast<const char*>(occurrences.data()), sizeof(size_type) * occurrences.size());
+    vcfbwt::DiskWrites::update(occ_file.tellp()); // Disk Stats
+    occ_file.close();
 }
 
 //------------------------------------------------------------------------------
