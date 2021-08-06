@@ -33,6 +33,8 @@ private:
     long_type convert(const DataType* ptr)
     {
         DataType* start = &(data[0]);
+
+        assert(ptr - start < data.size());
         return ptr - start;
     }
     
@@ -77,6 +79,7 @@ public:
     DataType* prev_at(long_type i)
     {
         assert(not deleted_elements[i]);
+        if (i == 0) { return &(out_of_range); }
 
         if (deleted_elements[i - 1])
         {
