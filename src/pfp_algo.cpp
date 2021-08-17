@@ -775,14 +775,21 @@ vcfbwt::pfp::AuPair::init()
 }
 
 int
-vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_strings, int threshold)
+vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_strings, int threshold = 0)
 {
     spdlog::info("Start compressing with threshold {}", threshold);
     int bytes_removed = 0;
     
     spdlog::info("Initial TS count: {}", T_table.size());
     if (T_table.size() <= 1) { return 0; }
-
+    
+    if (threshold == 0)
+    {
+        std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
+        threshold = 0.5 * max_cost_trigger_string.first;
+        spdlog::info("Setting threshold to {}", threshold);
+    }
+    
     // To update the dictionary at the end
     std::set<size_type> removed_phrases;
 

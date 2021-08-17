@@ -18,12 +18,12 @@ int main(int argc, char **argv)
     std::string out_file;
     std::string input_prefix;
     std::size_t window_size;
-    std::size_t threshold;
+    std::size_t threshold = 0;
     std::size_t batch_size = 1;
 
     app.add_option("-o,--out-file", out_file, "Output file")->check(CLI::NonexistentPath)->required();
     app.add_option("-i,--input", input_prefix, "Input Prefix")->required();
-    app.add_option("-t,--threshold", threshold, "Threshold")->required();
+    app.add_option("-t,--threshold", threshold, "Threshold");
     app.add_option("-w, --window", window_size, "Window size")->required();
     app.add_option("-b, --batch-size", batch_size, "Batch size");
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
