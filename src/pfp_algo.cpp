@@ -786,7 +786,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     if (threshold == 0)
     {
         std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
-        threshold = 0.2 * max_cost_trigger_string.first;
+        threshold = 0.1 * max_cost_trigger_string.first;
         spdlog::info("Setting threshold to {}", threshold);
     }
     
