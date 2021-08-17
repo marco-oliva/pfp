@@ -906,7 +906,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
 
             int ts_index = this->trigger_string_pq_ids.at(ts);
             int old_cost = priority_queue.get_key(ts_index);
-            this->priority_queue.push(ts_index, old_cost + value);
+            if (old_cost != 0) { this->priority_queue.push(ts_index, old_cost + value); }
         }
 
         this->priority_queue.push(max_cost_trigger_string.second, 0);
