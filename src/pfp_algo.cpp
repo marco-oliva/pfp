@@ -786,7 +786,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     if (threshold == 0)
     {
         std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
-        threshold = 0.1 * max_cost_trigger_string.first;
+        threshold = 0.04 * max_cost_trigger_string.first;
         spdlog::info("Setting threshold to {}", threshold);
     }
     
@@ -795,19 +795,23 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
 
     // iterate over priority queue
     std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
+    int last_cost = max_cost_trigger_string.first;
     while (max_cost_trigger_string.first > threshold)
     {
         std::string_view& current_trigger_string = this->trigger_string_pq_ids_inv.at(max_cost_trigger_string.second);
-
+        
         // checks for integrity
-        if ((removed_trigger_strings.contains(current_trigger_string)) or
-            (current_trigger_string[0] == DOLLAR or current_trigger_string[0] == DOLLAR_PRIME))
+        if ( max_cost_trigger_string.first > last_cost or
+            ((removed_trigger_strings.contains(current_trigger_string)) or
+            (current_trigger_string[0] == DOLLAR or current_trigger_string[0] == DOLLAR_PRIME)))
         {
             // keep iterating
             this->priority_queue.push(max_cost_trigger_string.second, 0);
             max_cost_trigger_string = priority_queue.get_max();
             continue;
         }
+    
+        last_cost = max_cost_trigger_string.first;
 
         removed_trigger_strings.insert(current_trigger_string);
 
