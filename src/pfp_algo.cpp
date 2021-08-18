@@ -795,24 +795,44 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
 
     // iterate over priority queue
     std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
-    int last_cost = max_cost_trigger_string.first;
     while (max_cost_trigger_string.first > threshold)
     {
         std::string_view& current_trigger_string = this->trigger_string_pq_ids_inv.at(max_cost_trigger_string.second);
         
         // checks for integrity
-        if ( max_cost_trigger_string.first > last_cost or
-            ((removed_trigger_strings.contains(current_trigger_string)) or
-            (current_trigger_string[0] == DOLLAR or current_trigger_string[0] == DOLLAR_PRIME)))
+        if ((removed_trigger_strings.contains(current_trigger_string)) or
+            (current_trigger_string[0] == DOLLAR or current_trigger_string[0] == DOLLAR_PRIME))
         {
             // keep iterating
             this->priority_queue.push(max_cost_trigger_string.second, 0);
             max_cost_trigger_string = priority_queue.get_max();
             continue;
         }
-    
-        last_cost = max_cost_trigger_string.first;
-
+        
+        // check if any starts and ends with same ts, check for dollars
+        for (auto pair_first_ptr : T_table.at(current_trigger_string))
+        {
+            if (parse.removed(pair_first_ptr)) { continue; }
+            
+            size_type pair_first_v = (*pair_first_ptr) - 1;
+            size_type pair_second_v = 0;
+            
+            if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
+            else { continue; }
+            
+            std::string_view f_ts(&(D_prime.at(pair_first_v)[0]), window_length);
+            std::string_view l_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]), window_length);
+            
+            if (f_ts[0] == DOLLAR or f_ts[0] == DOLLAR_PRIME or
+            (l_ts[0] == DOLLAR or l_ts[0] == DOLLAR_PRIME or
+            (f_ts == current_trigger_string or l_ts == current_trigger_string)))
+            {
+                this->priority_queue.push(max_cost_trigger_string.second, 0);
+                max_cost_trigger_string = priority_queue.get_max();
+                continue;
+            }
+        }
+        
         removed_trigger_strings.insert(current_trigger_string);
 
         bytes_removed += max_cost_trigger_string.first;
@@ -826,10 +846,12 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
+            // All checks already performed, just check if removed
             if (parse.removed(pair_first_ptr)) { continue; }
-
+            
             size_type pair_first_v = (*pair_first_ptr) - 1;
             size_type pair_second_v = 0;
+    
             if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
             else { continue; }
 
