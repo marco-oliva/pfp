@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     std::size_t threshold = 0;
     std::size_t batch_size = 1;
 
-    app.add_option("-o,--out-file", out_file, "Output file")->check(CLI::NonexistentPath)->required();
+    app.add_option("-o,--out-file", out_file, "Output file")->required();
     app.add_option("-i,--input", input_prefix, "Input Prefix")->required();
     app.add_option("-t,--threshold", threshold, "Threshold");
     app.add_option("-w, --window", window_size, "Window size")->required();
