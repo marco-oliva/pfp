@@ -58,6 +58,8 @@ int main(int argc, char **argv)
         if (not size_only) { unparsed << dict_string; }
        
     }
-    unparsed << vcfbwt::pfp::DOLLAR;
+    if (not size_only) { unparsed << vcfbwt::pfp::DOLLAR; }
+    
+    spdlog::info("Unparsed text size: {}", unparsed_text_size);
 }
 
