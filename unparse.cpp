@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     std::size_t window_size;
     bool size_only = false;
     
-    app.add_option("-o,--out-file", out_file, "Output file")->check(CLI::NonexistentPath)->required();
+    app.add_option("-o,--out-file", out_file, "Output file")->check(CLI::NonexistentPath);
     app.add_option("-d,--dictionary", dict_file, "Dictionary file")->check(CLI::ExistingFile)->required();
     app.add_option("-p,--parse", parse_file, "Parse file")->check(CLI::ExistingFile)->required();
     app.add_option("-w, --window", window_size, "Window size")->required();
