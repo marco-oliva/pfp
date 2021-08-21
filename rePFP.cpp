@@ -12,8 +12,6 @@
 
 int main(int argc, char **argv)
 {
-    //spdlog::set_pattern("%v");
-
     CLI::App app("PFP++");
 
     std::vector<std::string> vcfs_file_names;
@@ -100,49 +98,18 @@ int main(int argc, char **argv)
 
     std::set<std::string_view> removed_trigger_strings;
     int removed_bytes = au_pair_algo.compress(removed_trigger_strings, threshold);
-
-    spdlog::info("Removed {} bytes", removed_bytes);
-
-    std::ofstream out_ts(out_prefix + ".removed_ts");
+    
+    spdlog::info("Removed {} bytes, can be inaccurate if --batch-size > 1", removed_bytes);
+    spdlog::info("Removed {} trigger strings", removed_trigger_strings.size());
+    
+    std::ofstream out_ts(out_prefix + ".ts");
     for (auto& rts : removed_trigger_strings)
     {
         for (auto& c : rts) { out_ts.put(c); }
         out_ts.put(vcfbwt::pfp::ENDOFWORD);
     }
     out_ts.put(vcfbwt::pfp::ENDOFDICT);
-
+    
     vcfbwt::DiskWrites::update(out_ts.tellp());
     out_ts.close();
-
-    // ------------------------------------------------------------
-    // Second pass of PFP
-    // ------------------------------------------------------------
-
-    params.ignore_ts_file = out_prefix + ".removed_ts";
-    vcfbwt::pfp::ReferenceParse reference_parse_aupair(vcf.get_reference(), params);
-
-    vcfbwt::pfp::Parser main_parser_aupair(params, out_prefix + "_compressed", reference_parse_aupair);
-
-    std::vector<vcfbwt::pfp::Parser> workers_aupair(threads);
-    for (std::size_t i = 0; i < workers.size(); i++)
-    {
-        std::size_t tag = vcfbwt::pfp::Parser::WORKER | vcfbwt::pfp::Parser::UNCOMPRESSED;
-        if (i == workers_aupair.size() - 1) { tag = tag | vcfbwt::pfp::Parser::LAST; }
-        workers_aupair[i].init(params, "", reference_parse_aupair, tag);
-        main_parser_aupair.register_worker(workers_aupair[i]);
-    }
-
-    #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < vcf.size(); i++)
-    {
-        int this_thread = omp_get_thread_num();
-        spdlog::info("rePFP Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
-        malloc_count_print_status();
-
-        workers_aupair[this_thread](vcf[i]);
-    }
-
-    // close the main parser and exit
-    main_parser_aupair.close();
-
 }

@@ -786,7 +786,8 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
     if (threshold == 0)
     {
         std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
-        threshold = 0.04 * max_cost_trigger_string.first;
+        threshold = 0.001 * max_cost_trigger_string.first;
+        threshold = 100;
         spdlog::info("Setting threshold to {}", threshold);
     }
     
@@ -870,8 +871,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
                 merged_phrase_id = merged_phrase_id - 1; // compatibility with values from the parse
                 D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
                 merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
-
-
+                
                 if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
 
                 removed_phrases.insert(pair_first_v);
@@ -905,7 +905,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             // update parse, delete second
             parse.remove(parse.next(pair_first_ptr));
         }
-
+        
         // apply ts cost updates
         for (auto& update : update_value)
         {
