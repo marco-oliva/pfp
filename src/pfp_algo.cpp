@@ -518,8 +518,9 @@ vcfbwt::pfp::ParserFasta::operator()()
     record = kseq_init(fp);
     while(kseq_read(record) >= 0)
     {
-        std::string sequence_name(record->name.s);
-        std::string sequence_comment(record->comment.s);
+        std::string sequence_name("<error reading sequence name>"), sequence_comment;
+        if (record->name.s != NULL) { sequence_name = record->name.s; }
+        if (record->comment.s != NULL) { sequence_comment = record->comment.s; }
         this->sequences_processed.push_back(sequence_name + " " + sequence_comment);
         spdlog::info("Parsed:\t{}", sequence_name + " " + sequence_comment);
         
@@ -615,7 +616,6 @@ vcfbwt::pfp::ParserFasta::close()
     
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
     dict.close();
-    
     
     if (this->params.compress_dictionary)
     {
