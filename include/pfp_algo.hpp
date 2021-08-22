@@ -36,7 +36,7 @@ enum SPECIAL_TYPES
 
 class Dictionary
 {
-private:
+public:
 
     vcfbwt::size_type insertions_safe_guard = 1000;
 
@@ -58,8 +58,6 @@ private:
     
     void sort();
     
-public:
-    
     Dictionary() = default;
     
     hash_type add(const std::string& phrase);
@@ -75,7 +73,7 @@ public:
     
     static void merge(Dictionary& destination, const Dictionary& source);
     
-    friend class Parser;
+    friend class ParserVCF;
 };
 
 //------------------------------------------------------------------------------
@@ -117,7 +115,7 @@ public :
 };
 
 // Create a parse on disk
-class Parser
+class ParserVCF
 {
 
 private:
@@ -134,12 +132,13 @@ private:
     ReferenceParse* reference_parse = nullptr;
     Dictionary* dictionary = nullptr;
 
+    // Shorthands
     hash_type w, p;
     size_type parse_size, tags;
     
     bool closed = false;
     
-    std::vector<std::reference_wrapper<Parser>> registered_workers;
+    std::vector<std::reference_wrapper<ParserVCF>> registered_workers;
     
 public:
     
@@ -153,16 +152,17 @@ public:
     };
     
     
-    void init(const Params& params, const std::string& prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED);
+    void init(const Params& params, const std::string& out_prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED);
     
-    Parser(const Params& params, const std::string& file_path, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED)
+    ParserVCF(const Params& params, const std::string& out_prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED)
     {
-        this->init(params, file_path, rp, t);
+        if (out_prefix.empty()) { this->init(params, "out", rp, t); }
+        else { this->init(params, out_prefix, rp, t); }
     }
     
-    Parser() = default;
+    ParserVCF() = default;
     
-    ~Parser()
+    ~ParserVCF()
     {
         close();
         size_type total_length = 0;
@@ -190,12 +190,89 @@ public:
         }
     }
     
-    void close();
     const std::string& get_file_name() const { return this->out_file_name; }
     const Statistics& get_statistics() const { return this->statistics; }
-    void register_worker(Parser& parser) { this->registered_workers.push_back(std::ref(parser)); }
+    void register_worker(ParserVCF& parser) { this->registered_workers.push_back(std::ref(parser)); }
     
     void operator()(const Sample& sample);
+    void close();
+};
+
+//------------------------------------------------------------------------------
+
+class ParserFasta
+{
+
+private:
+    
+    std::ofstream out_file;
+    std::string out_file_prefix;
+    std::string out_file_name;
+    std::string in_file_path;
+    std::vector<std::string> sequences_processed;
+    
+    Params params;
+    Statistics statistics;
+    
+    Dictionary dictionary;
+    
+    hash_type w, p;
+    size_type parse_size, tags;
+    
+    bool closed = false;
+    
+public:
+    
+    void init(const Params& params, const std::string& prefix);
+    
+    ParserFasta(const Params& params, const std::string& file_path, const std::string& out_prefix)
+    {
+        this->in_file_path = file_path;
+        if (out_prefix.empty()) { this->init(params, "out"); }
+        else { this->init(params, out_prefix); }
+    }
+    
+    ParserFasta() = default;
+    
+    ~ParserFasta()
+    {
+        close();
+        size_type total_length = 0;
+        for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size(); }
+        
+        // Fill out statistics
+        this->statistics.parse_length = this->parse_size;
+        this->statistics.num_of_phrases_dictionary = this->dictionary.sorted_phrases.size();
+        this->statistics.total_dictionary_length = total_length;
+        std::string name = "Parser Fasta";
+        spdlog::info("{} -\tParse size: {}\tDic Size: {} Dic Total Length: {}", name ,parse_size, dictionary.size(), total_length);
+        
+        if (params.print_out_statistics_csv)
+        {
+            std::ofstream csv(out_file_prefix + ".csv");
+            csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
+            csv << params.w << ",";
+            csv << params.p << ",";
+            csv << statistics.parse_length << ",";
+            csv << statistics.num_of_phrases_dictionary << ",";
+            csv << statistics.total_dictionary_length << ",";
+            csv << "\n";
+            csv.close();
+        }
+    }
+    
+    const std::string& get_file_name() const { return this->out_file_name; }
+    const Statistics& get_statistics() const { return this->statistics; }
+    
+    void operator()();
+    void close();
+};
+
+//------------------------------------------------------------------------------
+
+class ParserUtils
+{
+public:
     
     static void read_parse(std::string parse_file_name, std::vector<size_type>& parse);
     static void read_dictionary(std::string dic_file_name, std::vector<std::string>& dictionary_vector);
@@ -203,54 +280,6 @@ public:
     static void parse_fasta(std::string fasta_file_name, std::string out_prefix, const Params& params);
     
     static std::vector<std::size_t> compute_occurrences(std::vector<std::string>& dictionary_vector, std::vector<size_type>& parse);
-};
-
-//------------------------------------------------------------------------------
-
-class AuPair
-{
-private:
-    // Table to compute the cost of removing each trigger string.
-    std::map<std::string_view, std::vector<size_type*>> T_table;
-
-    // Priority queue
-    indexMaxPQ priority_queue;
-    std::map<std::string_view, size_type> trigger_string_pq_ids;
-    std::map<size_type, std::string_view> trigger_string_pq_ids_inv;
-    
-    // Parse
-    LinkedList<size_type> parse;
-    
-    size_type window_length;
-    std::string in_prefix;
-    size_type batch_size;
-    
-    std::size_t curr_id;
-
-    bool closed = false;
-
-    struct d_prime
-    {
-        std::vector<std::string> d_prime_vector;
-        std::map<size_type, std::string> d_prime_map;
-
-        void remove(size_type i);
-        const std::string& at(std::size_t i) const;
-    } D_prime;
-
-    int cost_of_removing_trigger_string(const std::string_view& ts);
-
-public:
-
-    // Builds the structures end empties the vectors when done
-    AuPair(std::string in, size_type w, size_type batch_s = 1) : window_length(w), in_prefix(std::move(in)), batch_size(batch_s) { this->init(); }
-
-    ~AuPair() { this->close(); }
-
-    void init();
-    void close();
-    
-    int compress(std::set<std::string_view>& removed_trigger_strings, int threshold);
 };
 
 } // end namespace pfp

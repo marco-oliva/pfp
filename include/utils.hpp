@@ -36,6 +36,10 @@
 
 #include <indexed_pq/indexMaxPQ.h>
 
+#include <zlib.h>
+#include <kseq.h>
+KSEQ_INIT(gzFile, gzread)
+
 namespace vcfbwt
 {
 
@@ -174,6 +178,11 @@ namespace DiskWrites
 
 //------------------------------------------------------------------------------
 
+bool ref_smaller(
+std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> a,
+std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> b);
+
+//------------------------------------------------------------------------------
 
 } // end namespace vcfbwt
 

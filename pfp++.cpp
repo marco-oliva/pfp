@@ -18,6 +18,7 @@ int main(int argc, char **argv)
     
     std::vector<std::string> vcfs_file_names;
     std::vector<std::string> refs_file_names;
+    std::string fasta_file_path;
     std::string out_prefix;
     std::string tmp_dir;
     std::size_t max_samples = 0;
@@ -27,8 +28,9 @@ int main(int argc, char **argv)
     
     vcfbwt::pfp::Params params;
     
-    app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable();
-    app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable();
+    app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->configurable();
+    app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->configurable();
+    app.add_option("-f,--fasta", fasta_file_path, "Fasta file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 200))->configurable();
@@ -55,38 +57,51 @@ int main(int argc, char **argv)
     // Print out configurations
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
     
-    // Set tmp file dir
-    if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
-    
-    // Parse the VCF
-    vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, max_samples);
-    
-    // Set threads accordingly to configuration
-    omp_set_num_threads(threads);
-    
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-    
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
-    
-    std::vector<vcfbwt::pfp::Parser> workers(threads);
-    for (std::size_t i = 0; i < workers.size(); i++)
+    if (not fasta_file_path.empty())
     {
-        std::size_t tag = vcfbwt::pfp::Parser::WORKER | vcfbwt::pfp::Parser::UNCOMPRESSED;
-        if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::Parser::LAST; }
-        workers[i].init(params, "", reference_parse, tag);
-        main_parser.register_worker(workers[i]);
+        vcfbwt::pfp::ParserFasta main_parser(params, fasta_file_path, out_prefix);
+    
+        // Run
+        main_parser();
+    
+        // Close the main parser
+        main_parser.close();
     }
-    
-    #pragma omp parallel for schedule(static)
-    for (std::size_t i = 0; i < vcf.size(); i++)
+    else
     {
-        int this_thread = omp_get_thread_num();
-        spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
-        malloc_count_print_status();
+        // Set tmp file dir
+        if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
+    
+        // Parse the VCF
+        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, max_samples);
+    
+        // Set threads accordingly to configuration
+        omp_set_num_threads(threads);
+    
+        vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+    
+        vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
+    
+        std::vector<vcfbwt::pfp::ParserVCF> workers(threads);
+        for (std::size_t i = 0; i < workers.size(); i++)
+        {
+            std::size_t tag = vcfbwt::pfp::ParserVCF::WORKER | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+            if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::ParserVCF::LAST; }
+            workers[i].init(params, "", reference_parse, tag);
+            main_parser.register_worker(workers[i]);
+        }
 
-        workers[this_thread](vcf[i]);
-    }
+        #pragma omp parallel for schedule(static)
+        for (std::size_t i = 0; i < vcf.size(); i++)
+        {
+            int this_thread = omp_get_thread_num();
+            spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
+            malloc_count_print_status();
+        
+            workers[this_thread](vcf[i]);
+        }
     
-    // close the main parser and exit
-    main_parser.close();
+        // close the main parser and exit
+        main_parser.close();
+    }
 }

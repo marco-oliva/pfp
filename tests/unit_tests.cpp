@@ -10,6 +10,7 @@
 #include <vcf.hpp>
 #include <utils.hpp>
 #include <pfp_algo.hpp>
+#include <au_pair_algo.hpp>
 #include <internals.hpp>
 
 //------------------------------------------------------------------------------
@@ -492,13 +493,13 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
 
-    vcfbwt::pfp::Parser worker;
+    vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::Parser::WORKER;
-    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::Parser::LAST;
+    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
+    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);
@@ -526,9 +527,9 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
 
     // Unparse
     std::vector<vcfbwt::size_type>  parse;
-    vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
+    vcfbwt::pfp::ParserUtils::read_parse(out_prefix + ".parse", parse);
     std::vector<std::string> dict;
-    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
+    vcfbwt::pfp::ParserUtils::read_dictionary(out_prefix + ".dict", dict);
 
     std::string unparsed;
     for (auto& p : parse)
@@ -563,13 +564,13 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
 
-    vcfbwt::pfp::Parser worker;
+    vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::Parser::WORKER;
-    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::Parser::LAST;
+    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
+    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);
@@ -597,9 +598,9 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
 
     // Unparse
     std::vector<vcfbwt::size_type>  parse;
-    vcfbwt::pfp::Parser::read_parse(out_prefix + ".parse", parse);
+    vcfbwt::pfp::ParserUtils::read_parse(out_prefix + ".parse", parse);
     std::vector<std::string> dict;
-    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".dict", dict);
+    vcfbwt::pfp::ParserUtils::read_dictionary(out_prefix + ".dict", dict);
 
     std::string unparsed;
     for (auto& p : parse)
@@ -659,6 +660,59 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
 }
 
+TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
+{
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+
+    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::string out_prefix = testfiles_dir + "/HG00096_chrY_H1_tpfa";
+    vcfbwt::pfp::ParserFasta main_parser(params, test_sample_path, out_prefix);
+
+    // Run
+    main_parser();
+
+    // Close the main parser
+    main_parser.close();
+
+    // Generate the desired outcome from the test files, reference first
+    std::string what_it_should_be;
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+
+    std::ifstream in_stream(test_sample_path);
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    // Unparse
+    std::vector<vcfbwt::size_type>  parse;
+    vcfbwt::pfp::ParserUtils::read_parse(out_prefix + ".parse", parse);
+    std::vector<std::string> dict;
+    vcfbwt::pfp::ParserUtils::read_dictionary(out_prefix + ".dict", dict);
+
+    std::string unparsed;
+    for (auto& p : parse)
+    {
+        if (p > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+        std::string dict_string = dict[p - 1].substr(0, dict[p - 1].size() - params.w);
+        unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
+    }
+    unparsed.append(params.w, vcfbwt::pfp::DOLLAR);
+
+
+    // Compare the two strings
+    std::size_t i = 0;
+    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
+    and (unparsed[i] == what_it_should_be[i])) { i++; }
+    REQUIRE(((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
+}
+
+
+
 TEST_CASE( "AuPair small test", "[AuPair]" )
 {
     std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"
@@ -693,11 +747,52 @@ TEST_CASE( "AuPair small test", "[AuPair]" )
     vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4);
 
     std::set<std::string_view> removed_trigger_strings;
-    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 5);
+    std::size_t removed_bytes = au_pair_algo.compress(removed_trigger_strings, 5);
 
     REQUIRE(!removed_trigger_strings.empty());
     REQUIRE(removed_bytes > 0);
     REQUIRE(removed_bytes == 139);
+}
+
+TEST_CASE( "AuPair simple removal test", "[AuPair]" )
+{
+    std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"
+                    "ACCACATAGGTGAACCTTGAAAATGTTACATTGTGTGAAAAAGTCAGATACAAGAGGCC!!!!";
+    
+    std::vector<std::string> dictionary =
+    {
+    "!ACCACATAGGTG",
+    "####ACCACATAGGTG",
+    "AATGTTACACTGTGTGAAAAAGTCAG",
+    "AATGTTACATTGTGTGAAAAAGTCAG",
+    "CTTGAAAATG",
+    "GGTGAACCTTG",
+    "TCAGATACAAGAGGCC!!!!",
+    "TCAGATACAAGAGGCC####"
+    };
+    
+    std::ofstream dict_file(testfiles_dir + "/au_pair_test_1.dict");
+    for (auto& phrase : dictionary)
+    {
+        dict_file.write(phrase.c_str(), phrase.size());
+        dict_file.put(vcfbwt::pfp::ENDOFWORD);
+    }
+    dict_file.put(vcfbwt::pfp::ENDOFDICT);
+    dict_file.close();
+    
+    std::vector<vcfbwt::size_type> parse = {1, 6, 5, 3, 8, 2, 6, 5, 4, 7};
+    std::ofstream parse_file(testfiles_dir + "/au_pair_test_1.parse");
+    parse_file.write((char*)&parse[0], parse.size() * sizeof(vcfbwt::size_type));
+    parse_file.close();
+    
+    vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4);
+    
+    std::set<std::string_view> removed_trigger_strings;
+    std::size_t removed_bytes = au_pair_algo.remove_simple(removed_trigger_strings);
+    
+    REQUIRE(!removed_trigger_strings.empty());
+    REQUIRE(removed_bytes > 0);
+    REQUIRE(removed_bytes == 12);
 }
 
 TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
@@ -716,13 +811,13 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
 
-    vcfbwt::pfp::Parser worker;
+    vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::Parser::WORKER;
-    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::Parser::LAST;
+    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
+    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);
@@ -736,7 +831,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global, 1);
 
     std::set<std::string_view> removed_trigger_strings;
-    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
+    std::size_t removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
     spdlog::info("Removed: {} bytes", removed_bytes);
     au_pair_algo.close();
 
@@ -760,9 +855,9 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 
     // Unparse
     std::vector<vcfbwt::size_type>  parse;
-    vcfbwt::pfp::Parser::read_parse(out_prefix + ".nparse", parse);
+    vcfbwt::pfp::ParserUtils::read_parse(out_prefix + ".nparse", parse);
     std::vector<std::string> dict;
-    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".ndict", dict);
+    vcfbwt::pfp::ParserUtils::read_dictionary(out_prefix + ".ndict", dict);
 
     std::string unparsed;
     for (auto& p : parse)
@@ -797,13 +892,13 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
 
-    vcfbwt::pfp::Parser worker;
+    vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::Parser::WORKER;
-    tag = tag | vcfbwt::pfp::Parser::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::Parser::LAST;
+    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
+    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);
@@ -817,7 +912,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global);
 
     std::set<std::string_view> removed_trigger_strings;
-    int removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
+    std::size_t removed_bytes = au_pair_algo.compress(removed_trigger_strings, 1000);
     spdlog::info("Removed: {} bytes", removed_bytes);
     au_pair_algo.close();
 
@@ -841,9 +936,9 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
 
     // Unparse
     std::vector<vcfbwt::size_type>  parse;
-    vcfbwt::pfp::Parser::read_parse(out_prefix + ".nparse", parse);
+    vcfbwt::pfp::ParserUtils::read_parse(out_prefix + ".nparse", parse);
     std::vector<std::string> dict;
-    vcfbwt::pfp::Parser::read_dictionary(out_prefix + ".ndict", dict);
+    vcfbwt::pfp::ParserUtils::read_dictionary(out_prefix + ".ndict", dict);
 
     std::string unparsed;
     for (auto& p : parse)

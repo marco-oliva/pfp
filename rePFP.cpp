@@ -8,6 +8,7 @@
 #include <version.hpp>
 #include <utils.hpp>
 #include <vcf.hpp>
+#include <au_pair_algo.hpp>
 #include <pfp_algo.hpp>
 
 int main(int argc, char **argv)
@@ -67,13 +68,13 @@ int main(int argc, char **argv)
 
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
-    vcfbwt::pfp::Parser main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
 
-    std::vector<vcfbwt::pfp::Parser> workers(threads);
+    std::vector<vcfbwt::pfp::ParserVCF> workers(threads);
     for (std::size_t i = 0; i < workers.size(); i++)
     {
-        std::size_t tag = vcfbwt::pfp::Parser::WORKER | vcfbwt::pfp::Parser::UNCOMPRESSED;
-        if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::Parser::LAST; }
+        std::size_t tag = vcfbwt::pfp::ParserVCF::WORKER | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+        if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::ParserVCF::LAST; }
         workers[i].init(params, "", reference_parse, tag);
         main_parser.register_worker(workers[i]);
     }

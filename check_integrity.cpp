@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     // Unparse
     spdlog::info("Reading dictionary");
     std::vector<std::string> dict;
-    vcfbwt::pfp::Parser::read_dictionary(input_dict_path, dict);
+    vcfbwt::pfp::ParserUtils::read_dictionary(input_dict_path, dict);
 
     std::ifstream parse_stream(input_parse_path, std::ios::binary);
     vcfbwt::size_type curr_parse_element = 0, prev_parse_element = 0;

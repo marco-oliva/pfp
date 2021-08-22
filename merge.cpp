@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
     
     // Merge parsings
-    vcfbwt::pfp::Parser::merge(left_file, right_file, out_prefix, params);
+    vcfbwt::pfp::ParserUtils::merge(left_file, right_file, out_prefix, params);
     
     return 0;
 }
