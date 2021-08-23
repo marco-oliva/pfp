@@ -201,6 +201,7 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
     {
         int ts_index = this->trigger_string_pq_ids.at(ts);
         this->priority_queue.push(ts_index, 0);
+        this->T_table.erase(ts);
     }
     
     spdlog::info("Removed {} SIMPLE ts out of {} total", removed_trigger_strings.size(), T_table.size());
@@ -379,7 +380,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         // keep iterating
         max_cost_trigger_string = priority_queue.get_max();
         
-        //this->T_table.erase(current_trigger_string);
+        this->T_table.erase(current_trigger_string);
     }
     
     // remove phrases from dictionary
