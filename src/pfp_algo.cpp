@@ -660,7 +660,7 @@ void
 vcfbwt::pfp::ParserUtils::read_parse(std::string parse_file_name, std::vector<size_type>& parse)
 {
     std::ifstream parse_file(parse_file_name, std::ios::binary);
-    if (not parse_file.is_open()) { spdlog::error("ERROR!"); std::exit(EXIT_FAILURE); }
+    if (not parse_file.is_open()) { spdlog::error("Error opening file: {}", parse_file_name); std::exit(EXIT_FAILURE); }
     
     while (not parse_file.eof()) { size_type i; parse_file.read((char*) &i, sizeof(size_type)); parse.push_back(i); }
     
@@ -672,7 +672,7 @@ void
 vcfbwt::pfp::ParserUtils::read_dictionary(std::string dic_file_name, std::vector<std::string>& dictionary_vector)
 {
     std::ifstream dic_file(dic_file_name);
-    if (not dic_file.is_open()) { spdlog::error("ERROR!"); std::exit(EXIT_FAILURE); }
+    if (not dic_file.is_open()) { spdlog::error("Error opening file: {}", dic_file_name); std::exit(EXIT_FAILURE); }
     
     char c = '\5';
     while (c != ENDOFDICT)

@@ -187,12 +187,62 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
         if (pair_elements.size() == 2)
         {
             // remove this trigger string
-            // remove trigger string if cost over threshold
             spdlog::info("{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
                          current_trigger_string, bytes_removed, removed_trigger_strings.size(), T_table.size());
             
             removed_trigger_strings.insert(current_trigger_string);
             bytes_removed += this->window_length * T_table.at(current_trigger_string).size();
+            
+            // update parse and dict
+            std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
+            std::set<size_type> removed_phrases;
+            for (auto pair_first_ptr : T_table.at(current_trigger_string))
+            {
+                // All checks already performed, just check if removed
+                if (parse.removed(pair_first_ptr)) { continue; }
+    
+                size_type pair_first_v = (*pair_first_ptr) - 1;
+                size_type pair_second_v = 0;
+    
+                if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
+                else { continue; }
+    
+                // update entry of T where first appear as second or second appear as a first
+                std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
+                std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
+    
+                // new phrase
+                size_type merged_phrase_id = 0;
+                if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
+                {
+                    std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
+                    if (curr_id > (std::numeric_limits<size_type>::max() - 10)) { spdlog::error("Current id size (bytes) not big enough"); std::exit(EXIT_FAILURE); }
+        
+                    merged_phrase_id = curr_id++;
+                    merged_phrase_id = merged_phrase_id - 1; // compatibility with values from the parse
+                    D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
+                    merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
+        
+                    if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
+        
+                    removed_phrases.insert(pair_first_v);
+                    removed_phrases.insert(pair_second_v);
+                }
+                else
+                {
+                    merged_phrase_id = merged_pairs.at(std::make_pair(pair_first_v, pair_second_v));
+                    if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
+                }
+    
+                // update parse, first pointer
+                *pair_first_ptr = merged_phrase_id + 1; // compatibility with rest of values
+    
+                // update parse, delete second
+                parse.remove(parse.next(pair_first_ptr));
+            }
+    
+            // remove phrases from dictionary
+            for (auto phrase_id : removed_phrases) { this->D_prime.remove(phrase_id); }
         }
     }
     
@@ -257,9 +307,11 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             std::string_view f_ts(&(D_prime.at(pair_first_v)[0]), window_length);
             std::string_view l_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]), window_length);
             
-            if (f_ts[0] == DOLLAR or f_ts[0] == DOLLAR_PRIME or
-            (l_ts[0] == DOLLAR or l_ts[0] == DOLLAR_PRIME or
-            (f_ts == current_trigger_string or l_ts == current_trigger_string)))
+            if (f_ts[0] == DOLLAR
+            or (f_ts[0] == DOLLAR_PRIME
+            or (l_ts[0] == DOLLAR
+            or (l_ts[0] == DOLLAR_PRIME
+            or (f_ts == current_trigger_string or l_ts == current_trigger_string)))))
             {
                 this->priority_queue.push(max_cost_trigger_string.second, 0);
                 max_cost_trigger_string = priority_queue.get_max();
@@ -343,6 +395,8 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         for (auto& update : update_value)
         {
             string_view ts = update.first;
+            if (removed_trigger_strings.contains(ts)) { continue; }
+            
             int value = update.second;
             
             if (updates_first_el.contains(ts))
