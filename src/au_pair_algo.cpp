@@ -161,6 +161,7 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
     
         std::set<size_type> pair_elements;
     
+        bool checks_failed = false;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
             if (parse.removed(pair_first_ptr)) { continue; }
@@ -173,18 +174,20 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
         
             std::string_view f_ts(&(D_prime.at(pair_first_v)[0]), window_length);
             std::string_view l_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]), window_length);
-        
-            if (f_ts[0] == DOLLAR or f_ts[0] == DOLLAR_PRIME or
-            (l_ts[0] == DOLLAR or l_ts[0] == DOLLAR_PRIME or
-            (f_ts == current_trigger_string or l_ts == current_trigger_string)))
-            { continue; }
+    
+            if (f_ts[0] == DOLLAR
+            or (f_ts[0] == DOLLAR_PRIME
+            or (l_ts[0] == DOLLAR
+            or (l_ts[0] == DOLLAR_PRIME
+            or (f_ts == current_trigger_string or l_ts == current_trigger_string)))))
+            { checks_failed = true; break; }
         
             pair_elements.insert(pair_first_v);
             pair_elements.insert(pair_second_v);
             if (pair_elements.size() > 2) { break; }
         }
     
-        if (pair_elements.size() == 2)
+        if (pair_elements.size() == 2 and not checks_failed)
         {
             // remove this trigger string
             spdlog::info("{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
