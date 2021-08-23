@@ -294,6 +294,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         }
         
         // check if any starts and ends with same ts, check for dollars
+        bool checks_failed = false;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
             if (parse.removed(pair_first_ptr)) { continue; }
@@ -315,9 +316,11 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
             {
                 this->priority_queue.push(max_cost_trigger_string.second, 0);
                 max_cost_trigger_string = priority_queue.get_max();
-                continue;
+                checks_failed = true;
+                break;
             }
         }
+        if (checks_failed) { continue; }
         
         removed_trigger_strings.insert(current_trigger_string);
         

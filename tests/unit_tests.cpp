@@ -789,10 +789,11 @@ TEST_CASE( "AuPair simple removal test", "[AuPair]" )
     
     std::set<std::string_view> removed_trigger_strings;
     std::size_t removed_bytes = au_pair_algo.remove_simple(removed_trigger_strings);
+    removed_bytes += au_pair_algo.compress(removed_trigger_strings, 10);
     
     REQUIRE(!removed_trigger_strings.empty());
     REQUIRE(removed_bytes > 0);
-    REQUIRE(removed_bytes == 12);
+    REQUIRE(removed_bytes == 52);
 }
 
 TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
@@ -800,7 +801,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
- 
+
     // Only work on sample HG00096
     vcf.set_max_samples(1);
 

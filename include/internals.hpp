@@ -34,7 +34,7 @@ private:
     {
         DataType* start = &(data[0]);
 
-        assert(ptr - start < data.size());
+        if(ptr - start >= data.size()) { spdlog::error("LinkedList::convert({})::error", ptr - start); exit(EXIT_FAILURE); };
         return ptr - start;
     }
     
@@ -59,12 +59,18 @@ public:
         std::memcpy((char*) &(data[0]), (char*) in, size * sizeof(DataType));
     }
     
-    DataType& operator[](long_type i) { assert(not deleted_elements[i]); return data[i]; }
-    DataType& at(long_type i) { assert(not deleted_elements[i]); return data.at(i); }
+    DataType& operator[](long_type i)
+    {
+        if (deleted_elements[i] or (i >= this->data.size()))
+        { spdlog::error("LinkedList::operator[]({})::error", i); exit(EXIT_FAILURE); };
+        
+        return data.at(i);
+    }
+    DataType& at(long_type i) { return this->operator[](i); }
 
     DataType* next_at(long_type i)
     {
-        assert(not deleted_elements[i]);
+        if (deleted_elements[i]) { spdlog::error("LinkedList::next_at({})::error", i); exit(EXIT_FAILURE); };
 
         if (i >= (data.size() - 1)) { return &(out_of_range); }
         else if (deleted_elements[i + 1])
@@ -78,7 +84,7 @@ public:
 
     DataType* prev_at(long_type i)
     {
-        assert(not deleted_elements[i]);
+        if (deleted_elements[i]) { spdlog::error("LinkedList::prev_at({})::error", i); exit(EXIT_FAILURE); };
         if (i == 0) { return &(out_of_range); }
 
         if (deleted_elements[i - 1])
@@ -92,7 +98,7 @@ public:
 
     void remove_at(long_type i)
     {
-        assert(not deleted_elements[i]);
+        if (deleted_elements[i]) { spdlog::error("LinkedList::remove_at({})::error", i); exit(EXIT_FAILURE); };
 
         deleted_elements[i] = true;
         num_of_elements -= 1;
