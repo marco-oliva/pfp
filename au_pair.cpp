@@ -36,8 +36,8 @@ int main(int argc, char **argv)
     vcfbwt::pfp::AuPair au_pair_algo(input_prefix, window_size);
 
     std::set<std::string_view> removed_trigger_strings;
-    std::size_t removed_bytes = au_pair_algo.remove_simple(removed_trigger_strings);
-    removed_bytes += au_pair_algo.compress(removed_trigger_strings, threshold);
+    //std::size_t removed_bytes = au_pair_algo.remove_simple(removed_trigger_strings);
+    std::size_t removed_bytes = au_pair_algo.compress(removed_trigger_strings, threshold);
 
     spdlog::info("Removed {} bytes, can be inaccurate if --batch-size > 1", removed_bytes);
     spdlog::info("Removed {} trigger strings", removed_trigger_strings.size());

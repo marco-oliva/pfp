@@ -139,7 +139,7 @@ vcfbwt::pfp::AuPair::init()
         this->trigger_string_pq_ids.insert(std::pair(table_entry.first, last_inserted));
         this->trigger_string_pq_ids_inv.insert(std::pair(last_inserted, table_entry.first));
         priority_queue.push(last_inserted, cost_of_removing_trigger_string(table_entry.first));
-        
+
         last_inserted++;
     }
 }
@@ -148,7 +148,8 @@ std::size_t
 vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_strings)
 {
     std::size_t bytes_removed = 0;
-    
+    std::set<std::string_view> ts_to_be_updated;
+    std::set<size_type> removed_phrases;
     for (auto& ts_pair : T_table)
     {
         // Remove trigger strings with only one pair in the list
@@ -198,7 +199,6 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
             
             // update parse and dict
             std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
-            std::set<size_type> removed_phrases;
             for (auto pair_first_ptr : T_table.at(current_trigger_string))
             {
                 // All checks already performed, just check if removed
@@ -214,6 +214,9 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
                 std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
                 std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
     
+                ts_to_be_updated.insert(first_ts);
+                ts_to_be_updated.insert(second_ts);
+                
                 // new phrase
                 size_type merged_phrase_id = 0;
                 if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
@@ -243,19 +246,28 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
                 // update parse, delete second
                 parse.remove(parse.next(pair_first_ptr));
             }
-    
-            // remove phrases from dictionary
-            for (auto phrase_id : removed_phrases) { this->D_prime.remove(phrase_id); }
         }
     }
     
     // Put cost of removed trigger strings to 0
     for (auto& ts : removed_trigger_strings)
     {
+        if (not T_table.contains(ts)) { continue; }
         int ts_index = this->trigger_string_pq_ids.at(ts);
         this->priority_queue.push(ts_index, 0);
         this->T_table.erase(ts);
     }
+    
+    // Update cost of other trigger strings
+    for (auto& ts : ts_to_be_updated)
+    {
+        if (removed_trigger_strings.contains(ts)) { continue; }
+        int ts_index = this->trigger_string_pq_ids.at(ts);
+        this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
+    }
+    
+    // remove phrases from dictionary
+    for (auto phrase_id : removed_phrases) { this->D_prime.remove(phrase_id); }
     
     spdlog::info("Removed {} SIMPLE ts out of {} total", removed_trigger_strings.size(), T_table.size());
     return bytes_removed;
