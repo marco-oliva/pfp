@@ -36,13 +36,13 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     // removing from D
     std::set<hash_type> pair_seconds, pair_firsts;
     std::set<std::pair<hash_type, hash_type>> pairs;
-    std::vector<std::size_t> positions_to_clean;
+    std::vector<std::size_t> erased_elements;
     for (std::size_t i = 0; i < table_entry.size(); i++)
     {
         size_type* pair_first_ptr = table_entry[i];
         
         // Clean the vector to reduce memory usage, we are already iterating anyway
-        if (parse.removed(pair_first_ptr)) { positions_to_clean.push_back(i); continue; }
+        if (parse.removed(pair_first_ptr)) { erased_elements.push_back(i); continue; }
         
         size_type pair_first_v = (*pair_first_ptr) - 1;
         size_type pair_second_v = 0;
@@ -68,14 +68,15 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     }
     
     // Clean up vector
-    for (auto& pos_to_clean : positions_to_clean)
-    {
-        table_entry[pos_to_clean] = table_entry.back();
-        table_entry.pop_back();
-    }
+//    for (auto& pos_to_clean : erased_elements)
+//    {
+//        while (parse.removed(table_entry.back())) { table_entry.pop_back(); } // make sure last is not deleted
+//        table_entry[pos_to_clean] = table_entry.back();
+//        table_entry.pop_back();
+//    }
     
     // removing from P, no empty elements here!
-    cost_of_removing_from_P -= table_entry.size() * sizeof(size_type);
+    cost_of_removing_from_P -= (table_entry.size() - erased_elements.size()) * sizeof(size_type);
     
     for (auto& pair : pairs)
     {
@@ -99,7 +100,7 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
 }
 
 void
-vcfbwt::pfp::AuPair::init()
+vcfbwt::pfp::AuPair::init_structures()
 {
     spdlog::info("Reading Dictionary");
     vcfbwt::pfp::ParserUtils::read_dictionary(in_prefix + ".dict", this->D_prime.d_prime_vector);
@@ -108,6 +109,10 @@ vcfbwt::pfp::AuPair::init()
     spdlog::info("Reading Parse");
     mio::basic_mmap_source<char> in_parse(in_prefix + ".parse");
     this->parse.init((const size_type*) in_parse.data(), in_parse.size() / sizeof(size_type));
+    
+    // initial size
+    this->initial_size = this->parse.size() * sizeof(size_type);
+    for (auto& s : this->D_prime.d_prime_vector) { this->initial_size += s.size(); }
     
     spdlog::info("Initializing data structures to compute costs");
     for (std::size_t i = 0; i < this->parse.size() - 1; i++)
@@ -130,7 +135,11 @@ vcfbwt::pfp::AuPair::init()
             auto& default_adding = this->T_table[trigger_string_last];
         }
     }
-    
+}
+
+void
+vcfbwt::pfp::AuPair::init_costs()
+{
     spdlog::info("Initializing priority queue");
     this->priority_queue.init(T_table.size());
     int last_inserted = 0;
@@ -139,7 +148,7 @@ vcfbwt::pfp::AuPair::init()
         this->trigger_string_pq_ids.insert(std::pair(table_entry.first, last_inserted));
         this->trigger_string_pq_ids_inv.insert(std::pair(last_inserted, table_entry.first));
         priority_queue.push(last_inserted, cost_of_removing_trigger_string(table_entry.first));
-
+        
         last_inserted++;
     }
 }
@@ -147,8 +156,9 @@ vcfbwt::pfp::AuPair::init()
 std::size_t
 vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_strings)
 {
+    spdlog::info("Removing simple trigger strings");
+    
     std::size_t bytes_removed = 0;
-    std::set<std::string_view> ts_to_be_updated;
     std::set<size_type> removed_phrases;
     for (auto& ts_pair : T_table)
     {
@@ -190,12 +200,13 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
     
         if (pair_elements.size() == 2 and not checks_failed)
         {
+            removed_trigger_strings.insert(current_trigger_string);
+            bytes_removed += sizeof(size_type) * T_table.at(current_trigger_string).size(); // form P
+            bytes_removed += window_length; // form D
+    
             // remove this trigger string
             spdlog::debug("{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
                          current_trigger_string, bytes_removed, removed_trigger_strings.size(), T_table.size());
-            
-            removed_trigger_strings.insert(current_trigger_string);
-            bytes_removed += this->window_length * T_table.at(current_trigger_string).size();
             
             // update parse and dict
             std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
@@ -213,9 +224,6 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
                 // update entry of T where first appear as second or second appear as a first
                 std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
                 std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
-    
-                ts_to_be_updated.insert(first_ts);
-                ts_to_be_updated.insert(second_ts);
                 
                 // new phrase
                 size_type merged_phrase_id = 0;
@@ -251,22 +259,8 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
     
     spdlog::info("Removed {} SIMPLE ts out of {} total", removed_trigger_strings.size(), T_table.size());
     
-    // Update cost of other trigger strings
-    for (auto& ts : ts_to_be_updated)
-    {
-        if (removed_trigger_strings.contains(ts)) { continue; }
-        int ts_index = this->trigger_string_pq_ids.at(ts);
-        this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
-    }
-    
     // Put cost of removed trigger strings to 0
-    for (auto& ts : removed_trigger_strings)
-    {
-        if (not T_table.contains(ts)) { continue; }
-        int ts_index = this->trigger_string_pq_ids.at(ts);
-        this->priority_queue.push(ts_index, 0);
-        this->T_table.erase(ts);
-    }
+    for (auto& ts : removed_trigger_strings) { this->T_table.erase(ts); }
     
     // remove phrases from dictionary
     for (auto phrase_id : removed_phrases) { this->D_prime.remove(phrase_id); }
@@ -275,7 +269,7 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
 }
 
 std::size_t
-vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_strings, int threshold = 0)
+vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_strings, int threshold)
 {
     spdlog::info("Start compressing with threshold {}", threshold);
     std::size_t bytes_removed = 0;
@@ -343,7 +337,7 @@ vcfbwt::pfp::AuPair::compress(std::set<std::string_view>& removed_trigger_string
         bytes_removed += max_cost_trigger_string.first;
         
         // remove trigger string if cost over threshold
-        spdlog::info("{}\tcost:\t{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
+        spdlog::debug("{}\tcost:\t{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
                      current_trigger_string, max_cost_trigger_string.first, bytes_removed, removed_trigger_strings.size(), T_table.size());
         
         std::map<std::string_view, std::set<std::pair<size_type, size_type>>> updates_first_el, updates_second_el;
@@ -468,6 +462,9 @@ vcfbwt::pfp::AuPair::close()
     if (this->closed) { return; }
     this->closed = true;
     
+    // statistics
+    std::size_t final_size = 0;
+    
     // sort dictionary
     std::vector<std::pair<std::reference_wrapper<std::string>, hash_type>> sorted_phrases;
     
@@ -497,6 +494,7 @@ vcfbwt::pfp::AuPair::close()
         dict.write(sorted_phrase.first.get().c_str(), sorted_phrase.first.get().size());
         dict.put(ENDOFWORD);
         
+        final_size += sorted_phrase.first.get().size();
     }
     dict.put(ENDOFDICT);
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
@@ -521,6 +519,8 @@ vcfbwt::pfp::AuPair::close()
         {
             parse_file.write((char*) &(hash_to_rank.at((*parse_it) - 1)), sizeof(size_type));
             occurrences[hash_to_rank.at((*parse_it) - 1) - 1] += 1;
+            
+            final_size += sizeof(size_type);
         }
         parse_it = this->parse.next(parse_it);
     }
@@ -531,6 +531,8 @@ vcfbwt::pfp::AuPair::close()
     occ_file.write(reinterpret_cast<const char*>(occurrences.data()), sizeof(size_type) * occurrences.size());
     vcfbwt::DiskWrites::update(occ_file.tellp()); // Disk Stats
     occ_file.close();
+    
+    spdlog::info("Compression ratio: {}%", std::size_t(((double(final_size) / double(this->initial_size)) * 100)));
 }
 
 //------------------------------------------------------------------------------

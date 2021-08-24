@@ -87,7 +87,7 @@ int main(int argc, char **argv)
         {
             std::size_t tag = vcfbwt::pfp::ParserVCF::WORKER | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
             if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::ParserVCF::LAST; }
-            workers[i].init(params, "", reference_parse, tag);
+            workers[i].init_structures(params, "", reference_parse, tag);
             main_parser.register_worker(workers[i]);
         }
 

@@ -34,7 +34,10 @@ private:
     {
         DataType* start = &(data[0]);
 
-        if(ptr - start >= data.size()) { spdlog::error("LinkedList::convert({})::error", ptr - start); exit(EXIT_FAILURE); };
+        if(ptr - start >= data.size())
+        {
+            spdlog::error("LinkedList::convert({})::error", ptr - start); exit(EXIT_FAILURE);
+        };
         return ptr - start;
     }
     

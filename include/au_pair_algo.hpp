@@ -50,19 +50,48 @@ private:
     } D_prime;
     
     int cost_of_removing_trigger_string(const std::string_view& ts);
+    
+    // Initialize D, P and T_table
+    void init_structures();
+    
+    // Initialize priority queue
+    void init_costs();
+    bool costs_initialized = false;
+    
+    // Compression steps
+    std::size_t remove_by_cost(std::set<std::string_view>& removed_trigger_strings, int threshold);
+    std::size_t remove_simple(std::set<std::string_view>& removed_trigger_strings);
+    
+    std::size_t initial_size = 0;
 
 public:
     
     // Builds the structures end empties the vectors when done
-    AuPair(std::string in, size_type w, size_type batch_s = 1) : window_length(w), in_prefix(std::move(in)), batch_size(batch_s) { this->init(); }
+    AuPair(std::string in, size_type w, size_type batch_s = 1)
+    : window_length(w), in_prefix(std::move(in)), batch_size(batch_s)
+    { this->init_structures(); }
     
     ~AuPair() { this->close(); }
-    
-    void init();
+
     void close();
     
-    std::size_t compress(std::set<std::string_view>& removed_trigger_strings, int threshold);
-    std::size_t remove_simple(std::set<std::string_view>& removed_trigger_strings);
+    std::size_t operator()(std::set<std::string_view>& removed_trigger_strings, int threshold = 0)
+    {
+        std::size_t removed_bytes = 0;
+        
+        // First remove simple ts
+        removed_bytes += remove_simple(removed_trigger_strings);
+        
+        // Initi costs
+        if (not costs_initialized) { costs_initialized = true; init_costs(); }
+        
+        // Remove ts with cost over threshold
+        removed_bytes += remove_by_cost(removed_trigger_strings, threshold);
+        
+        return removed_bytes;
+    }
+    
+    
 };
 
 }
