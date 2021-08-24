@@ -532,7 +532,7 @@ vcfbwt::pfp::AuPair::close()
     vcfbwt::DiskWrites::update(occ_file.tellp()); // Disk Stats
     occ_file.close();
     
-    spdlog::info("Compression ratio: {}%", std::size_t(((double(final_size) / double(this->initial_size)) * 100)));
+    spdlog::info("Compression ratio: {}%", (100 - std::size_t(((double(final_size) / double(this->initial_size)) * 100))));
 }
 
 //------------------------------------------------------------------------------
