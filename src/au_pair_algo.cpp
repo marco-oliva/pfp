@@ -191,7 +191,7 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
         if (pair_elements.size() == 2 and not checks_failed)
         {
             // remove this trigger string
-            spdlog::info("{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
+            spdlog::debug("{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
                          current_trigger_string, bytes_removed, removed_trigger_strings.size(), T_table.size());
             
             removed_trigger_strings.insert(current_trigger_string);
@@ -249,14 +249,7 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
         }
     }
     
-    // Put cost of removed trigger strings to 0
-    for (auto& ts : removed_trigger_strings)
-    {
-        if (not T_table.contains(ts)) { continue; }
-        int ts_index = this->trigger_string_pq_ids.at(ts);
-        this->priority_queue.push(ts_index, 0);
-        this->T_table.erase(ts);
-    }
+    spdlog::info("Removed {} SIMPLE ts out of {} total", removed_trigger_strings.size(), T_table.size());
     
     // Update cost of other trigger strings
     for (auto& ts : ts_to_be_updated)
@@ -266,10 +259,18 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
         this->priority_queue.push(ts_index, cost_of_removing_trigger_string(ts));
     }
     
+    // Put cost of removed trigger strings to 0
+    for (auto& ts : removed_trigger_strings)
+    {
+        if (not T_table.contains(ts)) { continue; }
+        int ts_index = this->trigger_string_pq_ids.at(ts);
+        this->priority_queue.push(ts_index, 0);
+        this->T_table.erase(ts);
+    }
+    
     // remove phrases from dictionary
     for (auto phrase_id : removed_phrases) { this->D_prime.remove(phrase_id); }
     
-    spdlog::info("Removed {} SIMPLE ts out of {} total", removed_trigger_strings.size(), T_table.size());
     return bytes_removed;
 }
 
