@@ -19,6 +19,7 @@ int main(int argc, char **argv)
     std::vector<std::string> vcfs_file_names;
     std::vector<std::string> refs_file_names;
     std::string fasta_file_path;
+    std::string text_file_path;
     std::string out_prefix;
     std::string tmp_dir;
     std::size_t max_samples = 0;
@@ -31,11 +32,12 @@ int main(int argc, char **argv)
     app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->configurable();
     app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->configurable();
     app.add_option("-f,--fasta", fasta_file_path, "Fasta file to parse.")->configurable()->check(CLI::ExistingFile);
+    app.add_option("-t,--text", text_file_path, "Text file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 200))->configurable();
     app.add_option("-p, --modulo", params.p, "Module used during parisng")->check(CLI::Range(5, 20000))->configurable();
-    app.add_option("-t, --threads", threads, "Number of threads")->configurable();
+    app.add_option("-j, --threads", threads, "Number of threads")->configurable();
     app.add_option("--ignore-ts", params.ignore_ts_file, "Ignore Trigger Strings in file")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
@@ -59,7 +61,19 @@ int main(int argc, char **argv)
     
     if (not fasta_file_path.empty())
     {
+        if (out_prefix.empty()) { spdlog::error("If parsing fasta -o,--out-prefix required"); return; }
         vcfbwt::pfp::ParserFasta main_parser(params, fasta_file_path, out_prefix);
+    
+        // Run
+        main_parser();
+    
+        // Close the main parser
+        main_parser.close();
+    }
+    else if (not text_file_path.empty())
+    {
+        if (out_prefix.empty()) { spdlog::error("If parsing text -o,--out-prefix required"); return; }
+        vcfbwt::pfp::ParserText main_parser(params, text_file_path, out_prefix);
     
         // Run
         main_parser();

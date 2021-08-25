@@ -270,6 +270,76 @@ public:
 
 //------------------------------------------------------------------------------
 
+class ParserText
+{
+
+private:
+    
+    std::ofstream out_file;
+    std::string out_file_prefix;
+    std::string out_file_name;
+    std::string in_file_path;
+    std::vector<std::string> sequences_processed;
+    
+    Params params;
+    Statistics statistics;
+    
+    Dictionary dictionary;
+    
+    hash_type w, p;
+    size_type parse_size, tags;
+    
+    bool closed = false;
+
+public:
+    
+    void init(const Params& params, const std::string& prefix);
+    
+    ParserText(const Params& params, const std::string& file_path, const std::string& out_prefix)
+    {
+        this->in_file_path = file_path;
+        if (out_prefix.empty()) { this->init(params, "out"); }
+        else { this->init(params, out_prefix); }
+    }
+    
+    ParserText() = default;
+    
+    ~ParserText()
+    {
+        close();
+        size_type total_length = 0;
+        for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size(); }
+        
+        // Fill out statistics
+        this->statistics.parse_length = this->parse_size;
+        this->statistics.num_of_phrases_dictionary = this->dictionary.sorted_phrases.size();
+        this->statistics.total_dictionary_length = total_length;
+        std::string name = "Parser Text";
+        spdlog::info("{} -\tParse size: {}\tDic Size: {} Dic Total Length: {}", name ,parse_size, dictionary.size(), total_length);
+        
+        if (params.print_out_statistics_csv)
+        {
+            std::ofstream csv(out_file_prefix + ".csv");
+            csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
+            csv << params.w << ",";
+            csv << params.p << ",";
+            csv << statistics.parse_length << ",";
+            csv << statistics.num_of_phrases_dictionary << ",";
+            csv << statistics.total_dictionary_length << ",";
+            csv << "\n";
+            csv.close();
+        }
+    }
+    
+    const std::string& get_file_name() const { return this->out_file_name; }
+    const Statistics& get_statistics() const { return this->statistics; }
+    
+    void operator()();
+    void close();
+};
+
+//------------------------------------------------------------------------------
+
 class ParserUtils
 {
 public:

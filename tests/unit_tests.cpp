@@ -686,6 +686,38 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
     REQUIRE(check);
 }
 
+TEST_CASE( "Sample: HG00096, text", "[PFP Algo]" )
+{
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    
+    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::string out_prefix = testfiles_dir + "/HG00096_chrY_H1_tptxt";
+    vcfbwt::pfp::ParserText main_parser(params, test_sample_path, out_prefix);
+    
+    // Run
+    main_parser();
+    
+    // Close the main parser
+    main_parser.close();
+    
+    // Generate the desired outcome from the test files, reference first
+    std::string what_it_should_be;
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    
+    std::ifstream in_stream(test_sample_path);
+    zstr::istream is(in_stream);
+    std::string from_text_file((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
+    
+    what_it_should_be.insert(what_it_should_be.end(), from_text_file.begin(), from_text_file.end());
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+    
+    // Check
+    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    REQUIRE(check);
+}
+
 TEST_CASE( "AuPair both removals", "[AuPair]" )
 {
     std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"

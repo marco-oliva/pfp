@@ -657,6 +657,164 @@ vcfbwt::pfp::ParserFasta::close()
 //------------------------------------------------------------------------------
 
 void
+vcfbwt::pfp::ParserText::init(const Params& params, const std::string& prefix)
+{
+    this->params = params;
+    this->w = this->params.w;
+    this->p = this->params.p;
+    this->parse_size = 0;
+    this->out_file_prefix = prefix;
+    this->out_file_name = prefix + ".parse";
+    this->out_file.open(out_file_name);
+}
+
+void
+vcfbwt::pfp::ParserText::operator()()
+{
+    // Open input file with kseq
+    gzFile fp;
+    fp = gzopen(this->in_file_path.c_str(), "r");
+    if (fp == 0)
+    {
+        spdlog::error("Failed to open input file {}", in_file_path);
+        exit(EXIT_FAILURE);
+    }
+    
+    std::string phrase;
+    spdlog::info("Parsing {}", in_file_path);
+    
+    // Karp Robin Hash Function for sliding window
+    KarpRabinHash kr_hash(this->params.w);
+    
+    // First sequence start with one dollar
+    phrase.append(1, DOLLAR);
+    
+    char c;
+    while(gzfread(&c, sizeof(char), 1, fp) > 0)
+    {
+        phrase.push_back(c);
+        if (phrase.size() == params.w) { kr_hash.initialize(phrase); }
+        else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
+        
+        if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
+        {
+            std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
+            hash_type ts_hash = KarpRabinHash::string_hash(ts);
+            
+            hash_type hash = this->dictionary.check_and_add(phrase);
+            
+            out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+            
+            phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
+            
+            kr_hash.reset(); kr_hash.initialize(phrase);
+        }
+    }
+    
+    // Last phrase
+    if (phrase.size() >= this->params.w)
+    {
+        // Append w dollar prime at the end of each sequence
+        phrase.append(this->params.w, DOLLAR_PRIME);
+        
+        hash_type hash = this->dictionary.check_and_add(phrase);
+        
+        out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+    }
+    else { spdlog::error("A sequence doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
+    
+    gzclose(fp);
+}
+
+
+void
+vcfbwt::pfp::ParserText::close()
+{
+    if (closed) return; closed = true;
+    
+    vcfbwt::DiskWrites::update(out_file.tellp()); // Disk Stats
+    this->out_file.close();
+    
+    // Occurrences
+    std::vector<size_type> occurrences(this->dictionary.size(), 0);
+    
+    spdlog::info("Main parser: Replacing hash values with ranks");
+    
+    // mmap file and substitute
+    if (this->parse_size != 0)
+    {
+        std::error_code error;
+        mio::mmap_sink rw_mmap = mio::make_mmap_sink(out_file_name, 0, mio::map_entire_file, error);
+        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
+        
+        for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+        {
+            hash_type hash;
+            std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+            size_type rank = this->dictionary.hash_to_rank(hash);
+            std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+            occurrences[rank - 1] += 1;
+        }
+        rw_mmap.unmap();
+        truncate_file(out_file_name, this->parse_size * sizeof(size_type));
+    }
+    
+    // Print dicitionary on disk
+    spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
+    std::string dict_file_name = out_file_prefix + ".dict";
+    std::ofstream dict(dict_file_name);
+    
+    for (size_type i = 0; i < this->dictionary.size(); i++)
+    {
+        dict.write(this->dictionary.sorted_entry_at(i).c_str(), this->dictionary.sorted_entry_at(i).size());
+        dict.put(ENDOFWORD);
+    }
+    
+    dict.put(ENDOFDICT);
+    
+    vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
+    dict.close();
+    
+    if (this->params.compress_dictionary)
+    {
+        spdlog::info("Main parser: writing dictionary on disk COMPRESSED");
+        std::ofstream dicz(out_file_prefix + ".dicz");
+        std::ofstream lengths(out_file_prefix + ".dicz.len");
+        
+        for (size_type i = 0; i < this->dictionary.size(); i++)
+        {
+            std::size_t shift = 0;
+            if (i != 0) { shift = this->w; }
+            dicz.write(this->dictionary.sorted_entry_at(i).c_str() + shift,
+                       this->dictionary.sorted_entry_at(i).size() - shift);
+            int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
+            lengths.write((char*) &len, sizeof(int32_t));
+        }
+        
+        vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
+        dicz.close();
+        
+        vcfbwt::DiskWrites::update(lengths.tellp()); // Disk Stats
+        lengths.close();
+    }
+    
+    // Outoput Occurrencies
+    if(this->params.compute_occurrences)
+    {
+        spdlog::info("Main parser: writing occurrences to file");
+        std::string occ_file_name = out_file_prefix + ".occ";
+        std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
+        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
+        
+        vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
+        occ.close();
+    }
+    
+}
+
+//------------------------------------------------------------------------------
+
+void
 vcfbwt::pfp::ParserUtils::read_parse(std::string parse_file_name, std::vector<size_type>& parse)
 {
     std::ifstream parse_file(parse_file_name, std::ios::binary);
