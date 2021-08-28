@@ -28,7 +28,7 @@ enum SPECIAL_TYPES
     ENDOFDICT = 0,
     ENDOFWORD = 1,
     DOLLAR = 2,
-    DOLLAR_SEQUENCE = 3,
+    DOLLAR_SEQUENCE = '$',
     DOLLAR_PRIME = 5
 };
 

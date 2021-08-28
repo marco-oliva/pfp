@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     
     if (not fasta_file_path.empty())
     {
-        if (out_prefix.empty()) { spdlog::error("If parsing fasta -o,--out-prefix required"); return; }
+        if (out_prefix.empty()) { spdlog::error("If parsing fasta -o,--out-prefix required"); return EXIT_FAILURE; }
         vcfbwt::pfp::ParserFasta main_parser(params, fasta_file_path, out_prefix);
     
         // Run
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     }
     else if (not text_file_path.empty())
     {
-        if (out_prefix.empty()) { spdlog::error("If parsing text -o,--out-prefix required"); return; }
+        if (out_prefix.empty()) { spdlog::error("If parsing text -o,--out-prefix required"); return EXIT_FAILURE; }
         vcfbwt::pfp::ParserText main_parser(params, text_file_path, out_prefix);
     
         // Run
