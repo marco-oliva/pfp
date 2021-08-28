@@ -48,6 +48,9 @@ typedef std::uint32_t short_type;
 static long_type  long_prime   = 27162335252586509;
 static short_type short_prime  =        1999999973;
 
+// Compatibility with Giovanni's pfp
+#define IBYTES 5         // bytes used to represent a large integer (at most 8)
+
 #ifdef PFP_LONG_TYPE
 //pragma message("Using 64 bit parse")
 typedef long_type  size_type;

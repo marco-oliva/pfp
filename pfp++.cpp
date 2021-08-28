@@ -12,8 +12,6 @@
 
 int main(int argc, char **argv)
 {
-    //spdlog::set_pattern("%v");
-    
     CLI::App app("PFP++");
     
     std::vector<std::string> vcfs_file_names;

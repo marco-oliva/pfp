@@ -334,7 +334,15 @@ vcfbwt::pfp::ParserVCF::close()
         // Occurrences
         std::vector<size_type> occurrences(this->dictionary->size(), 0);
         
-        spdlog::info("Main parser: Replacing hash values with ranks in MAIN, WORKERS and reference");
+        spdlog::info("Main parser: Replacing hash values with ranks in MAIN, WORKERS and reference, wirting .last ans .sai");
+        
+        std::string last_file_name = out_file_prefix + ".last";
+        std::ofstream last_file(last_file_name);
+    
+        std::string sai_file_name = out_file_prefix + ".sai";
+        std::ofstream sai_file(sai_file_name);
+        
+        std::size_t pos_for_sai = 0;
     
         // MAIN mmap file and substitute
         if (this->parse_size != 0)
@@ -350,6 +358,13 @@ vcfbwt::pfp::ParserVCF::close()
                 size_type rank = this->dictionary->hash_to_rank(hash);
                 std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
                 occurrences[rank - 1] += 1;
+    
+                const std::string& dict_string = this->dictionary->sorted_entry_at(rank - 1);
+                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+    
+                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                else { pos_for_sai += dict_string.size() - this->params.w; }
+                sai_file.write((char*) &pos_for_sai, IBYTES);
             }
             rw_mmap.unmap();
             truncate_file(tmp_out_file_name, this->parse_size * sizeof(size_type));
@@ -363,6 +378,13 @@ vcfbwt::pfp::ParserVCF::close()
                 hash_type rank = this->dictionary->hash_to_rank(this->reference_parse->parse[i]);
                 this->reference_parse->parse[i] = rank;
                 occurrences[rank - 1] += 1;
+    
+                const std::string& dict_string = this->dictionary->sorted_entry_at(rank - 1);
+                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+    
+                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                else { pos_for_sai += dict_string.size() - this->params.w; }
+                sai_file.write((char*) &pos_for_sai, IBYTES);
             }
         }
         
@@ -382,12 +404,25 @@ vcfbwt::pfp::ParserVCF::close()
                     size_type rank = this->dictionary->hash_to_rank(hash);
                     std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
                     occurrences[rank - 1] += 1;
+    
+                    const std::string& dict_string = this->dictionary->sorted_entry_at(rank - 1);
+                    last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+    
+                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                    else { pos_for_sai += dict_string.size() - this->params.w; }
+                    sai_file.write((char*) &pos_for_sai, IBYTES);
                 }
                 rw_mmap.unmap();
                 truncate_file(worker.get().tmp_out_file_name, worker.get().parse_size * sizeof(size_type));
             }
         }
     
+        vcfbwt::DiskWrites::update(last_file.tellp());
+        last_file.close();
+    
+        vcfbwt::DiskWrites::update(sai_file.tellp());
+        sai_file.close();
+        
         // Merging files together
         spdlog::info("Main parser: concatenating parsings from workers and reference, reference as first");
         std::ofstream merged(out_file_name, std::ios_base::binary);
@@ -524,6 +559,21 @@ vcfbwt::pfp::ParserFasta::operator()()
         this->sequences_processed.push_back(sequence_name + " " + sequence_comment);
         spdlog::info("Parsed:\t{}", sequence_name + " " + sequence_comment);
         
+        // Previous last phrase
+        if (phrase[0] != DOLLAR and phrase.size() >= this->params.w)
+        {
+            // Append w dollar prime at the end of each sequence
+            phrase.append(this->params.w, DOLLAR_PRIME);
+    
+            hash_type hash = this->dictionary.check_and_add(phrase);
+    
+            out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+    
+            // Reset phrase
+            phrase.erase();
+            phrase.append(this->params.w, DOLLAR_PRIME);
+        }
+        
         for (std::size_t seq_it = 0; seq_it < record->seq.l; seq_it++)
         {
             char c = record->seq.s[seq_it];
@@ -546,23 +596,19 @@ vcfbwt::pfp::ParserFasta::operator()()
                 kr_hash.reset(); kr_hash.initialize(phrase);
             }
         }
-    
-        // Last phrase
-        if (phrase.size() >= this->params.w)
-        {
-            // Append w dollar prime at the end of each sequence
-            phrase.append(this->params.w, DOLLAR_PRIME);
-        
-            hash_type hash = this->dictionary.check_and_add(phrase);
-    
-            out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
-        }
-        else { spdlog::error("A sequence doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
-
-        // Reset phrase
-        phrase.erase();
-        phrase.append(this->params.w, DOLLAR);
     }
+    
+    // Last phrase
+    if (phrase.size() >= this->params.w)
+    {
+        // Append w dollar at the end of each sequence
+        phrase.append(this->params.w, DOLLAR);
+        
+        hash_type hash = this->dictionary.check_and_add(phrase);
+        
+        out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+    }
+    else { spdlog::error("Missing w DOLLAR at the end!"); std::exit(EXIT_FAILURE); }
     
     kseq_destroy(record);
     gzclose(fp);
@@ -580,7 +626,15 @@ vcfbwt::pfp::ParserFasta::close()
     // Occurrences
     std::vector<size_type> occurrences(this->dictionary.size(), 0);
     
-    spdlog::info("Main parser: Replacing hash values with ranks");
+    spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
+    
+    std::string last_file_name = out_file_prefix + ".last";
+    std::ofstream last_file(last_file_name);
+    
+    std::string sai_file_name = out_file_prefix + ".sai";
+    std::ofstream sai_file(sai_file_name);
+    
+    std::size_t pos_for_sai = 0;
     
     // mmap file and substitute
     if (this->parse_size != 0)
@@ -596,10 +650,23 @@ vcfbwt::pfp::ParserFasta::close()
             size_type rank = this->dictionary.hash_to_rank(hash);
             std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
+    
+            const std::string& dict_string = this->dictionary.sorted_entry_at(rank - 1);
+            last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+    
+            if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+            else { pos_for_sai += dict_string.size() - this->params.w; }
+            sai_file.write((char*) &pos_for_sai, IBYTES);
         }
         rw_mmap.unmap();
         truncate_file(out_file_name, this->parse_size * sizeof(size_type));
     }
+    
+    vcfbwt::DiskWrites::update(last_file.tellp());
+    last_file.close();
+    
+    vcfbwt::DiskWrites::update(sai_file.tellp());
+    sai_file.close();
     
     // Print dicitionary on disk
     spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
@@ -715,13 +782,13 @@ vcfbwt::pfp::ParserText::operator()()
     if (phrase.size() >= this->params.w)
     {
         // Append w dollar prime at the end of each sequence
-        phrase.append(this->params.w, DOLLAR_PRIME);
+        phrase.append(this->params.w, DOLLAR);
         
         hash_type hash = this->dictionary.check_and_add(phrase);
         
         out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
     }
-    else { spdlog::error("A sequence doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
+    else { spdlog::error("A sequence doesn't have w DOLLAR at the end!"); std::exit(EXIT_FAILURE); }
     
     gzclose(fp);
 }
@@ -738,7 +805,15 @@ vcfbwt::pfp::ParserText::close()
     // Occurrences
     std::vector<size_type> occurrences(this->dictionary.size(), 0);
     
-    spdlog::info("Main parser: Replacing hash values with ranks");
+    spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
+  
+    std::string last_file_name = out_file_prefix + ".last";
+    std::ofstream last_file(last_file_name);
+    
+    std::string sai_file_name = out_file_prefix + ".sai";
+    std::ofstream sai_file(sai_file_name);
+    
+    std::size_t pos_for_sai = 0;
     
     // mmap file and substitute
     if (this->parse_size != 0)
@@ -754,10 +829,23 @@ vcfbwt::pfp::ParserText::close()
             size_type rank = this->dictionary.hash_to_rank(hash);
             std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
+            
+            const std::string& dict_string = this->dictionary.sorted_entry_at(rank - 1);
+            last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+    
+            if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+            else { pos_for_sai += dict_string.size() - this->params.w; }
+            sai_file.write((char*) &pos_for_sai, IBYTES);
         }
         rw_mmap.unmap();
         truncate_file(out_file_name, this->parse_size * sizeof(size_type));
     }
+    
+    vcfbwt::DiskWrites::update(last_file.tellp());
+    last_file.close();
+    
+    vcfbwt::DiskWrites::update(sai_file.tellp());
+    sai_file.close();
     
     // Print dicitionary on disk
     spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");

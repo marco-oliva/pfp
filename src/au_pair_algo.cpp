@@ -500,9 +500,15 @@ vcfbwt::pfp::AuPair::close()
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
     dict.close();
     
-    spdlog::info("AuPair: writing parse_file to disk");
+    spdlog::info("AuPair: writing parsee and .last to disk");
     std::string parse_file_name = this->in_prefix + ".nparse";
     std::ofstream parse_file(parse_file_name);
+    std::string last_file_name = this->in_prefix + ".nlast";
+    std::ofstream last_file(last_file_name);
+    std::string sai_file_name = this->in_prefix + ".nsai";
+    std::ofstream sai_file(sai_file_name);
+    
+    std::size_t pos_for_sai = 0;
     
     std::vector<size_type> occurrences(sorted_phrases.size(), 0);
     std::string occ_file_name = this->in_prefix + ".nocc";
@@ -519,6 +525,13 @@ vcfbwt::pfp::AuPair::close()
         {
             parse_file.write((char*) &(hash_to_rank.at((*parse_it) - 1)), sizeof(size_type));
             occurrences[hash_to_rank.at((*parse_it) - 1) - 1] += 1;
+    
+            const std::string& dict_string = sorted_phrases[hash_to_rank.at((*parse_it) - 1) - 1].first.get();
+            last_file.put(dict_string[(dict_string.size() - window_length) - 1]);
+    
+            if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+            else { pos_for_sai += dict_string.size() - window_length; }
+            sai_file.write((char*) &pos_for_sai, IBYTES);
             
             final_size += sizeof(size_type);
         }
@@ -527,6 +540,12 @@ vcfbwt::pfp::AuPair::close()
     
     vcfbwt::DiskWrites::update(parse_file.tellp()); // Disk Stats
     parse_file.close();
+    
+    vcfbwt::DiskWrites::update(last_file.tellp());
+    last_file.close();
+    
+    vcfbwt::DiskWrites::update(sai_file.tellp());
+    sai_file.close();
     
     occ_file.write(reinterpret_cast<const char*>(occurrences.data()), sizeof(size_type) * occurrences.size());
     vcfbwt::DiskWrites::update(occ_file.tellp()); // Disk Stats
