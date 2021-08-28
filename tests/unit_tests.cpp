@@ -39,8 +39,8 @@ unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::s
 {
     // Unparse
     std::vector<vcfbwt::size_type> parse;
-    std::string parse_ext = n ? ".nparse" : ".parse";
-    std::string dictionary_ext = n ? ".ndict" : ".dict";
+    std::string parse_ext = n ? vcfbwt::EXT::N_PARSE : vcfbwt::EXT::PARSE;
+    std::string dictionary_ext = n ? vcfbwt::EXT::N_DICT : vcfbwt::EXT::DICT;
     vcfbwt::pfp::ParserUtils::read_parse(in_prefix + parse_ext, parse);
     std::vector<std::string> dictionary;
     vcfbwt::pfp::ParserUtils::read_dictionary(in_prefix + dictionary_ext, dictionary);
@@ -519,6 +519,7 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
     params.use_acceleration = false;
+    params.compute_occurrences = true;
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -543,7 +544,8 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::ifstream in_stream(test_sample_path);
@@ -572,6 +574,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
     params.use_acceleration = true;
+    params.compute_occurrences = true;
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -596,7 +599,8 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::ifstream in_stream(test_sample_path);
@@ -638,7 +642,7 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
     zstr::istream is(in_stream);
     std::string line, from_fasta;
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-    from_fasta.push_back(vcfbwt::pfp::SPECIAL_TYPES::DOLLAR_PRIME);
+    from_fasta.push_back(vcfbwt::pfp::DOLLAR_PRIME);
     from_fasta.append(from_fasta);
     from_fasta.pop_back();
 
@@ -658,6 +662,7 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
+    params.compute_occurrences = true;
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::string out_prefix = testfiles_dir + "/HG00096_chrY_H1_tpfa";
@@ -691,28 +696,29 @@ TEST_CASE( "Sample: HG00096, text", "[PFP Algo]" )
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
-    
+    params.compute_occurrences = true;
+
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::string out_prefix = testfiles_dir + "/HG00096_chrY_H1_tptxt";
     vcfbwt::pfp::ParserText main_parser(params, test_sample_path, out_prefix);
-    
+
     // Run
     main_parser();
-    
+
     // Close the main parser
     main_parser.close();
-    
+
     // Generate the desired outcome from the test files, reference first
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
-    
+
     std::ifstream in_stream(test_sample_path);
     zstr::istream is(in_stream);
     std::string from_text_file((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
-    
+
     what_it_should_be.insert(what_it_should_be.end(), from_text_file.begin(), from_text_file.end());
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-    
+
     // Check
     bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
@@ -735,7 +741,7 @@ TEST_CASE( "AuPair both removals", "[AuPair]" )
     "TCAGATACAAGAGGCC####"
     };
 
-    std::ofstream dict_file(testfiles_dir + "/au_pair_test_1.dict");
+    std::ofstream dict_file(testfiles_dir + "/au_pair_test_1" + vcfbwt::EXT::DICT);
     for (auto& phrase : dictionary)
     {
         dict_file.write(phrase.c_str(), phrase.size());
@@ -745,7 +751,7 @@ TEST_CASE( "AuPair both removals", "[AuPair]" )
     dict_file.close();
 
     std::vector<vcfbwt::size_type> parse = {1, 6, 5, 3, 8, 2, 6, 5, 4, 7};
-    std::ofstream parse_file(testfiles_dir + "/au_pair_test_1.parse");
+    std::ofstream parse_file(testfiles_dir + "/au_pair_test_1" + vcfbwt::EXT::PARSE);
     parse_file.write((char*)&parse[0], parse.size() * sizeof(vcfbwt::size_type));
     parse_file.close();
 
@@ -778,6 +784,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
     params.use_acceleration = false;
+    params.compute_occurrences = true;
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -811,7 +818,8 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::ifstream in_stream(test_sample_path);
@@ -840,6 +848,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
     params.use_acceleration = true;
+    params.compute_occurrences = true;
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -874,7 +883,8 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::ifstream in_stream(test_sample_path);

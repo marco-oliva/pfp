@@ -103,11 +103,11 @@ void
 vcfbwt::pfp::AuPair::init_structures()
 {
     spdlog::info("Reading Dictionary");
-    vcfbwt::pfp::ParserUtils::read_dictionary(in_prefix + ".dict", this->D_prime.d_prime_vector);
+    vcfbwt::pfp::ParserUtils::read_dictionary(in_prefix + EXT::DICT, this->D_prime.d_prime_vector);
     this->curr_id = this->D_prime.d_prime_vector.size() + 10;
     
     spdlog::info("Reading Parse");
-    mio::basic_mmap_source<char> in_parse(in_prefix + ".parse");
+    mio::basic_mmap_source<char> in_parse(in_prefix + EXT::PARSE);
     this->parse.init((const size_type*) in_parse.data(), in_parse.size() / sizeof(size_type));
     
     // initial size
@@ -486,7 +486,7 @@ vcfbwt::pfp::AuPair::close()
     for (std::size_t i = 0; i < sorted_phrases.size(); i++) { hash_to_rank[sorted_phrases[i].second] = i + 1; }
     
     spdlog::info("AuPair: writing dictionary to disk NOT COMPRESSED");
-    std::string dict_file_name = this->in_prefix + ".ndict";
+    std::string dict_file_name = this->in_prefix + EXT::N_DICT;
     std::ofstream dict(dict_file_name);
     
     for (auto& sorted_phrase : sorted_phrases)
@@ -501,17 +501,17 @@ vcfbwt::pfp::AuPair::close()
     dict.close();
     
     spdlog::info("AuPair: writing parsee and .last to disk");
-    std::string parse_file_name = this->in_prefix + ".nparse";
+    std::string parse_file_name = this->in_prefix + EXT::N_PARSE;
     std::ofstream parse_file(parse_file_name);
-    std::string last_file_name = this->in_prefix + ".nlast";
+    std::string last_file_name = this->in_prefix + EXT::N_LAST;
     std::ofstream last_file(last_file_name);
-    std::string sai_file_name = this->in_prefix + ".nsai";
+    std::string sai_file_name = this->in_prefix + EXT::N_SAI;
     std::ofstream sai_file(sai_file_name);
     
     std::size_t pos_for_sai = 0;
     
     std::vector<size_type> occurrences(sorted_phrases.size(), 0);
-    std::string occ_file_name = this->in_prefix + ".nocc";
+    std::string occ_file_name = this->in_prefix + EXT::N_OCC;
     std::ofstream occ_file(occ_file_name);
     
     auto* parse_it = this->parse.begin();

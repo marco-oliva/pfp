@@ -179,8 +179,9 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     // Last phrase
     if (phrase.size() >= this->params.w)
     {
-        // Append w dollar prime at the end, reference as the first sample
-        phrase.append(this->params.w, DOLLAR_PRIME);
+        // Append w-1 dollar prime and 1 dollar sequence at the end, reference as the first sample
+        phrase.append(this->params.w - 1, DOLLAR_PRIME);
+        phrase.append(1, DOLLAR_SEQUENCE);
     
         hash_type hash = this->dictionary.check_and_add(phrase);
     
@@ -198,7 +199,7 @@ vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, Re
     this->w = params.w; this->out_file_prefix = prefix; this->p = params.p; this->tags = t; this->parse_size = 0;
     if (not ((tags & MAIN) or (tags & WORKER))) { spdlog::error("A parser must be either the main parser or a worker"); std::exit(EXIT_FAILURE); }
     
-    if (tags & MAIN) {this->out_file_name = out_file_prefix + ".parse"; }
+    if (tags & MAIN) {this->out_file_name = out_file_prefix + EXT::PARSE; }
     if ((tags & MAIN) and params.compress_dictionary) { tags = tags | COMPRESSED; }
     this->tmp_out_file_name = TempFile::getName("parse");
     this->out_file.open(tmp_out_file_name, std::ios::binary);
@@ -219,8 +220,9 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     // Karp Robin Hash Function for sliding window
     KarpRabinHash kr_hash(this->params.w);
     
-    // Every sample starts with w dollar prime
-    phrase.append(this->w, DOLLAR_PRIME);
+    // Every sample starts with w-1 dollar prime and one dollar seq
+    phrase.append(this->w - 1, DOLLAR_PRIME);
+    phrase.append(1, DOLLAR_SEQUENCE);
     kr_hash.initialize(phrase);
     
     // Shorthands
@@ -304,7 +306,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     {
         // Append w dollar prime at the end of each sample, DOLLAR if it's the last sample
         if (this->tags & LAST) { phrase.append(this->w, DOLLAR); }
-        else { phrase.append(this->w, DOLLAR_PRIME); }
+        else { phrase.append(this->w - 1, DOLLAR_PRIME); phrase.append(1, DOLLAR_SEQUENCE); }
 
         hash_type hash = this->dictionary->check_and_add(phrase);
         
@@ -336,10 +338,10 @@ vcfbwt::pfp::ParserVCF::close()
         
         spdlog::info("Main parser: Replacing hash values with ranks in MAIN, WORKERS and reference, wirting .last ans .sai");
         
-        std::string last_file_name = out_file_prefix + ".last";
+        std::string last_file_name = out_file_prefix + EXT::LAST;
         std::ofstream last_file(last_file_name);
     
-        std::string sai_file_name = out_file_prefix + ".sai";
+        std::string sai_file_name = out_file_prefix + EXT::SAI;
         std::ofstream sai_file(sai_file_name);
         
         std::size_t pos_for_sai = 0;
@@ -463,7 +465,7 @@ vcfbwt::pfp::ParserVCF::close()
         if (tags & UNCOMPRESSED)
         {
             spdlog::info("Main parser: writing dictionary to disk NOT COMPRESSED");
-            std::string dict_file_name = out_file_prefix + ".dict";
+            std::string dict_file_name = out_file_prefix + EXT::DICT;
             std::ofstream dict(dict_file_name);
         
             for (size_type i = 0; i < this->dictionary->size(); i++)
@@ -505,7 +507,7 @@ vcfbwt::pfp::ParserVCF::close()
         if(this->params.compute_occurrences)
         {
             spdlog::info("Main parser: writing occurrences to file");
-            std::string occ_file_name = out_file_prefix + ".occ";
+            std::string occ_file_name = out_file_prefix + EXT::OCC;
             std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
             occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
             
@@ -525,7 +527,7 @@ vcfbwt::pfp::ParserFasta::init(const Params& params, const std::string& prefix)
     this->p = this->params.p;
     this->parse_size = 0;
     this->out_file_prefix = prefix;
-    this->out_file_name = prefix + ".parse";
+    this->out_file_name = prefix + EXT::PARSE;
     this->out_file.open(out_file_name);
 }
 
@@ -562,8 +564,9 @@ vcfbwt::pfp::ParserFasta::operator()()
         // Previous last phrase
         if (phrase[0] != DOLLAR and phrase.size() >= this->params.w)
         {
-            // Append w dollar prime at the end of each sequence
-            phrase.append(this->params.w, DOLLAR_PRIME);
+            // Append w-1 dollar prime, and one dollar seq at the end of each sequence
+            phrase.append(this->params.w - 1, DOLLAR_PRIME);
+            phrase.append(1, DOLLAR_SEQUENCE);
     
             hash_type hash = this->dictionary.check_and_add(phrase);
     
@@ -628,10 +631,10 @@ vcfbwt::pfp::ParserFasta::close()
     
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
     
-    std::string last_file_name = out_file_prefix + ".last";
+    std::string last_file_name = out_file_prefix + EXT::LAST;
     std::ofstream last_file(last_file_name);
     
-    std::string sai_file_name = out_file_prefix + ".sai";
+    std::string sai_file_name = out_file_prefix + EXT::SAI;
     std::ofstream sai_file(sai_file_name);
     
     std::size_t pos_for_sai = 0;
@@ -670,7 +673,7 @@ vcfbwt::pfp::ParserFasta::close()
     
     // Print dicitionary on disk
     spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
-    std::string dict_file_name = out_file_prefix + ".dict";
+    std::string dict_file_name = out_file_prefix + EXT::DICT;
     std::ofstream dict(dict_file_name);
     
     for (size_type i = 0; i < this->dictionary.size(); i++)
@@ -711,7 +714,7 @@ vcfbwt::pfp::ParserFasta::close()
     if(this->params.compute_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
-        std::string occ_file_name = out_file_prefix + ".occ";
+        std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
         occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
         
@@ -731,7 +734,7 @@ vcfbwt::pfp::ParserText::init(const Params& params, const std::string& prefix)
     this->p = this->params.p;
     this->parse_size = 0;
     this->out_file_prefix = prefix;
-    this->out_file_name = prefix + ".parse";
+    this->out_file_name = prefix + EXT::PARSE;
     this->out_file.open(out_file_name);
 }
 
@@ -781,7 +784,7 @@ vcfbwt::pfp::ParserText::operator()()
     // Last phrase
     if (phrase.size() >= this->params.w)
     {
-        // Append w dollar prime at the end of each sequence
+        // Append w dollar at the end
         phrase.append(this->params.w, DOLLAR);
         
         hash_type hash = this->dictionary.check_and_add(phrase);
@@ -807,10 +810,10 @@ vcfbwt::pfp::ParserText::close()
     
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
   
-    std::string last_file_name = out_file_prefix + ".last";
+    std::string last_file_name = out_file_prefix + EXT::LAST;
     std::ofstream last_file(last_file_name);
     
-    std::string sai_file_name = out_file_prefix + ".sai";
+    std::string sai_file_name = out_file_prefix + EXT::SAI;
     std::ofstream sai_file(sai_file_name);
     
     std::size_t pos_for_sai = 0;
@@ -849,7 +852,7 @@ vcfbwt::pfp::ParserText::close()
     
     // Print dicitionary on disk
     spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
-    std::string dict_file_name = out_file_prefix + ".dict";
+    std::string dict_file_name = out_file_prefix + EXT::DICT;
     std::ofstream dict(dict_file_name);
     
     for (size_type i = 0; i < this->dictionary.size(); i++)
@@ -890,7 +893,7 @@ vcfbwt::pfp::ParserText::close()
     if(this->params.compute_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
-        std::string occ_file_name = out_file_prefix + ".occ";
+        std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
         occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
         
@@ -940,13 +943,13 @@ vcfbwt::pfp::ParserUtils::merge(std::string left_prefix, std::string right_prefi
     
     // Read Left and Right Dictionary
     spdlog::info("Loading dictionaries from disk");
-    std::vector<std::string> left_dictionary;   read_dictionary(left_prefix + ".dict", left_dictionary);
-    std::vector<std::string> right_dictionary; read_dictionary(right_prefix + ".dict", left_dictionary);
+    std::vector<std::string> left_dictionary;   read_dictionary(left_prefix + EXT::DICT, left_dictionary);
+    std::vector<std::string> right_dictionary; read_dictionary(right_prefix + EXT::DICT, left_dictionary);
     
     // Read Left parse and substitute ranks with hash again storing in the merged dictionary
     spdlog::info("Adjusting ranks");
     std::error_code error;
-    mio::mmap_sink rw_mmap = mio::make_mmap_sink(left_prefix + ".parse", 0, mio::map_entire_file, error);
+    mio::mmap_sink rw_mmap = mio::make_mmap_sink(left_prefix + EXT::PARSE, 0, mio::map_entire_file, error);
     if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     
     for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
@@ -964,7 +967,7 @@ vcfbwt::pfp::ParserUtils::merge(std::string left_prefix, std::string right_prefi
     rw_mmap.unmap(); left_dictionary.resize(0);
     
     // Read right parse, changing first phrase;
-    rw_mmap = mio::make_mmap_sink(left_prefix + ".parse", 0, mio::map_entire_file, error);
+    rw_mmap = mio::make_mmap_sink(left_prefix + EXT::PARSE, 0, mio::map_entire_file, error);
     if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     
     for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
@@ -1002,10 +1005,10 @@ vcfbwt::pfp::ParserUtils::merge(std::string left_prefix, std::string right_prefi
     
     // Merge parsings
     spdlog::info("Creating output parse");
-    std::ofstream out_parse(out_prefix + ".parse", std::ios::binary);
+    std::ofstream out_parse(out_prefix + EXT::PARSE, std::ios::binary);
     
     // Left
-    mio::mmap_source rl_mmap; rl_mmap.map(left_prefix + ".parse", error);
+    mio::mmap_source rl_mmap; rl_mmap.map(left_prefix + EXT::PARSE, error);
     if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     for (size_type i = 0; i < (rl_mmap.size() / sizeof(hash_type)); i++)
     {
@@ -1019,7 +1022,7 @@ vcfbwt::pfp::ParserUtils::merge(std::string left_prefix, std::string right_prefi
     rl_mmap.unmap();
     
     // Right
-    mio::mmap_source rr_mmap; rr_mmap.map(left_prefix + ".parse", error);
+    mio::mmap_source rr_mmap; rr_mmap.map(left_prefix + EXT::PARSE, error);
     if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
     for (size_type i = 0; i < (rr_mmap.size() / sizeof(hash_type)); i++)
     {
@@ -1035,7 +1038,7 @@ vcfbwt::pfp::ParserUtils::merge(std::string left_prefix, std::string right_prefi
     
     // Print dicitionary on disk
     spdlog::info("Writing dictionary to disk NOT COMPRESSED");
-    std::string dict_file_name = out_prefix + ".dict";
+    std::string dict_file_name = out_prefix + EXT::DICT;
     std::ofstream dict(dict_file_name);
     
     for (auto& entry : entries)

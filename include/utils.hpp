@@ -72,6 +72,23 @@ constexpr double GIGABYTE_DOUBLE    = KILOBYTE_DOUBLE * MEGABYTE_DOUBLE;
 constexpr std::size_t MILLION       = 1000000;
 constexpr std::size_t BILLION       = 1000 * MILLION;
 
+namespace EXT
+{
+
+const std::string PARSE = ".parse";
+const std::string DICT = ".dict";
+const std::string OCC = ".occ";
+const std::string LAST = ".last";
+const std::string SAI = ".sai";
+const std::string N_PARSE = ".aup.parse";
+const std::string N_DICT = ".aup.dict";
+const std::string N_OCC = ".aup.occ";
+const std::string N_LAST = ".aup.last";
+const std::string N_SAI = ".aup.sai";
+
+}
+
+
 //------------------------------------------------------------------------------
 
 inline double
