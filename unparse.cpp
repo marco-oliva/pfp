@@ -55,10 +55,9 @@ int main(int argc, char **argv)
         std::string_view dict_string(&(dict[p - 1][0]), dict[p - 1].size() - window_size);
         
         unparsed_text_size += dict_string.size();
-        if (not size_only) { unparsed << dict_string; }
+        if (not size_only) { unparsed.write(dict_string.data(), dict_string.size()); }
        
     }
-    if (not size_only) { unparsed << vcfbwt::pfp::DOLLAR; }
     
     spdlog::info("Unparsed text size: {}", unparsed_text_size);
 }

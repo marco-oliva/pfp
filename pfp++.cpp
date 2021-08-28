@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats")->configurable();
-    app.add_flag("--occurrences", params.compute_occurrences, "Compute the .occ file")->configurable();
+    //app.add_flag("--occurrences", params.compute_occurrences, "Compute the .occ file")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
     app.set_config("--configure");
     app.allow_windows_style_options();

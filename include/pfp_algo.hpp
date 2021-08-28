@@ -85,7 +85,7 @@ struct Params
     bool compress_dictionary = false;
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
-    bool compute_occurrences = false;
+    bool compute_occurrences = true;
     bool auPair = false;
     std::string ignore_ts_file;
 };

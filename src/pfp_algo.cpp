@@ -569,7 +569,7 @@ vcfbwt::pfp::ParserFasta::operator()()
             phrase.append(1, DOLLAR_SEQUENCE);
     
             hash_type hash = this->dictionary.check_and_add(phrase);
-    
+     
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
     
             // Reset phrase
