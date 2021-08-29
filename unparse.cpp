@@ -58,6 +58,7 @@ int main(int argc, char **argv)
         if (not size_only) { unparsed.write(dict_string.data(), dict_string.size()); }
        
     }
+    if (not size_only) { for (std::size_t i = 0; i < window_size; i++) { unparsed.put(vcfbwt::pfp::DOLLAR); } }
     
     spdlog::info("Unparsed text size: {}", unparsed_text_size);
 }
