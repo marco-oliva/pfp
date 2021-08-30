@@ -332,9 +332,6 @@ vcfbwt::pfp::ParserVCF::close()
         // close all the registered workers and merge their dictionaries
         spdlog::info("Main parser: closing all registered workers");
         for (auto worker : registered_workers) { worker.get().close(); }
-    
-        spdlog::info("Main parser: gather processed samples);
-        for (auto worker : registered_workers) { this->worker.get().(); }
         
         // Occurrences
         std::vector<size_type> occurrences(this->dictionary->size(), 0);
