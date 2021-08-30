@@ -760,7 +760,7 @@ vcfbwt::pfp::ParserText::operator()()
     phrase.append(1, DOLLAR);
     
     char c;
-    while(gzfread(&c, sizeof(char), 1, fp) > 0)
+    while(gzread(fp, &c, 1) > 0)
     {
         phrase.push_back(c);
         if (phrase.size() == params.w) { kr_hash.initialize(phrase); }
