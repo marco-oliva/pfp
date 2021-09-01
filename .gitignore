@@ -1,2 +1,7 @@
 # exclude every clion build folder
 cmake-build*
+*.dict
+*.last
+*.occ
+*.parse
+*.sai

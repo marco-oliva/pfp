@@ -218,13 +218,16 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
                 size_type pair_first_v = (*pair_first_ptr) - 1;
                 size_type pair_second_v = 0;
     
-                if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
+                size_type* pair_second_ptr;
+    
+                if (this->parse.next(pair_first_ptr) != this->parse.end())
+                { pair_second_ptr = parse.next(pair_first_ptr); pair_second_v = *pair_second_ptr - 1; }
                 else { continue; }
     
                 // update entry of T where first appear as second or second appear as a first
                 std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
                 std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
-                
+    
                 // new phrase
                 size_type merged_phrase_id = 0;
                 if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
@@ -237,22 +240,19 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
                     D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
                     merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
         
-                    if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
-        
                     removed_phrases.insert(pair_first_v);
                     removed_phrases.insert(pair_second_v);
                 }
                 else
                 {
                     merged_phrase_id = merged_pairs.at(std::make_pair(pair_first_v, pair_second_v));
-                    if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
                 }
     
-                // update parse, first pointer
-                *pair_first_ptr = merged_phrase_id + 1; // compatibility with rest of values
+                // update parse, second pointer
+                *pair_second_ptr = merged_phrase_id + 1; // compatibility with rest of values
     
-                // update parse, delete second
-                parse.remove(parse.next(pair_first_ptr));
+                // update parse, delete first
+                parse.remove(pair_first_ptr);
             }
         }
     }
@@ -351,7 +351,10 @@ vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_
             size_type pair_first_v = (*pair_first_ptr) - 1;
             size_type pair_second_v = 0;
             
-            if (this->parse.next(pair_first_ptr) != this->parse.end()) { pair_second_v = (*(parse.next(pair_first_ptr))) - 1; }
+            size_type* pair_second_ptr;
+            
+            if (this->parse.next(pair_first_ptr) != this->parse.end())
+            { pair_second_ptr = parse.next(pair_first_ptr); pair_second_v = *pair_second_ptr - 1; }
             else { continue; }
             
             // update entry of T where first appear as second or second appear as a first
@@ -370,38 +373,37 @@ vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_
                 D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
                 merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
                 
-                if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
-                
                 removed_phrases.insert(pair_first_v);
                 removed_phrases.insert(pair_second_v);
             }
             else
             {
                 merged_phrase_id = merged_pairs.at(std::make_pair(pair_first_v, pair_second_v));
-                if (T_table.contains(second_ts)) { T_table.at(second_ts).push_back(pair_first_ptr); }
             }
             
+            // update parse, second pointer
+            *pair_second_ptr = merged_phrase_id + 1; // compatibility with rest of values
+            
+            // update parse, delete first
+            parse.remove(pair_first_ptr);
+  
             // prevs
-            if ( ((first_ts[0] != DOLLAR and first_ts[0] != DOLLAR_PRIME) and prev(pair_first_ptr) != parse.end()) and
-            ( not updates_first_el[first_ts].contains(std::pair(*(parse.prev(pair_first_ptr)) - 1, merged_phrase_id))))
+            if ( ((first_ts[0] != DOLLAR and first_ts[0] != DOLLAR_PRIME)
+            and prev(pair_first_ptr) != parse.end())
+            and (not updates_first_el[first_ts].contains(std::pair(*(parse.prev(pair_second_ptr)) - 1, merged_phrase_id))))
             {
-                updates_first_el[first_ts].insert(std::pair(*(parse.prev(pair_first_ptr)) - 1, merged_phrase_id));
+                updates_first_el[first_ts].insert(std::pair(*(parse.prev(pair_second_ptr)) - 1, merged_phrase_id));
                 update_value[first_ts] -= D_prime.at(merged_phrase_id).size() - D_prime.at(pair_first_v).size();
             }
-            
+  
             // nexts
-            if ( parse.next(parse.next(pair_first_ptr)) != parse.end() and
-            ( not updates_second_el[second_ts].contains(std::pair(*(parse.next(parse.next(pair_first_ptr))) - 1, merged_phrase_id))))
+            if (
+            parse.next(pair_second_ptr) != parse.end()
+            and (not updates_second_el[second_ts].contains(std::pair(*(parse.next(pair_second_ptr)) - 1, merged_phrase_id))))
             {
-                updates_second_el[second_ts].insert(std::pair(*(parse.next(parse.next(pair_first_ptr))) - 1, merged_phrase_id));
+                updates_second_el[second_ts].insert(std::pair(*(parse.next(pair_second_ptr)) - 1, merged_phrase_id));
                 update_value[second_ts] -= D_prime.at(merged_phrase_id).size() - D_prime.at(pair_second_v).size();
             }
-            
-            // update parse, first pointer
-            *pair_first_ptr = merged_phrase_id + 1; // compatibility with rest of values
-            
-            // update parse, delete second
-            parse.remove(parse.next(pair_first_ptr));
         }
         
         // apply ts cost updates
