@@ -574,7 +574,8 @@ vcfbwt::pfp::ParserFasta::operator()()
     
             // Reset phrase
             phrase.erase();
-            phrase.append(this->params.w, DOLLAR_PRIME);
+            phrase.append(this->params.w - 1, DOLLAR_PRIME);
+            phrase.append(1, DOLLAR_SEQUENCE);
         }
         
         for (std::size_t seq_it = 0; seq_it < record->seq.l; seq_it++)
@@ -604,7 +605,7 @@ vcfbwt::pfp::ParserFasta::operator()()
     // Last phrase
     if (phrase.size() >= this->params.w)
     {
-        // Append w dollar at the end of each sequence
+        // Append w dollar at the end
         phrase.append(this->params.w, DOLLAR);
         
         hash_type hash = this->dictionary.check_and_add(phrase);
