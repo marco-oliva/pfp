@@ -29,7 +29,7 @@ enum SPECIAL_TYPES
     ENDOFWORD = 1,
     DOLLAR = 2,
     DOLLAR_SEQUENCE = 3,
-    DOLLAR_PRIME = 10
+    DOLLAR_PRIME = 5
 };
 
 //------------------------------------------------------------------------------

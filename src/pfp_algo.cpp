@@ -559,7 +559,7 @@ vcfbwt::pfp::ParserFasta::operator()()
         if (record->name.s != NULL) { sequence_name = record->name.s; }
         if (record->comment.s != NULL) { sequence_comment = record->comment.s; }
         this->sequences_processed.push_back(sequence_name + " " + sequence_comment);
-        spdlog::info("Parsed:\t{}", sequence_name + " " + sequence_comment);
+        spdlog::debug("Parsed:\t{}", sequence_name + " " + sequence_comment);
         
         // Previous last phrase
         if (phrase[0] != DOLLAR and phrase.size() >= this->params.w)
