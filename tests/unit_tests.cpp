@@ -554,6 +554,8 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
@@ -609,6 +611,8 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
@@ -684,6 +688,8 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
@@ -828,6 +834,8 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
     
     // Check
@@ -893,6 +901,8 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
