@@ -305,7 +305,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     if (phrase.size() >= this->w)
     {
         // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
-        phrase.append(this->w - 1, DOLLAR_PRIME); phrase.append(1, DOLLAR_SEQUENCE);
+        phrase.append(this->w - 1, DOLLAR_PRIME);
         if (this->tags & LAST) { phrase.append(this->w, DOLLAR); }
 
         hash_type hash = this->dictionary->check_and_add(phrase);
@@ -576,6 +576,7 @@ vcfbwt::pfp::ParserFasta::operator()()
             phrase.erase();
             phrase.append(this->params.w - 1, DOLLAR_PRIME);
             phrase.append(1, DOLLAR_SEQUENCE);
+            kr_hash.reset(); kr_hash.initialize(phrase);
         }
         
         for (std::size_t seq_it = 0; seq_it < record->seq.l; seq_it++)
@@ -607,7 +608,6 @@ vcfbwt::pfp::ParserFasta::operator()()
     {
         // Append w-1 dollar prime, and one dollar seq at the end of each sequence
         phrase.append(this->params.w - 1, DOLLAR_PRIME);
-        phrase.append(1, DOLLAR_SEQUENCE);
         
         // Append w dollar at the end
         phrase.append(this->params.w, DOLLAR);

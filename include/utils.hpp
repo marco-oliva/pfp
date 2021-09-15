@@ -134,7 +134,7 @@ string_hash(const char* s, std::size_t size)
 class KarpRabinHash
 {
 public:
-    KarpRabinHash(size_type n);
+    KarpRabinHash(size_type n, bool debug = false);
     
     void initialize(const std::string& window);
     void update(char char_out, char char_in);
@@ -151,6 +151,8 @@ private:
     hash_type constant_to_n_minus_one_mod;
     size_type window_length;
     hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
     
 public:
     constexpr static hash_type kr_prime    = 1999999973;

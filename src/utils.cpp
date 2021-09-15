@@ -23,7 +23,7 @@ modular_pow(vcfbwt::hash_type base, vcfbwt::hash_type exponent, vcfbwt::hash_typ
 }
 
 
-vcfbwt::KarpRabinHash::KarpRabinHash(size_type n) : window_length(n)
+vcfbwt::KarpRabinHash::KarpRabinHash(size_type n, bool debug) : window_length(n), debug_(debug)
 {
     this->constant = kr_constant;
     this->prime = kr_prime;
@@ -36,6 +36,8 @@ vcfbwt::KarpRabinHash::reset() { this->hash_value = 0; }
 void
 vcfbwt::KarpRabinHash::initialize(const std::string& window)
 {
+    if (debug_) { debug_content_ = window; }
+    
     constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, prime);
     
     assert(window.size() == this->window_length);
@@ -49,6 +51,8 @@ vcfbwt::KarpRabinHash::initialize(const std::string& window)
 void
 vcfbwt::KarpRabinHash::update(char char_out, char char_in)
 {
+    if (debug_) { assert(debug_content_[0] == char_out); debug_content_.erase(0, 1); debug_content_.append(1, char_in); }
+    
     hash_value = hash_value + prime; // negative avoider
     hash_value = hash_value - ((constant_to_n_minus_one_mod * char_out) % prime);
     hash_value = ((constant * hash_value) % prime) + char_in;

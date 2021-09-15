@@ -406,6 +406,25 @@ TEST_CASE( "String Hash 2", "[KR Window]" )
     REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash("23456"));
 }
 
+TEST_CASE( "Reproducing bug", "[KR Window]" )
+{
+    std::string test_string_1 = ".a.little.late;You.fo";
+    std::string test_string_2 = "\5\5\5\5\4You.fo";
+    
+    vcfbwt::KarpRabinHash kr_window_1(5, true);
+    kr_window_1.initialize(test_string_1.substr(0,5));
+    for (std::size_t i = 0; i <= 15; i++) { kr_window_1.update(test_string_1[i], test_string_1[i + 5]); }
+    
+    vcfbwt::KarpRabinHash kr_window_2(5, true);
+    kr_window_2.initialize(test_string_2.substr(0,5));
+    for (std::size_t i = 0; i <= 5; i++) { kr_window_2.update(test_string_2[i], test_string_2[i + 5]); }
+    
+    REQUIRE(kr_window_1.get_hash() == vcfbwt::KarpRabinHash::string_hash("ou.fo"));
+    REQUIRE(kr_window_2.get_hash() == vcfbwt::KarpRabinHash::string_hash("ou.fo"));
+    REQUIRE(kr_window_1.get_hash() % 30 == 0);
+    REQUIRE(kr_window_2.get_hash() % 30 == 0);
+}
+
 //------------------------------------------------------------------------------
 
 TEST_CASE( "Dictionary size", "[Dictionary]")
@@ -555,7 +574,7 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
@@ -612,7 +631,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
@@ -689,7 +708,7 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
@@ -835,7 +854,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
     
     // Check
@@ -902,7 +921,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
