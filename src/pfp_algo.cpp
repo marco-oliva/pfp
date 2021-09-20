@@ -307,6 +307,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
         phrase.append(this->w - 1, DOLLAR_PRIME);
         if (this->tags & LAST) { phrase.append(this->w, DOLLAR); }
+        else { phrase.append(1, DOLLAR_SEQUENCE); }
 
         hash_type hash = this->dictionary->check_and_add(phrase);
         
