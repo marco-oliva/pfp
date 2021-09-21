@@ -167,7 +167,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     if (this->max_samples == 0) { set_max_samples(n_samples); }
 
     std::size_t size_before = l_samples.size();
-    for (std::size_t i = 0; i < n_samples; i++)
+    for (std::size_t i = 0; i < std::min(n_samples, this->max_samples); i++)
     {
         vcfbwt::Sample s(std::string(hdr->samples[i]), this->reference, l_variations);
         if (l_samples_id.find(s.id()) == l_samples_id.end())

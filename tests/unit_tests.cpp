@@ -531,9 +531,6 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
-    // Only work on sample HG00096
-    vcf.set_max_samples(1);
-
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
@@ -548,7 +545,6 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);
@@ -588,9 +584,6 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
-    // Only work on sample HG00096
-    vcf.set_max_samples(1);
-
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
@@ -605,7 +598,6 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);
@@ -802,9 +794,6 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
-    // Only work on sample HG00096
-    vcf.set_max_samples(1);
-
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
@@ -819,7 +808,6 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);
@@ -868,9 +856,6 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
 
-    // Only work on sample HG00096
-    vcf.set_max_samples(1);
-
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
@@ -885,7 +870,6 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-    tag = tag | vcfbwt::pfp::ParserVCF::LAST;
 
     worker.init(params, out_prefix, reference_parse, tag);
     main_parser.register_worker(worker);

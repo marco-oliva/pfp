@@ -52,10 +52,14 @@ private:
     const std::vector<Variation>& variations_list;
     
     std::string sample_id;
+    bool is_last_sample = false;
     
     friend class iterator;
     
 public:
+    
+    void set_last() { this->is_last_sample = true; }
+    bool last() const { return this->is_last_sample; }
     
     std::vector<std::size_t> variations;
 
@@ -132,8 +136,18 @@ public:
     
     static const std::string vcf_freq;
     
-    VCF(const std::string& ref_path, const std::string& vcf_path, std::size_t ms = 0) : max_samples(ms) { init_ref(ref_path); init_vcf(vcf_path); }
-    VCF(const std::vector<std::string>& refs_path, const std::vector<std::string>& vcfs_path, std::size_t ms = 0) : max_samples(ms) { init_multi_ref(refs_path); init_multi_vcf(vcfs_path); }
+    VCF(const std::string& ref_path, const std::string& vcf_path, std::size_t ms = 0) : max_samples(ms)
+    {
+        init_ref(ref_path); init_vcf(vcf_path);
+        this->samples.back().set_last();
+    }
+    
+    VCF(const std::vector<std::string>& refs_path, const std::vector<std::string>& vcfs_path, std::size_t ms = 0) : max_samples(ms)
+    {
+        init_multi_ref(refs_path); init_multi_vcf(vcfs_path);
+        this->samples.back().set_last();
+    }
+    
     ~VCF() = default;
     
     std::size_t size() const { if (max_samples != 0) { return max_samples; } else { return samples.size(); } }

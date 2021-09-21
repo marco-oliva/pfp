@@ -59,9 +59,9 @@ int main(int argc, char **argv)
         {
             spdlog::error("\n[{}, {}] {}\n[{}, {}] {}",
                           prev_parse_element, vcfbwt::string_hash(dict[prev_parse_element - 1].c_str(), dict[prev_parse_element - 1].size()),
-                          dict[prev_parse_element - 1],
+                          dict[prev_parse_element - 1].substr(dict[prev_parse_element - 1].size() - (2 * window_size), (2 * window_size)),
                           curr_parse_element, vcfbwt::string_hash(dict[curr_parse_element - 1].c_str(), dict[curr_parse_element - 1].size()),
-                          dict[curr_parse_element - 1]);
+                          dict[curr_parse_element - 1].substr(0, (2 * window_size)));
         }
 
         prev_parse_element = curr_parse_element;

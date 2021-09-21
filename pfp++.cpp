@@ -36,7 +36,6 @@ int main(int argc, char **argv)
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 200))->configurable();
     app.add_option("-p, --modulo", params.p, "Module used during parisng")->check(CLI::Range(5, 20000))->configurable();
     app.add_option("-j, --threads", threads, "Number of threads")->configurable();
-    app.add_option("--ignore-ts", params.ignore_ts_file, "Ignore Trigger Strings in file")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
@@ -98,7 +97,6 @@ int main(int argc, char **argv)
         for (std::size_t i = 0; i < workers.size(); i++)
         {
             std::size_t tag = vcfbwt::pfp::ParserVCF::WORKER | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-            if (i == workers.size() - 1) { tag = tag | vcfbwt::pfp::ParserVCF::LAST; }
             workers[i].init(params, "", reference_parse, tag);
             main_parser.register_worker(workers[i]);
         }
@@ -108,8 +106,6 @@ int main(int argc, char **argv)
         {
             int this_thread = omp_get_thread_num();
             spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
-            malloc_count_print_status();
-        
             workers[this_thread](vcf[i]);
         }
     

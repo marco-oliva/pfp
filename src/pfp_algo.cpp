@@ -177,7 +177,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     }
     
     // Last phrase
-    if (phrase.size() >= this->params.w)
+    if (phrase.size() > this->params.w)
     {
         // Append w-1 dollar prime and 1 dollar sequence at the end, reference as the first sample
         phrase.append(this->params.w - 1, DOLLAR_PRIME);
@@ -240,7 +240,8 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             if (params.use_acceleration and ((phrase.size() == this->w) and ((pos_on_reference != 0) and (phrase[0] != DOLLAR_PRIME))))
             {
                 start_window = end_window;
-                while ((tsp[start_window] + this->w) <= pos_on_reference) { start_window++; }
+                while ((tsp[start_window] + this->w) <= pos_on_reference and (start_window < tsp.size() - 2))
+                { start_window++; }
     
                 // Iterate over the parse up to the next variation
                 while (tsp[end_window + 1] < (sample_iterator.next_variation() - (this->w + 1))) { end_window++; }
@@ -302,11 +303,11 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     }
     
     // Last phrase
-    if (phrase.size() >= this->w)
+    if (phrase.size() > this->w)
     {
         // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
         phrase.append(this->w - 1, DOLLAR_PRIME);
-        if (this->tags & LAST) { phrase.append(this->w, DOLLAR); }
+        if (sample.last()) { phrase.append(this->w, DOLLAR); }
         else { phrase.append(1, DOLLAR_SEQUENCE); }
 
         hash_type hash = this->dictionary->check_and_add(phrase);
@@ -605,7 +606,7 @@ vcfbwt::pfp::ParserFasta::operator()()
     }
     
     // Last phrase
-    if (phrase.size() >= this->params.w)
+    if (phrase.size() > this->params.w)
     {
         // Append w-1 dollar prime, and one dollar seq at the end of each sequence
         phrase.append(this->params.w - 1, DOLLAR_PRIME);
@@ -788,7 +789,7 @@ vcfbwt::pfp::ParserText::operator()()
     }
     
     // Last phrase
-    if (phrase.size() >= this->params.w)
+    if (phrase.size() > this->params.w)
     {
         // Append w dollar at the end
         phrase.append(this->params.w, DOLLAR);

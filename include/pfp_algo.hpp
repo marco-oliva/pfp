@@ -147,8 +147,7 @@ public:
         MAIN = 1,
         WORKER = 2,
         COMPRESSED = 4,
-        UNCOMPRESSED = 8,
-        LAST = 16
+        UNCOMPRESSED = 8
     };
     
     
