@@ -280,7 +280,7 @@ vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_
     if (threshold == 0)
     {
         std::pair<int, int> max_cost_trigger_string = priority_queue.get_max();
-        threshold = this->window_length - 1;
+        threshold = this->window_length + 1;
         spdlog::info("Setting threshold to {}", threshold);
     }
     
