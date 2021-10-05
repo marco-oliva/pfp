@@ -339,40 +339,41 @@ vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_
         // remove trigger string if cost over threshold
         spdlog::debug("{}\tcost:\t{}\tbytes removed:\t{}\tremoved ts: {}\tT size: {}",
                      current_trigger_string, max_cost_trigger_string.first, bytes_removed, removed_trigger_strings.size(), T_table.size());
-        
-        std::map<std::string_view, std::set<std::pair<size_type, size_type>>> updates_first_el, updates_second_el;
-        std::map<std::string_view, int> update_value;
+
         std::map<std::pair<size_type, size_type>, hash_type> merged_pairs;
+        std::map<std::string_view, std::set<std::pair<size_type, size_type>>> updates_l_1_add, updates_l_1_sub, updates_r_1_add, updates_r_1_sub;
+        std::map<std::string_view, std::set<size_type>> updates_l_3_add, updates_l_3_sub, updates_r_2_add, updates_r_2_sub;
+        std::map<std::string_view, int> update_value;
         for (auto pair_first_ptr : T_table.at(current_trigger_string))
         {
             // All checks already performed, just check if removed
             if (parse.removed(pair_first_ptr)) { continue; }
-            
+
             size_type pair_first_v = (*pair_first_ptr) - 1;
             size_type pair_second_v = 0;
-            
+
             size_type* pair_second_ptr;
-            
+
             if (this->parse.next(pair_first_ptr) != this->parse.end())
             { pair_second_ptr = parse.next(pair_first_ptr); pair_second_v = *pair_second_ptr - 1; }
             else { continue; }
-            
+
             // update entry of T where first appear as second or second appear as a first
             std::string_view first_ts(&(D_prime.at(pair_first_v)[0]), window_length);
             std::string_view second_ts(&(D_prime.at(pair_second_v)[D_prime.at(pair_second_v).size() - window_length]) , window_length);
-            
+
             // new phrase
             size_type merged_phrase_id = 0;
             if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
             {
                 std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
                 if (curr_id > (std::numeric_limits<size_type>::max() - 10)) { spdlog::error("Current id size (bytes) not big enough"); std::exit(EXIT_FAILURE); }
-                
+
                 merged_phrase_id = curr_id++;
                 merged_phrase_id = merged_phrase_id - 1; // compatibility with values from the parse
                 D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
                 merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
-                
+
                 removed_phrases.insert(pair_first_v);
                 removed_phrases.insert(pair_second_v);
             }
@@ -380,68 +381,86 @@ vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_
             {
                 merged_phrase_id = merged_pairs.at(std::make_pair(pair_first_v, pair_second_v));
             }
-            
+
             // update parse, second pointer
             *pair_second_ptr = merged_phrase_id + 1; // compatibility with rest of values
-            
+
             // update parse, delete first
             parse.remove(pair_first_ptr);
-  
+
             // prevs
+            size_type prev_id = *(parse.prev(pair_second_ptr)) - 1;
             if ( ((first_ts[0] != DOLLAR and first_ts[0] != DOLLAR_PRIME)
-            and prev(pair_first_ptr) != parse.end())
-            and (not updates_first_el[first_ts].contains(std::pair(*(parse.prev(pair_second_ptr)) - 1, merged_phrase_id))))
+            and parse.prev(pair_second_ptr) != parse.end())
+            and (not updates_l_1_add[first_ts].contains(std::pair(prev_id, merged_phrase_id))))
             {
-                updates_first_el[first_ts].insert(std::pair(*(parse.prev(pair_second_ptr)) - 1, merged_phrase_id));
-                update_value[first_ts] -= D_prime.at(merged_phrase_id).size() - D_prime.at(pair_first_v).size();
+                updates_l_1_add[first_ts].insert(std::pair(prev_id, merged_phrase_id));
+                update_value[first_ts] += D_prime.at(prev_id).size() + D_prime.at(merged_phrase_id).size() - window_length;
+
+                if (not updates_l_1_sub[first_ts].contains(std::pair(prev_id, pair_first_v)))
+                {
+                    updates_l_1_sub[first_ts].insert(std::pair(prev_id, pair_first_v));
+                    update_value[first_ts] -= D_prime.at(prev_id).size() + D_prime.at(pair_first_v).size() - window_length;
+                }
+
+                if (not updates_l_3_add[first_ts].contains(merged_phrase_id))
+                {
+                    updates_l_3_add[first_ts].insert(merged_phrase_id);
+                    update_value[first_ts] -= D_prime.at(merged_phrase_id).size(); // subtract
+                }
+
+                if (not updates_l_3_sub[first_ts].contains(pair_first_v))
+                {
+                    updates_l_3_sub[first_ts].insert(pair_first_v);
+                    update_value[first_ts] += D_prime.at(pair_first_v).size(); // add
+                }
             }
-  
+
             // nexts
-            if (
-            parse.next(pair_second_ptr) != parse.end()
-            and (not updates_second_el[second_ts].contains(std::pair(*(parse.next(pair_second_ptr)) - 1, merged_phrase_id))))
+            size_type next_id = *(parse.next(pair_second_ptr)) - 1;
+            if ( ((second_ts[0] != DOLLAR and second_ts[0] != DOLLAR_PRIME)
+            and parse.next(pair_second_ptr) != parse.end())
+            and (not updates_r_1_add[second_ts].contains(std::pair(merged_phrase_id, next_id))))
             {
-                updates_second_el[second_ts].insert(std::pair(*(parse.next(pair_second_ptr)) - 1, merged_phrase_id));
-                update_value[second_ts] -= D_prime.at(merged_phrase_id).size() - D_prime.at(pair_second_v).size();
+                updates_r_1_add[second_ts].insert(std::pair(merged_phrase_id, next_id));
+                update_value[second_ts] += D_prime.at(merged_phrase_id).size() + D_prime.at(next_id).size() - window_length;
+
+                if (not updates_r_1_sub[second_ts].contains(std::pair(pair_second_v, next_id)))
+                {
+                    updates_r_1_sub[second_ts].insert(std::pair(pair_second_v, next_id));
+                    update_value[second_ts] -= D_prime.at(pair_second_v).size() + D_prime.at(next_id).size() - window_length;
+                }
+
+                if (not updates_r_2_add[second_ts].contains(merged_phrase_id))
+                {
+                    updates_r_2_add[second_ts].insert(merged_phrase_id);
+                    update_value[second_ts] -= D_prime.at(merged_phrase_id).size(); // subtract
+                }
+
+                if (not updates_r_2_sub[second_ts].contains(pair_second_v))
+                {
+                    updates_r_2_sub[second_ts].insert(pair_second_v);
+                    update_value[second_ts] += D_prime.at(pair_second_v).size(); //add
+                }
             }
         }
-        
+
         // apply ts cost updates
         for (auto& update : update_value)
         {
             string_view ts = update.first;
             if (removed_trigger_strings.contains(ts)) { continue; }
-            
+
             int value = update.second;
-            
-            if (updates_first_el.contains(ts))
-            {
-                std::set<size_type> merged_phrases;
-                for (auto pair : updates_first_el.at(ts))
-                {
-                    size_type merged_phrase = pair.second;
-                    if (not merged_phrases.contains(merged_phrase))
-                    {
-                        value += D_prime.at(merged_phrase).size() - D_prime.at(pair.first).size();
-                    }
-                }
-            }
-            if (updates_second_el.contains(ts))
-            {
-                std::set<size_type> merged_phrases;
-                for (auto pair : updates_second_el.at(ts))
-                {
-                    size_type merged_phrase = pair.second;
-                    if (not merged_phrases.contains(merged_phrase))
-                    {
-                        value += D_prime.at(merged_phrase).size() - D_prime.at(pair.first).size();
-                    }
-                }
-            }
-            
+
             int ts_index = this->trigger_string_pq_ids.at(ts);
             int old_cost = priority_queue.get_key(ts_index);
-            if (old_cost != 0) { this->priority_queue.push(ts_index, old_cost + value); }
+//            int sb_cost = cost_of_removing_trigger_string(ts);
+//            if (old_cost != 0 and sb_cost != old_cost - value)
+//            {
+//                spdlog::error("should be: {} instead is {}", sb_cost, old_cost - value);
+//            }
+            if (old_cost != 0) { this->priority_queue.push(ts_index, old_cost - value); }
         }
         
         this->priority_queue.push(max_cost_trigger_string.second, 0);

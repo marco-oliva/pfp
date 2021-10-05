@@ -410,15 +410,15 @@ TEST_CASE( "Reproducing bug", "[KR Window]" )
 {
     std::string test_string_1 = ".a.little.late;You.fo";
     std::string test_string_2 = "\5\5\5\5\4You.fo";
-    
+
     vcfbwt::KarpRabinHash kr_window_1(5, true);
     kr_window_1.initialize(test_string_1.substr(0,5));
     for (std::size_t i = 0; i <= 15; i++) { kr_window_1.update(test_string_1[i], test_string_1[i + 5]); }
-    
+
     vcfbwt::KarpRabinHash kr_window_2(5, true);
     kr_window_2.initialize(test_string_2.substr(0,5));
     for (std::size_t i = 0; i <= 5; i++) { kr_window_2.update(test_string_2[i], test_string_2[i + 5]); }
-    
+
     REQUIRE(kr_window_1.get_hash() == vcfbwt::KarpRabinHash::string_hash("ou.fo"));
     REQUIRE(kr_window_2.get_hash() == vcfbwt::KarpRabinHash::string_hash("ou.fo"));
     REQUIRE(kr_window_1.get_hash() % 30 == 0);
@@ -819,7 +819,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     main_parser.close();
 
     vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global, 1);
-    
+
     std::set<std::string_view> removed_trigger_strings;
     std::size_t removed_bytes = au_pair_algo(removed_trigger_strings, 1000);
     au_pair_algo.close();
@@ -844,7 +844,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
     //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-    
+
     // Check
     bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR, true);
     REQUIRE(check);
@@ -881,7 +881,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     main_parser.close();
 
     vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global);
-    
+
     std::set<std::string_view> removed_trigger_strings;
     std::size_t removed_bytes = au_pair_algo(removed_trigger_strings, 1000);
     spdlog::info("Removed: {} bytes", removed_bytes);

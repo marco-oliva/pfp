@@ -82,7 +82,7 @@ public:
         // First remove simple ts
         removed_bytes += remove_simple(removed_trigger_strings);
         
-        // Initi costs
+        // Init costs
         if (not costs_initialized) { costs_initialized = true; init_costs(); }
         
         // Remove ts with cost over threshold

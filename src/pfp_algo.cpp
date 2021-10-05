@@ -896,7 +896,7 @@ vcfbwt::pfp::ParserText::close()
         lengths.close();
     }
     
-    // Outoput Occurrencies
+    // Output Occurrencies
     if(this->params.compute_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
