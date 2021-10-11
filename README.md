@@ -32,22 +32,19 @@ Usage: ./pfp++ [OPTIONS]
 
 Options:
   -h,--help                   Print this help message and exit
-  -v,--vcf TEXT ... REQUIRED  List of vcf files. Assuming in genome order!
-  -r,--ref TEXT ... REQUIRED  List of reference files. Assuming in genome order!
-  -o,--out-prefix TEXT REQUIRED
-                              Output prefix
+  -v,--vcf TEXT ...           List of vcf files. Assuming in genome order!
+  -r,--ref TEXT ...           List of reference files. Assuming in genome order!
+  -f,--fasta TEXT:FILE        Fasta file to parse.
+  -t,--text TEXT:FILE         Text file to parse.
+  -o,--out-prefix TEXT        Output prefix
   -m,--max UINT               Max number of samples to analyze
-  -w,--window-size UINT:INT in [3 - 30]
+  -w,--window-size UINT:INT in [3 - 200]
                               Sliding window size
-  -p,--module UINT:INT in [50 - 300]
+  -p,--modulo UINT:INT in [5 - 20000]
                               Module used during parisng
-  -f,--min-frequency FLOAT:FLOAT in [0 - 1]
-                              Min frequency for variations
-  -t,--threads UINT           Number of threads
+  -j,--threads UINT           Number of threads
   --tmp-dir TEXT:DIR          Tmp file directory
-  -s,--seeds                  Compute seeded trigger strings
   -c,--compression            Compress the dictionary
-  --only-trigger-strings      Generate Only Trigger Strings
   --use-acceleration          Use reference parse to avoid re-parsing
   --print-statistics          Print out csv containing stats
   --version                   Version
