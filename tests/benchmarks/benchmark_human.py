@@ -153,8 +153,8 @@ def main():
             exit()
 
     pfp_config_file = create_pfp_config_file(vcf_files_list, ref_files_list, data_dir_pfp)
-    base_command = "{pfp} --configure {config_file} -t {c_threads} -m {n_samples} " \
-                   "--use-acceleration --print-statistics --occurrences -w {window} -p {modulo} -o {out_dir}"
+    base_command = "{pfp} --configure {config_file} -j {c_threads} -m {n_samples} " \
+                   "--use-acceleration --print-statistics -w {window} -p {modulo} -o {out_dir}"
     command = base_command.format(pfp=pfp_exe, c_threads=n_threads, window=w_value,
                                   modulo=p_value, config_file=pfp_config_file, n_samples=len(samples),
                                   out_dir=data_dir_pfp)
