@@ -39,6 +39,7 @@ private:
     std::size_t curr_id;
     
     bool closed = false;
+    bool compress_dictionary = false;
     
     struct d_prime
     {
@@ -67,8 +68,8 @@ private:
 public:
     
     // Builds the structures end empties the vectors when done
-    AuPair(std::string in, size_type w, size_type batch_s = 1)
-    : window_length(w), in_prefix(std::move(in)), batch_size(batch_s)
+    AuPair(std::string in, size_type w, bool c, size_type batch_s = 1)
+    : window_length(w), in_prefix(std::move(in)), batch_size(batch_s), compress_dictionary(c)
     { this->init_structures(); }
     
     ~AuPair() { this->close(); }

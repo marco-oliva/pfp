@@ -485,12 +485,12 @@ vcfbwt::pfp::ParserVCF::close()
         if (tags & COMPRESSED)
         {
             spdlog::info("Main parser: writing dictionary to disk COMPRESSED");
-            std::ofstream dicz(out_file_prefix + ".dicz");
-            std::ofstream lengths(out_file_prefix + ".dicz.len");
-    
+            std::ofstream dicz(out_file_prefix + EXT::DICT_COMPRESSED);
+            std::ofstream lengths(out_file_prefix + EXT::DICT_COMPRESSED_LENGTHS);
+
             for (size_type i = 0; i < this->dictionary->size(); i++)
             {
-                std::size_t shift = 0;
+                std::size_t shift = 1; // skip dollar on first phrase
                 if (i != 0) { shift = this->w; }
                 dicz.write(this->dictionary->sorted_entry_at(i).c_str() + shift,
                            this->dictionary->sorted_entry_at(i).size() - shift);
@@ -697,12 +697,12 @@ vcfbwt::pfp::ParserFasta::close()
     if (this->params.compress_dictionary)
     {
         spdlog::info("Main parser: writing dictionary on disk COMPRESSED");
-        std::ofstream dicz(out_file_prefix + ".dicz");
-        std::ofstream lengths(out_file_prefix + ".dicz.len");
-        
+        std::ofstream dicz(out_file_prefix + EXT::DICT_COMPRESSED);
+        std::ofstream lengths(out_file_prefix + EXT::DICT_COMPRESSED_LENGTHS);
+
         for (size_type i = 0; i < this->dictionary.size(); i++)
         {
-            std::size_t shift = 0;
+            std::size_t shift = 1; // skip dollar on first phrase
             if (i != 0) { shift = this->w; }
             dicz.write(this->dictionary.sorted_entry_at(i).c_str() + shift,
                        this->dictionary.sorted_entry_at(i).size() - shift);
@@ -876,12 +876,12 @@ vcfbwt::pfp::ParserText::close()
     if (this->params.compress_dictionary)
     {
         spdlog::info("Main parser: writing dictionary on disk COMPRESSED");
-        std::ofstream dicz(out_file_prefix + ".dicz");
-        std::ofstream lengths(out_file_prefix + ".dicz.len");
+        std::ofstream dicz(out_file_prefix + EXT::DICT_COMPRESSED);
+        std::ofstream lengths(out_file_prefix + EXT::DICT_COMPRESSED_LENGTHS);
         
         for (size_type i = 0; i < this->dictionary.size(); i++)
         {
-            std::size_t shift = 0;
+            std::size_t shift = 1; // skip dollar on first phrase
             if (i != 0) { shift = this->w; }
             dicz.write(this->dictionary.sorted_entry_at(i).c_str() + shift,
                        this->dictionary.sorted_entry_at(i).size() - shift);

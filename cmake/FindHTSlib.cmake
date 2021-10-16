@@ -9,6 +9,14 @@ include(LibFindMacros)
 
 # HTSlib dependencies
 libfind_package(HTSLib ZLIB REQUIRED)
+libfind_package(HTSLib LibLZMA REQUIRED)
+libfind_package(HTSLib BZip2 REQUIRED)
+
+include_directories(${LIBLZMA_INCLUDE_DIRS})
+include_directories(${BZIP2_INCLUDE_DIR})
+include_directories(${ZLIB_INCLUDE_DIRS})
+
+#target_link_libraries(DukasCompiler ${LIBLZMA_LIBRARIES})
 
 # Use pkg-config to get hints about paths
 libfind_pkg_check_modules(HTSlib_PKGCONF HTSlib)
@@ -27,3 +35,5 @@ find_library(HTSlib_LIBRARY
         )
 
 libfind_process(HTSlib)
+
+set(HTSlib_LIBRARIES ${HTSlib_LIBRARIES} ${LIBLZMA_LIBRARIES} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES})

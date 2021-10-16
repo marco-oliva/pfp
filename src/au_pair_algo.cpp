@@ -520,8 +520,31 @@ vcfbwt::pfp::AuPair::close()
     dict.put(ENDOFDICT);
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
     dict.close();
+
+    if (this->compress_dictionary)
+    {
+        spdlog::info("Main parser: writing dictionary on disk COMPRESSED");
+        std::ofstream dicz(this->in_prefix + EXT::DICT_COMPRESSED);
+        std::ofstream lengths(this->in_prefix + EXT::DICT_COMPRESSED_LENGTHS);
+
+        for (size_type i = 0; i < sorted_phrases.size(); i++)
+        {
+            std::size_t shift = 1; // skip dollar on first phrase
+            if (i != 0) { shift = this->window_length; }
+            dicz.write(sorted_phrases.at(i).first.get().c_str() + shift,
+                       sorted_phrases.at(i).first.get().size() - shift);
+            int32_t len = sorted_phrases.at(i).first.get().size() - shift;
+            lengths.write((char*) &len, sizeof(int32_t));
+        }
+
+        vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
+        dicz.close();
+
+        vcfbwt::DiskWrites::update(lengths.tellp()); // Disk Stats
+        lengths.close();
+    }
     
-    spdlog::info("AuPair: writing parsee and .last to disk");
+    spdlog::info("AuPair: writing parse and .last to disk");
     std::string parse_file_name = this->in_prefix + EXT::N_PARSE;
     std::ofstream parse_file(parse_file_name);
     std::string last_file_name = this->in_prefix + EXT::N_LAST;

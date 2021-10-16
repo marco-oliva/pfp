@@ -772,7 +772,7 @@ TEST_CASE( "AuPair both removals", "[AuPair]" )
     parse_file.write((char*)&parse[0], parse.size() * sizeof(vcfbwt::size_type));
     parse_file.close();
 
-    vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4);
+    vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4, false);
 
     std::set<std::string_view> removed_trigger_strings;
     std::size_t removed_bytes = au_pair_algo(removed_trigger_strings, 10);
@@ -880,7 +880,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     // Close the main parser
     main_parser.close();
 
-    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global);
+    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global, false);
 
     std::set<std::string_view> removed_trigger_strings;
     std::size_t removed_bytes = au_pair_algo(removed_trigger_strings, 1000);

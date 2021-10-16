@@ -77,6 +77,8 @@ namespace EXT
 
 const std::string PARSE = ".parse";
 const std::string DICT = ".dict";
+const std::string DICT_COMPRESSED = ".dicz";
+const std::string DICT_COMPRESSED_LENGTHS = ".dicz.len";
 const std::string OCC = ".occ";
 const std::string LAST = ".last";
 const std::string SAI = ".sai";
@@ -85,6 +87,8 @@ const std::string N_DICT = ".aup.dict";
 const std::string N_OCC = ".aup.occ";
 const std::string N_LAST = ".aup.last";
 const std::string N_SAI = ".aup.sai";
+const std::string N_DICT_COMPRESSED = ".aup.dicz";
+const std::string N_DICT_COMPRESSED_LENGTHS = ".aup.dicz.len";
 
 }
 

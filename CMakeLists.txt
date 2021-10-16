@@ -53,13 +53,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BUILD_TYPE_FLAGS}")
 ################################################################################
 # Check dependencies
 
-# HTS
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-find_package(HTSlib REQUIRED)
-if(HTSlib_FOUND)
-    include_directories(${HTSlib_INCLUDE_DIRS})
-endif()
-
 find_package(OpenMP)
 if(OPENMP_FOUND)
     include_directories(${OpenMP_CXX_INCLUDE_DIRS})
@@ -75,6 +68,14 @@ if(OPENMP_FOUND)
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -Xpreprocessor -fopenmp")
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
     endif()
+endif()
+
+# HTS
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+find_package(HTSlib REQUIRED)
+if(HTSlib_FOUND)
+    include_directories(${HTSlib_INCLUDE_DIRS})
+    message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
 endif()
 
 ################################################################################
@@ -93,7 +94,7 @@ add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set(VCF_LIB_DEPS "z" "${HTSlib_LIBRARIES}" "dl")
+set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread)
 
 ################################################################################
 # Tests
