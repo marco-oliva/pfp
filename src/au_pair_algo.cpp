@@ -524,8 +524,8 @@ vcfbwt::pfp::AuPair::close()
     if (this->compress_dictionary)
     {
         spdlog::info("Main parser: writing dictionary on disk COMPRESSED");
-        std::ofstream dicz(this->in_prefix + EXT::DICT_COMPRESSED);
-        std::ofstream lengths(this->in_prefix + EXT::DICT_COMPRESSED_LENGTHS);
+        std::ofstream dicz(this->in_prefix + EXT::N_DICT_COMPRESSED);
+        std::ofstream lengths(this->in_prefix + EXT::N_DICT_COMPRESSED_LENGTHS);
 
         for (size_type i = 0; i < sorted_phrases.size(); i++)
         {
