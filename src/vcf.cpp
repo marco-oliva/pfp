@@ -121,6 +121,22 @@ vcfbwt::Sample::iterator::go_to(std::size_t i)
 //------------------------------------------------------------------------------
 
 void
+vcfbwt::VCF::init_samples(const std::string& samples_path)
+{
+    spdlog::info("Reading samples file: {}", samples_path);
+    std::ifstream in_stream(samples_path);
+    if (not in_stream.is_open()) { spdlog::error("Error while opening {}", samples_path); }
+
+    for (std::string line; getline( in_stream, line);)
+    {
+        this->input_samples.insert(line);
+    }
+    spdlog::info("Done reading {}, found {} samples", samples_path, this->input_samples.size());
+
+    for (auto& sample_id : input_samples) { spdlog::info(sample_id); }
+}
+
+void
 vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 {
     spdlog::info("Reading reference file: {}", ref_path);
@@ -243,7 +259,8 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         }
                         
                         auto id = l_samples_id.find(std::string(hdr->samples[i_s]));
-                        if (id != l_samples_id.end() and id->second < max_samples) // Process only wanted l_samples
+                        if ((id != l_samples_id.end() and id->second < max_samples) and
+                           ((input_samples.empty()) or input_samples.contains(id->first))) // Process only wanted l_samples
                         {
                             // Adding this variation to a sample only if:
                             // - it doens't overlap with previous variation

@@ -36,13 +36,13 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
     // removing from D
     std::set<hash_type> pair_seconds, pair_firsts;
     std::set<std::pair<hash_type, hash_type>> pairs;
-    std::vector<std::size_t> erased_elements;
+    std::size_t erased_elements = 0;
     for (std::size_t i = 0; i < table_entry.size(); i++)
     {
         size_type* pair_first_ptr = table_entry[i];
         
         // Clean the vector to reduce memory usage, we are already iterating anyway
-        if (parse.removed(pair_first_ptr)) { erased_elements.push_back(i); continue; }
+        if (parse.removed(pair_first_ptr)) { erased_elements += 1; continue; }
         
         size_type pair_first_v = (*pair_first_ptr) - 1;
         size_type pair_second_v = 0;
@@ -67,16 +67,8 @@ vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
         if (f_ts == ts or l_ts == ts) { return 0; }
     }
     
-    // Clean up vector
-//    for (auto& pos_to_clean : erased_elements)
-//    {
-//        while (parse.removed(table_entry.back())) { table_entry.pop_back(); } // make sure last is not deleted
-//        table_entry[pos_to_clean] = table_entry.back();
-//        table_entry.pop_back();
-//    }
-    
     // removing from P, no empty elements here!
-    cost_of_removing_from_P -= (table_entry.size() - erased_elements.size()) * sizeof(size_type);
+    cost_of_removing_from_P -= (table_entry.size() - erased_elements) * sizeof(size_type);
     
     for (auto& pair : pairs)
     {

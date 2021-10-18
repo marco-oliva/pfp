@@ -120,8 +120,12 @@ private:
     std::unordered_map<std::string, std::size_t> samples_id;
     
     std::size_t max_samples = 0;
-    
+    std::set<std::string> input_samples;
+    std::vector<std::size_t> populated_samples;
+
     std::vector<std::size_t> ref_sum_lengths;
+
+    void init_samples(const std::string& samples_path);
     
     void init_vcf(const std::string& vcf_path, std::vector<Variation>& l_variations,
                   std::vector<Sample>& l_samples, std::unordered_map<std::string, std::size_t>& l_samples_id,
@@ -132,26 +136,35 @@ private:
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
     void init_multi_ref(const std::vector<std::string>& refs_path);
 
+
 public:
     
     static const std::string vcf_freq;
     
-    VCF(const std::string& ref_path, const std::string& vcf_path, std::size_t ms = 0) : max_samples(ms)
+    VCF(const std::string& ref_path, const std::string& vcf_path, const std::string& samples_path, std::size_t ms = 0) : max_samples(ms)
     {
+        if (samples_path != "") { init_samples(samples_path); }
         init_ref(ref_path); init_vcf(vcf_path);
-        this->samples.back().set_last();
+        for (std::size_t i = 0; i < samples.size(); i++)
+        { if (not samples.at(i).variations.empty()) { this->populated_samples.push_back(i); } }
+
+        this->samples.at(populated_samples.back()).set_last();
     }
-    
-    VCF(const std::vector<std::string>& refs_path, const std::vector<std::string>& vcfs_path, std::size_t ms = 0) : max_samples(ms)
+
+    VCF(const std::vector<std::string>& refs_path, const std::vector<std::string>& vcfs_path, const std::string& samples_path, std::size_t ms = 0) : max_samples(ms)
     {
+        if (samples_path != "") { init_samples(samples_path); }
         init_multi_ref(refs_path); init_multi_vcf(vcfs_path);
-        this->samples.back().set_last();
+        for (std::size_t i = 0; i < samples.size(); i++)
+        { if (not samples.at(i).variations.empty()) { this->populated_samples.push_back(i); } }
+
+        this->samples.at(populated_samples.back()).set_last();
     }
     
     ~VCF() = default;
     
-    std::size_t size() const { if (max_samples != 0) { return max_samples; } else { return samples.size(); } }
-    Sample& operator[](std::size_t i) { assert(i < size()); return samples.at(i); }
+    std::size_t size() const { return this->populated_samples.size(); }
+    Sample& operator[](std::size_t i) { assert(i < size()); return samples.at(populated_samples.at(i)); }
     const std::vector<Variation>& get_variations() const { return this->variations; }
     const std::string& get_reference() const { return this->reference; }
     void set_max_samples(std::size_t max) { this->max_samples = max; }

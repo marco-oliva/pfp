@@ -448,11 +448,11 @@ TEST_CASE( "Dictionary size", "[Dictionary]")
 
 //------------------------------------------------------------------------------
 
-TEST_CASE( "Constructor", "[VCF parser]" )
+TEST_CASE( "Constructor with samples specified", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "");
 
     // read_samples list from file
     std::ifstream samples_file(testfiles_dir + "/samples_list.txt");
@@ -471,38 +471,34 @@ TEST_CASE( "Constructor", "[VCF parser]" )
     REQUIRE(all_match);
 }
 
-TEST_CASE( "Sample: HG00096", "[VCF parser]" )
+TEST_CASE( "Constructor", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "");
 
-    REQUIRE(vcf[0].id() == "HG00096");
+    // read_samples list from file
+    std::ifstream samples_file(testfiles_dir + "/samples_list.txt");
+    std::vector<std::string> samples_list;
+    std::copy(std::istream_iterator<std::string>(samples_file),
+              std::istream_iterator<std::string>(),
+              std::back_inserter(samples_list));
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
+    bool all_match = true;
+    for (std::size_t i = 0; i < vcf.size(); i++)
+    {
+        all_match = all_match  & (vcf[i].id() == samples_list[i]);
+    }
 
-    REQUIRE(vcfbwt::is_gzipped(in_stream));
-
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-
-    vcfbwt::Sample::iterator it(vcf[0]);
-    std::string from_vcf;
-    while (not it.end()) { from_vcf.push_back(*it); ++it; }
-
-    std::size_t i = 0;
-    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
-            and (from_vcf[i] == from_fasta[i])) { i++; }
-    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+    REQUIRE(vcf.size() == samples_list.size());
+    REQUIRE(all_match);
 }
 
 TEST_CASE( "Sample: HG00103", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 3);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 3);
 
     REQUIRE(vcf[2].id() == "HG00103");
 
@@ -525,11 +521,39 @@ TEST_CASE( "Sample: HG00103", "[VCF parser]" )
     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
 }
 
+TEST_CASE( "Selecting only Sample: HG00103", "[VCF parser]" )
+{
+    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+    std::string samples_file_name = testfiles_dir + "/allowed_samples_list.txt";
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, samples_file_name);
+
+    REQUIRE(vcf[0].id() == "HG00103");
+
+    std::string test_sample_path = testfiles_dir + "/HG00103_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+
+    REQUIRE(vcfbwt::is_gzipped(in_stream));
+
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    vcfbwt::Sample::iterator it(vcf[0]);
+    std::string from_vcf;
+    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+
+    std::size_t i = 0;
+    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
+            and (from_vcf[i] == from_fasta[i])) { i++; }
+    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+}
+
 TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -582,7 +606,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -645,7 +669,7 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
                     testfiles_dir + "/Y.fa.gz"
             };
 
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, 1);
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 1);
 
     REQUIRE(vcf[0].id() == "HG00096");
 
@@ -792,7 +816,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -854,7 +878,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;

@@ -21,9 +21,11 @@ int main(int argc, char **argv)
     std::string out_prefix;
     std::string tmp_dir;
     std::size_t max_samples = 0;
+    std::string samples_file_name;
     std::size_t threads = 1;
     bool check = false;
     bool only_trigger_strings = false;
+    bool verbose = false;
     
     vcfbwt::pfp::Params params;
     
@@ -33,6 +35,7 @@ int main(int argc, char **argv)
     app.add_option("-t,--text", text_file_path, "Text file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
+    app.add_option("-S, --samples", samples_file_name, "File containing the list of samples to parse")->configurable();
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(3, 200))->configurable();
     app.add_option("-p, --modulo", params.p, "Module used during parisng")->check(CLI::Range(5, 20000))->configurable();
     app.add_option("-j, --threads", threads, "Number of threads")->configurable();
@@ -40,11 +43,14 @@ int main(int argc, char **argv)
     app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats")->configurable();
+    app.add_flag("--verbose", verbose, "Verbose output")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
     app.set_config("--configure");
     app.allow_windows_style_options();
     
     CLI11_PARSE(app, argc, argv);
+
+    if (verbose) { spdlog::set_level(spdlog::level::debug); }
     
     // Clean file name vectors
     vcfs_file_names.erase(std::remove_if(vcfs_file_names.begin(), vcfs_file_names.end(),
@@ -83,7 +89,7 @@ int main(int argc, char **argv)
         if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
     
         // Parse the VCF
-        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, max_samples);
+        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, max_samples);
     
         // Set threads accordingly to configuration
         omp_set_num_threads(threads);
