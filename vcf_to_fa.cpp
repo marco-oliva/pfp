@@ -19,13 +19,15 @@ int main(int argc, char **argv)
     std::string out_file;
     std::size_t max_samples = 0;
     std::size_t threads = 1;
-    
+    std::string samples_file_name;
+
     vcfbwt::pfp::Params params;
     
     app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable();
     app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->expected(-1)->configurable();
     app.add_option("-o,--out-file", out_file, "Output prefix")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
+    app.add_option("-S, --samples", samples_file_name, "File containing the list of samples to parse")->configurable();
     app.add_option("-t, --threads", threads, "Number of threads")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
     app.set_config("--configure");
@@ -43,9 +45,9 @@ int main(int argc, char **argv)
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
     
     // Parse the VCF
-    vcfbwt::VCF vcf(refs_file_names, vcfs_file_names);
-    if (max_samples != 0) { vcf.set_max_samples(max_samples); }
-    
+    // Parse the VCF
+    vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, max_samples);
+
     // Generate fasta file, reference first
     std::ofstream samples(out_file);
     std::string reference;
