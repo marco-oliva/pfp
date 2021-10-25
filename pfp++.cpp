@@ -123,24 +123,21 @@ int main(int argc, char **argv)
         }
         else if ( haplotype_string == "12" )
         {
-            for (std::size_t i = 0; i < workers.size(); i++) { workers[i].set_working_genotype(0); }
             #pragma omp parallel for schedule(static)
             for (std::size_t i = 0; i < vcf.size(); i++)
             {
                 int this_thread = omp_get_thread_num();
+
+                // get first genotype
+                workers[this_thread].set_working_genotype(0);
                 spdlog::info("Processing sample [{}/{} H{}]: {}", i, vcf.size(), 1, vcf[i].id());
                 workers[this_thread](vcf[i]);
-            }
-    
-            for (std::size_t i = 0; i < workers.size(); i++) { workers[i].set_working_genotype(1); }
-            #pragma omp parallel for schedule(static)
-            for (std::size_t i = 0; i < vcf.size(); i++)
-            {
-                int this_thread = omp_get_thread_num();
+
+                // get second genotype
+                workers[this_thread].set_working_genotype(1);
                 spdlog::info("Processing sample [{}/{} H{}]: {}", i, vcf.size(), 2, vcf[i].id());
                 workers[this_thread](vcf[i]);
             }
-        
         }
         
     

@@ -447,11 +447,6 @@ vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_
 
             int ts_index = this->trigger_string_pq_ids.at(ts);
             int old_cost = priority_queue.get_key(ts_index);
-//            int sb_cost = cost_of_removing_trigger_string(ts);
-//            if (old_cost != 0 and sb_cost != old_cost - value)
-//            {
-//                spdlog::error("should be: {} instead is {}", sb_cost, old_cost - value);
-//            }
             if (old_cost != 0) { this->priority_queue.push(ts_index, old_cost - value); }
         }
         
