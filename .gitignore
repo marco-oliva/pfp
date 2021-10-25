@@ -12,3 +12,4 @@ build/*
 *.*dict
 *.*dicz
 *.*dicz.len
+*.log
