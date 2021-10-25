@@ -5,3 +5,10 @@ cmake-build*
 *.occ
 *.parse
 *.sai
+.idea
+build/*
+*.*occ
+*.*parse
+*.*dict
+*.*dicz
+
