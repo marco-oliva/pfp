@@ -38,10 +38,12 @@ struct Variation
 {
     std::size_t pos = 0; // already adjusted when read from the vcf by htslib. No need of -1
     std::size_t ref_len = 0;
-    std::string alt;
+    std::vector<std::string> alt;
     
     double freq = 0.0;
     bool used = false;
+    
+    enum variation_type { H1, H2, H12 };
 };
 
 class Sample
@@ -61,7 +63,9 @@ public:
     void set_last() { this->is_last_sample = true; }
     bool last() const { return this->is_last_sample; }
     
+    // variation, variation type
     std::vector<std::size_t> variations;
+    std::vector<std::vector<int>> genotypes;
 
     const std::string& id() const { return this->sample_id; }
     
@@ -77,16 +81,18 @@ public:
     private:
         
         const Sample& sample_;
+        std::size_t genotype;
         std::size_t ref_it_;
         std::size_t sam_it_;
         std::size_t var_it_;
+        std::size_t prev_variation_it;
         std::size_t curr_var_it_;
         std::size_t sample_length_;
         const char* curr_char_;
         
     public:
         
-        iterator(const Sample& sample);
+        iterator(const Sample& sample, std::size_t genotype = 0);
         
         bool end();
         void operator++();
@@ -130,7 +136,7 @@ private:
     void init_vcf(const std::string& vcf_path, std::vector<Variation>& l_variations,
                   std::vector<Sample>& l_samples, std::unordered_map<std::string, std::size_t>& l_samples_id,
                   std::size_t i = 0);
-    void init_vcf(const std::string& vcf_path, std::size_t i =0);
+    void init_vcf(const std::string& vcf_path, std::size_t i = 0);
     void init_ref(const std::string& ref_path, bool last = true);
     
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
@@ -168,7 +174,6 @@ public:
     const std::vector<Variation>& get_variations() const { return this->variations; }
     const std::string& get_reference() const { return this->reference; }
     void set_max_samples(std::size_t max) { this->max_samples = max; }
-    
 };
 
 //------------------------------------------------------------------------------

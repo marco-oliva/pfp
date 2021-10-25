@@ -12,16 +12,27 @@ const std::string vcfbwt::VCF::vcf_freq = "AF";
 
 //------------------------------------------------------------------------------
 
-vcfbwt::Sample::iterator::iterator(const Sample& sample) :
-sample_(sample), ref_it_(0), sam_it_(0), var_it_(0), curr_var_it_(0), curr_char_(NULL), sample_length_(sample.reference_.size())
+vcfbwt::Sample::iterator::iterator(const Sample& sample, std::size_t genotype) :
+sample_(sample), genotype(genotype),
+ref_it_(0), sam_it_(0), var_it_(0), curr_var_it_(0), prev_variation_it(0),
+curr_char_(NULL), sample_length_(sample.reference_.size())
 {
     // Compute sample length, might take some time
     long long int indels = 0; // could be negative, so int
-    for (auto var_id : sample.variations)
+    for (std::size_t i = 0; i < this->sample_.variations.size(); i++)
     {
-        indels = indels + (sample_.variations_list[var_id].alt.size() - sample_.variations_list[var_id].ref_len);
+        std::size_t var_id = this->sample_.variations[i];
+        int var_genotype = this->sample_.genotypes[i][this->genotype];
+        if (var_genotype != 0)
+        {
+            indels += sample_.variations_list[var_id].alt[var_genotype].size() -
+                      sample_.variations_list[var_id].ref_len;
+        }
+        
     }
     sample_length_ = sample_length_ + indels;
+    while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+    { var_it_++; }
     this->operator++();
 }
 
@@ -49,7 +60,7 @@ std::size_t
 vcfbwt::Sample::iterator::prev_variation() const
 {
     if (var_it_ == 0) { spdlog::error("vcfbwt::Sample::iterator::prev_variation() var_it == 0"); std::exit(EXIT_FAILURE); }
-    return sample_.get_variation(var_it_ - 1).pos;
+    return sample_.get_variation(prev_variation_it).pos;
 }
 
 std::size_t
@@ -73,24 +84,32 @@ vcfbwt::Sample::iterator::operator++()
         }
         
         // Più nucleotidi nella variaizione
-        if (curr_variation.alt.size() > 1)
+        int var_genotype = sample_.genotypes[var_it_][genotype];
+        if (curr_variation.alt[var_genotype].size() > 1)
         {
-            if (curr_var_it_ < curr_variation.alt.size() - 1)
+            if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
             {
-                curr_char_ = & curr_variation.alt[curr_var_it_];
+                curr_char_ = & curr_variation.alt[var_genotype][curr_var_it_];
                 curr_var_it_++; sam_it_++;
             }
             else
             {
-                curr_char_ = & curr_variation.alt.back();
-                var_it_++; curr_var_it_ = 0; ref_it_ += curr_variation.ref_len; sam_it_++;
+                curr_char_ = & curr_variation.alt[var_genotype].back();
+                prev_variation_it = var_it_;
+                var_it_++;
+                while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+                { var_it_++; }
+                curr_var_it_ = 0; ref_it_ += curr_variation.ref_len; sam_it_++;
             }
             
         }
         else
         {
-            curr_char_ = & curr_variation.alt.front();
-            ref_it_ += curr_variation.ref_len; sam_it_++; var_it_++;
+            curr_char_ = & curr_variation.alt[var_genotype].front();
+            ref_it_ += curr_variation.ref_len; sam_it_++; prev_variation_it = var_it_;
+            var_it_++;
+            while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+            { var_it_++; }
         }
     }
     // Non ci sono più variazioni, itera sulla reference
@@ -213,11 +232,14 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
         var.pos = rec->pos + offset;
         var.freq = 0;
-    
+        
+        // get all alternate alleles
         bcf_unpack(rec, BCF_UN_ALL);
         int type = bcf_get_variant_types(rec);
-    
-        l_variations.push_back(var);
+        for (int allele_idx = 0; allele_idx < rec->n_allele; allele_idx++)
+        {
+            var.alt.push_back(rec->d.allele[allele_idx]);
+        }
         
         int32_t *gt_arr = NULL, ngt_arr = 0;
         int ngt = bcf_get_genotypes(hdr, rec, &gt_arr, &ngt_arr);
@@ -229,14 +251,12 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
             {
                 if (skip_this_variation) { break; }
                 int32_t *ptr = gt_arr + i_s * max_ploidy;
+                std::vector<int> alleles_idx(max_ploidy, 0);
+                bool alt_alleles_set = false;
                 for (std::size_t j = 0; j < max_ploidy; j++)
                 {
                     // if true, the sample has smaller ploidy
                     if ( ptr[j]==bcf_int32_vector_end ) { break; }
-
-                    // if not phased, skip
-                    //int is_phased = bcf_gt_is_phased(ptr[j]);
-                    //if (not is_phased) { break; }
 
                     // missing allele
                     if ( bcf_gt_is_missing(ptr[j]) ) { continue; }
@@ -246,43 +266,35 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         // the VCF 0-based allele index
                         int allele_index = bcf_gt_allele(ptr[j]);
                         
-                        // Get alternate allele
-                        if (l_variations.back().alt.empty())
-                            l_variations.back().alt = rec->d.allele[allele_index];
-    
                         // Skip symbolic allele
-                        if (l_variations.back().alt[0] == '<')
+                        if (var.alt[allele_index][0] == '<')
                         {
-                            spdlog::debug("vcfbwt::VCF::init_vcf: Skipping symbolic allele at pos {}", l_variations.back().pos);
+                            spdlog::debug("vcfbwt::VCF::init_vcf: Skipping symbolic allele at pos {}", var.pos);
                             skip_this_variation = true;
                             continue;
                         }
-                        
-                        auto id = l_samples_id.find(std::string(hdr->samples[i_s]));
-                        if ((id != l_samples_id.end() and id->second < max_samples) and
-                           ((input_samples.empty()) or input_samples.contains(id->first))) // Process only wanted l_samples
-                        {
-                            // Adding this variation to a sample only if:
-                            // - it doens't overlap with previous variation
-                            if ((l_samples[id->second].variations.size() == 0) or
-                                (l_variations[(l_samples[id->second].variations.back())].pos
-                                 + l_variations[(l_samples[id->second].variations.back())].ref_len < var.pos))
-                            {
-                                // Update frequency, to be normalized by the number of samples when parsing ends
-                                l_variations.back().freq += 1;
-                                l_variations.back().used = true;
-                                // Add variation to sample
-                                l_samples[id->second].variations.push_back(l_variations.size() - 1);
-                            }
-                            else
-                            {
-                                spdlog::debug("Skipping overlapping variation at pos {} for sample {}", var.pos, id->first);
-                            }
-                        }
+                        alleles_idx[j] = allele_index;
+                        alt_alleles_set = true;
+                    }
+                }
+                
+                if (alt_alleles_set)
+                {
+                    auto id = l_samples_id.find(std::string(hdr->samples[i_s]));
+                    if ((id != l_samples_id.end() and id->second < max_samples) and
+                    ((input_samples.empty()) or input_samples.contains(id->first))) // Process only wanted l_samples
+                    {
+                        // Update frequency, to be normalized by the number of samples when parsing ends
+                        var.freq += 1;
+                        var.used = true;
+                        // Add variation to sample, size() because we have not added the variations to the list yet
+                        l_samples[id->second].variations.emplace_back(l_variations.size());
+                        l_samples[id->second].genotypes.emplace_back(alleles_idx);
                     }
                 }
             }
         }
+        if (var.used) { l_variations.push_back(var); }
         free(gt_arr);
     }
     
@@ -372,7 +384,7 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
 
         for (auto& sample : tmp_samples_array[i])
         {
-            if (this->samples_id.find(sample.id()) ==this-> samples_id.end())
+            if (this->samples_id.find(sample.id()) == this->samples_id.end())
             {
                 Sample s(sample.id(), this->reference, this->variations);
                 this->samples.push_back(s);
@@ -382,6 +394,11 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
             for (auto& sample_variation : sample.variations)
             {
                 this->samples[samples_id[sample.id()]].variations.push_back(sample_variation + prev_variations_arr_size);
+            }
+    
+            for (auto& genotype_info : sample.genotypes)
+            {
+                this->samples[samples_id[sample.id()]].genotypes.push_back(genotype_info);
             }
         }
         tmp_samples_array[i].clear();

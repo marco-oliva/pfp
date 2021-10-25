@@ -140,6 +140,8 @@ private:
     
     std::vector<std::reference_wrapper<ParserVCF>> registered_workers;
     
+    std::size_t working_genotype = 0;
+    
 public:
     
     enum tags
@@ -192,6 +194,7 @@ public:
     const std::string& get_file_name() const { return this->out_file_name; }
     const Statistics& get_statistics() const { return this->statistics; }
     void register_worker(ParserVCF& parser) { this->registered_workers.push_back(std::ref(parser)); }
+    void set_working_genotype(std::size_t genotype) { this->working_genotype = genotype; }
     
     void operator()(const Sample& sample);
     void close();

@@ -212,7 +212,7 @@ vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, Re
 void
 vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
 {
-    Sample::iterator sample_iterator(sample);
+    Sample::iterator sample_iterator(sample, this->working_genotype);
     this->samples_processed.push_back(sample.id());
     
     std::string phrase;

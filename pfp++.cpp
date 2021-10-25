@@ -26,12 +26,14 @@ int main(int argc, char **argv)
     bool check = false;
     bool only_trigger_strings = false;
     bool verbose = false;
+    std::string haplotype_string = "1";
     
     vcfbwt::pfp::Params params;
     
     app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->configurable();
     app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->configurable();
     app.add_option("-f,--fasta", fasta_file_path, "Fasta file to parse.")->configurable()->check(CLI::ExistingFile);
+    app.add_option("-H,--haplotype", haplotype_string, "Haplotype. [1,2,12]")->configurable();
     app.add_option("-t,--text", text_file_path, "Text file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze")->configurable();
@@ -106,13 +108,41 @@ int main(int argc, char **argv)
             main_parser.register_worker(workers[i]);
         }
 
-        #pragma omp parallel for schedule(static)
-        for (std::size_t i = 0; i < vcf.size(); i++)
+        if ( haplotype_string == "1" or haplotype_string == "2")
         {
-            int this_thread = omp_get_thread_num();
-            spdlog::info("Processing sample [{}/{}]: {}", i, vcf.size(), vcf[i].id());
-            workers[this_thread](vcf[i]);
+            if (haplotype_string == "1") { for (std::size_t i = 0; i < workers.size(); i++) { workers[i].set_working_genotype(0); } }
+            else { for (std::size_t i = 0; i < workers.size(); i++) { workers[i].set_working_genotype(1); } }
+            
+            #pragma omp parallel for schedule(static)
+            for (std::size_t i = 0; i < vcf.size(); i++)
+            {
+                int this_thread = omp_get_thread_num();
+                spdlog::info("Processing sample [{}/{} H{}]: {}", i, vcf.size(), haplotype_string, vcf[i].id());
+                workers[this_thread](vcf[i]);
+            }
         }
+        else if ( haplotype_string == "12" )
+        {
+            for (std::size_t i = 0; i < workers.size(); i++) { workers[i].set_working_genotype(0); }
+            #pragma omp parallel for schedule(static)
+            for (std::size_t i = 0; i < vcf.size(); i++)
+            {
+                int this_thread = omp_get_thread_num();
+                spdlog::info("Processing sample [{}/{} H{}]: {}", i, vcf.size(), 1, vcf[i].id());
+                workers[this_thread](vcf[i]);
+            }
+    
+            for (std::size_t i = 0; i < workers.size(); i++) { workers[i].set_working_genotype(1); }
+            #pragma omp parallel for schedule(static)
+            for (std::size_t i = 0; i < vcf.size(); i++)
+            {
+                int this_thread = omp_get_thread_num();
+                spdlog::info("Processing sample [{}/{} H{}]: {}", i, vcf.size(), 2, vcf[i].id());
+                workers[this_thread](vcf[i]);
+            }
+        
+        }
+        
     
         // close the main parser and exit
         main_parser.close();
