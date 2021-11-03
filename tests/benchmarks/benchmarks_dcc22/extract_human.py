@@ -32,7 +32,7 @@ n_threads   = 64
 def get_vcf_files(out_dir):
     rootLogger = logging.getLogger()
     vcf_files_list = list()
-    for chromosome_id in [str(c) for c in range(1,23)]:
+    for chromosome_id in [str(c) for c in chromosomes_list]:
         chromosome_file_name = "ALL.chr{}.phase3_shapeit2_mvncall_integrated_v5{}.20130502." \
                                "genotypes.vcf.gz".format(chromosome_id, version_letter)
 
