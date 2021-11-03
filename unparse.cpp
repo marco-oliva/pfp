@@ -22,6 +22,7 @@ int main(int argc, char **argv)
     app.add_option("-o,--out-file", out_file, "Output file")->check(CLI::NonexistentPath);
     app.add_option("-d,--dictionary", dict_file, "Dictionary file")->check(CLI::ExistingFile)->required();
     app.add_option("-p,--parse", parse_file, "Parse file")->check(CLI::ExistingFile)->required();
+    app.add_option("--occurrences", parse_file, "Occurrences file")->check(CLI::ExistingFile);
     app.add_option("-w, --window", window_size, "Window size")->required();
     app.add_flag("--size-only", size_only, "Only compute size of unparsed text");
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
@@ -36,6 +37,9 @@ int main(int argc, char **argv)
     spdlog::info("Reading dictionary");
     std::vector<std::string> dict;
     vcfbwt::pfp::ParserUtils::read_dictionary(dict_file, dict);
+    
+    // If size only use occ file
+    std::vector<std::size_t> occurrences(dict.size());
     
     std::ifstream parse_stream(parse_file, std::ios::binary);
     
