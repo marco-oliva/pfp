@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     std::size_t threshold = 0;
     bool compress_dictionary = false;
 
-    app.add_option("-o,--out-file", out_file, "Output file")->required();
+    app.add_option("-o,--out-file", out_file, "Output file");
     app.add_option("-i,--input", input_prefix, "Input Prefix")->required();
     app.add_option("-t,--threshold", threshold, "Threshold");
     app.add_option("-w, --window", window_size, "Window size")->required();
@@ -31,6 +31,8 @@ int main(int argc, char **argv)
     app.allow_windows_style_options();
 
     CLI11_PARSE(app, argc, argv);
+
+    if (out_file.empty()) { out_file = input_prefix + ".deleted_ts"; }
 
     // Print out configurations
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));

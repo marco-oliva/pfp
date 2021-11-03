@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     app.add_option("-p, --modulo", params.p, "Module used during parisng")->check(CLI::Range(5, 20000))->configurable();
     app.add_option("-j, --threads", threads, "Number of threads")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
-    app.add_flag("-c, --compression", params.compress_dictionary, "Compress the dictionary")->configurable();
+    app.add_flag("-c, --compression", params.compress_dictionary, "Also output compressed the dictionary")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats")->configurable();
     app.add_flag("--verbose", verbose, "Verbose output")->configurable();
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     
     if (not fasta_file_path.empty())
     {
-        if (out_prefix.empty()) { spdlog::error("If parsing fasta -o,--out-prefix required"); return EXIT_FAILURE; }
+        if (out_prefix.empty()) { out_prefix = fasta_file_path; }
         vcfbwt::pfp::ParserFasta main_parser(params, fasta_file_path, out_prefix);
     
         // Run
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
     }
     else if (not text_file_path.empty())
     {
-        if (out_prefix.empty()) { spdlog::error("If parsing text -o,--out-prefix required"); return EXIT_FAILURE; }
+        if (out_prefix.empty()) { out_prefix = text_file_path; }
         vcfbwt::pfp::ParserText main_parser(params, text_file_path, out_prefix);
     
         // Run
