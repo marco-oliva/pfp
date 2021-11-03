@@ -79,7 +79,7 @@ def per_sample_fasta(samples_dir, ref_dir, vcf_files_list, sample):
         rootLogger.info('{} already exists, overwriting it'.format(out_fasta_all_path))
     out_fasta_all = open(out_fasta_all_path, 'w')
     for idx,vcf_file in enumerate(vcf_files_list):
-        chromosome = str(idx + 1)
+        chromosome = str(chromosomes_list[idx])
         ref_fasta = ref_dir + '/' + chromosome + '.fa.gz'
 
         out_fasta_single_chromosome_h1 = sample_dir + '/' + sample + '_' + chromosome + '_h1.fa'
@@ -133,7 +133,6 @@ def main():
     ref_dir = common_data_dir + '/ref'
     mkdir_p(ref_dir)
     ref_files_list = get_reference_files(ref_dir)
-    ref_files_list = ref_files_list[0:22]
 
     samples_dir = args.out_dir
     mkdir_p(samples_dir)
