@@ -60,7 +60,7 @@ def get_pfp(work_dir):
         execute_command('cp {} {}'.format(pfp_realpath, work_dir))
         return work_dir + '/pfp++'
     if os.path.exists('../../../build/pfp++'):
-        pfp_realpath = os.path.relpath('../../build/pfp++')
+        pfp_realpath = os.path.relpath('../../../build/pfp++')
         execute_command('cp {} {}'.format(pfp_realpath, work_dir))
         return work_dir + '/pfp++'
     repository = "https://github.com/marco-oliva/pfp.git"
