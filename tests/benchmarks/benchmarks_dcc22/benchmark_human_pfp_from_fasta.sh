@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=exp-A
+#SBATCH --job-name=PFPDCC
 #SBATCH --account=boucher
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=marco.oliva@ufl.edu
 #SBATCH --exclusive
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=120
+#SBATCH --cpus-per-task=100
 #SBATCH --mem=1000gb
 #SBATCH --time=240:00:00
-#SBATCH --output=%j_exp-A.log
+#SBATCH --output=%j_PFP_FASTA_DCC.log
 #SBATCH --constraint='hpg3&amd&rome&infiniband'
 #
 # Asking for hpg-default 	128 	8 	16 	1 	1028 	hpg3;amd;rome;infiniband 	AMD EPYC 7702 64-Core Processor
