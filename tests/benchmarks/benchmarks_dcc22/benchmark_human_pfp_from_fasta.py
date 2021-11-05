@@ -56,7 +56,7 @@ def main():
         samples = f_handler.readlines()
     samples = [x.strip() for x in samples]
     if (args.max_samples != 0):
-        samples = samples[0 : max_samples]
+        samples = samples[0 : args.max_samples]
 
     # ============================================================
 
