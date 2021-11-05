@@ -39,6 +39,7 @@ module load bcftools
 module load git
 module load gcc/9.3.0
 
+#${PROFILER} ${BENCHMARK_HUMAN} -m 25 -d ${DATA_HUMAN} -s ${SAMPLES_LIST}
 ${PROFILER} ${BENCHMARK_HUMAN} -m 250 -d ${DATA_HUMAN} -s ${SAMPLES_LIST}
 ${PROFILER} ${BENCHMARK_HUMAN} -m 500 -d ${DATA_HUMAN} -s ${SAMPLES_LIST}
 ${PROFILER} ${BENCHMARK_HUMAN} -m 750 -d ${DATA_HUMAN} -s ${SAMPLES_LIST}
