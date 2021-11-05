@@ -70,7 +70,7 @@ def main():
     multi_sample_file = open(out_fasta_multi_sample, 'w')
     for idx, sample in enumerate(samples):
         sample_file_path = args.samples_dir + '/' + sample + '/' + sample + '_ALL_H1_H2.fa'
-        rootLogger.info('Cpying [{}/{}] {}'.format(idx, args.max_samples,sample))
+        rootLogger.info('Cpying [{}/{}] {}'.format(idx, args.max_samples,sample_file_path))
         with open(sample_file_path) as sample_file:
             multi_sample_file.write(sample_file.read())
     multi_sample_file.close()
