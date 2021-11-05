@@ -4,9 +4,6 @@ from utils import *
 
 # Set this dir
 data_base_dir = '/blue/boucher/marco.oliva/projects/experiments/pfp/DCC22/vcf_to_fa'
-pre_download_data_dir = '/blue/boucher/marco.oliva/data/1kgp'
-
-version_letter = 'a'
 
 # Assuming installed
 # - bcftools
@@ -44,6 +41,7 @@ def main():
     parser = argparse.ArgumentParser(description='Testing stuff.')
     parser.add_argument('-s', dest='samples_file', type=str, help='File containing list of samples', required=True)
     parser.add_argument('-d', dest='samples_dir', type=str, help='Folder containing pre extracted files', required=True)
+    parser.add_argument('-m', default=0, dest='max_samples', type=int, help='Out of the samples list, get first m', required=True)
     args = parser.parse_args()
 
     # Get executables
@@ -57,6 +55,8 @@ def main():
     with open(args.samples_file) as f_handler:
         samples = f_handler.readlines()
     samples = [x.strip() for x in samples]
+    if (args.max_samples != 0):
+        samples = samples[0 : max_samples]
 
     # ============================================================
 
