@@ -29,13 +29,10 @@ fi
 BASE_DIR_EXP="/blue/boucher/marco.oliva/projects/experiments/pfp"
 PROFILER="/usr/bin/time --verbose"
 
-BENCHMARK_HUMAN="${BASE_DIR_EXP}/repo/pfp/tests/benchmarks/benchmark_human.py"
-SAMPLES_LIST_BASE_HUMAN="${BASE_DIR_EXP}/repo/pfp/tests/benchmarks/samples_lists/input_list"
-DATA_HUMAN="${BASE_DIR_EXP}/human_tests/data/samples"
+DATA_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/DCC22/vcf_to_fa/data/samples"
 
-BENCHMARK_ARABIDOPSIS="${BASE_DIR_EXP}/repo/pfp/tests/benchmarks/benchmark_arabidopsis.py"
-SAMPLES_LIST_BASE_ARABIDOPSIS="${BASE_DIR_EXP}/repo/pfp/tests/benchmarks/samples_lists/arabidopsis_input_list"
-DATA_ARABIDOPSIS="${BASE_DIR_EXP}/arabidopsis_tests/data/samples"
+SAMPLES_LIST="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmarks_dcc22/input_list_25.txt"
+OUT_DIR="/blue/boucher/marco.oliva/projects/experiments/pfp/DCC22/vcf_to_fa/data/samples"
 
 module load python/3.6
 module load htslib
@@ -43,17 +40,6 @@ module load bcftools
 module load git
 module load gcc/9.3.0
 
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -d ${DATA_HUMAN} -s "${SAMPLES_LIST_BASE_HUMAN}_10.txt"
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -d ${DATA_HUMAN} -s "${SAMPLES_LIST_BASE_HUMAN}_100.txt"
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -d ${DATA_HUMAN} -s "${SAMPLES_LIST_BASE_HUMAN}_200.txt"
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -d ${DATA_HUMAN} -s "${SAMPLES_LIST_BASE_HUMAN}_400.txt"
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -d ${DATA_HUMAN} -s "${SAMPLES_LIST_BASE_HUMAN}_800.txt"
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -d ${DATA_HUMAN} -s "${SAMPLES_LIST_BASE_HUMAN}_1600.txt" --skip-pscan
-#${PROFILER} ${BENCHMARK_HUMAN} -t 32 -d ${DATA_HUMAN} -s "${SAMPLES_LIST_BASE_HUMAN}_all.txt" --skip-pscan
-
-${PROFILER} "${BENCHMARK_ARABIDOPSIS}" -t 32 -d "${DATA_ARABIDOPSIS}" -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_25.txt"
-${PROFILER} "${BENCHMARK_ARABIDOPSIS}" -t 32 -d "${DATA_ARABIDOPSIS}" -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_125.txt"
-${PROFILER} "${BENCHMARK_ARABIDOPSIS}" -t 32 -d "${DATA_ARABIDOPSIS}" -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_250.txt"
-${PROFILER} "${BENCHMARK_ARABIDOPSIS}" -t 32 -d "${DATA_ARABIDOPSIS}" -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_500.txt"
-${PROFILER} "${BENCHMARK_ARABIDOPSIS}" -t 32 -d "${DATA_ARABIDOPSIS}" -s "${SAMPLES_LIST_BASE_ARABIDOPSIS}_1000.txt"
-
+${PROFILER} ${BENCHMARK_HUMAN} -m 250 -d ${DATA_HUMAN} -s ${SAMPLES_LIST}
+${PROFILER} ${BENCHMARK_HUMAN} -m 500 -d ${DATA_HUMAN} -s ${SAMPLES_LIST}
+${PROFILER} ${BENCHMARK_HUMAN} -m 750 -d ${DATA_HUMAN} -s ${SAMPLES_LIST}
