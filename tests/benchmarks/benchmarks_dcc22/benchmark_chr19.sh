@@ -29,7 +29,7 @@ fi
 BASE_DIR_EXP="/blue/boucher/marco.oliva/projects/experiments/pfp"
 PROFILER="/usr/bin/time --verbose"
 
-BENCHMARK_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmarks_dcc22/benchmark_19.py"
+BENCHMARK_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmarks_dcc22/benchmark_chr19.py"
 DATA_HUMAN="/blue/boucher/marco.oliva/projects/experiments/pfp/DCC22/vcf_to_fa/data/samples"
 SAMPLES_LIST="/blue/boucher/marco.oliva/projects/experiments/pfp/repo/pfp/tests/benchmarks/benchmarks_dcc22/input_list_2500.txt"
 
