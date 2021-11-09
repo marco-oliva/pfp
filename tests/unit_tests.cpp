@@ -11,7 +11,6 @@
 #include <utils.hpp>
 #include <pfp_algo.hpp>
 #include <au_pair_algo.hpp>
-#include <internals.hpp>
 
 //------------------------------------------------------------------------------
 
@@ -527,7 +526,7 @@ TEST_CASE( "Selecting only Sample: HG00103", "[VCF parser]" )
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     std::string samples_file_name = testfiles_dir + "/allowed_samples_list.txt";
     vcfbwt::VCF vcf(ref_file_name, vcf_file_name, samples_file_name);
- 
+
     REQUIRE(vcf[0].id() == "HG00103");
 
     std::string test_sample_path = testfiles_dir + "/HG00103_chrY_H1.fa.gz";

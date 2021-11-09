@@ -45,6 +45,7 @@ namespace vcfbwt
 
 typedef std::uint64_t long_type;
 typedef std::uint32_t short_type;
+typedef uint8_t  char_type;
 static long_type  long_prime   = 27162335252586509;
 static short_type short_prime  =        1999999973;
 
@@ -141,7 +142,7 @@ public:
     KarpRabinHash(size_type n, bool debug = false);
     
     void initialize(const std::string& window);
-    void update(char char_out, char char_in);
+    void update(char_type char_out, char_type char_in);
     void reset();
     
     const hash_type& get_hash() const { return this->hash_value; }

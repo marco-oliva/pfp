@@ -35,19 +35,18 @@ private:
     size_type window_length;
     std::string in_prefix;
     size_type batch_size;
-    
-    std::size_t curr_id;
-    
+
     bool closed = false;
     bool compress_dictionary = false;
     
     struct d_prime
     {
         std::vector<std::string> d_prime_vector;
-        std::map<size_type, std::string> d_prime_map;
-        
+        std::vector<std::string> d_prime_vector_additions;
+
+        size_type insert(const std::string& element);
         void remove(size_type i);
-        const std::string& at(std::size_t i) const;
+        const std::string& at(size_type i) const;
     } D_prime;
     
     int cost_of_removing_trigger_string(const std::string_view& ts);
@@ -91,8 +90,6 @@ public:
         
         return removed_bytes;
     }
-    
-    
 };
 
 }

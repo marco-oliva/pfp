@@ -43,13 +43,14 @@ vcfbwt::KarpRabinHash::initialize(const std::string& window)
     assert(window.size() == this->window_length);
     for (hash_type i = 0; i < this->window_length; i++)
     {
-        hash_value += window[window.size() - 1 - i] * modular_pow(constant, i, prime);
+        char_type c = window[window.size() - 1 - i];
+        hash_value += c * modular_pow(constant, i, prime);
         hash_value = hash_value % prime;
     }
 }
 
 void
-vcfbwt::KarpRabinHash::update(char char_out, char char_in)
+vcfbwt::KarpRabinHash::update(vcfbwt::char_type char_out, vcfbwt::char_type char_in)
 {
     if (debug_) { assert(debug_content_[0] == char_out); debug_content_.erase(0, 1); debug_content_.append(1, char_in); }
     
@@ -67,7 +68,8 @@ vcfbwt::KarpRabinHash::string_hash(const std::string_view& s)
     
     for (hash_type i = 0; i < s.size(); i++)
     {
-        result += s[s.size() - 1 - i] * modular_pow(kr_constant, i, kr_prime);
+        char_type c = s[s.size() - 1 - i];
+        result += c * modular_pow(kr_constant, i, kr_prime);
         result = result % kr_prime;
     }
     

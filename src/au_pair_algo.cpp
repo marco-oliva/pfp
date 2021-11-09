@@ -9,18 +9,26 @@
 //------------------------------------------------------------------------------
 
 const std::string&
-vcfbwt::pfp::AuPair::d_prime::at(std::size_t i) const
+vcfbwt::pfp::AuPair::d_prime::at(vcfbwt::size_type i) const
 {
     if (i < d_prime_vector.size()) { return d_prime_vector.at(i); }
-    else { return d_prime_map.at(i); }
+    else { return d_prime_vector_additions.at(i - d_prime_vector.size()); }
 }
 
-void vcfbwt::pfp::AuPair::d_prime::remove(vcfbwt::size_type i)
+void
+vcfbwt::pfp::AuPair::d_prime::remove(vcfbwt::size_type i)
 {
     if (i < d_prime_vector.size()) { d_prime_vector[i] = ""; }
-    else { d_prime_map.erase(i); }
+    else { d_prime_vector_additions[i - d_prime_vector.size()] = ""; }
 }
 
+
+vcfbwt::size_type
+vcfbwt::pfp::AuPair::d_prime::insert(const std::string& element)
+{
+    d_prime_vector_additions.emplace_back(element);
+    return d_prime_vector_additions.size() + d_prime_vector.size();
+}
 
 int
 vcfbwt::pfp::AuPair::cost_of_removing_trigger_string(const string_view& ts)
@@ -96,8 +104,7 @@ vcfbwt::pfp::AuPair::init_structures()
 {
     spdlog::info("Reading Dictionary");
     vcfbwt::pfp::ParserUtils::read_dictionary(in_prefix + EXT::DICT, this->D_prime.d_prime_vector);
-    this->curr_id = this->D_prime.d_prime_vector.size() + 10;
-    
+
     spdlog::info("Reading Parse");
     mio::basic_mmap_source<char> in_parse(in_prefix + EXT::PARSE);
     this->parse.init((const size_type*) in_parse.data(), in_parse.size() / sizeof(size_type));
@@ -225,11 +232,9 @@ vcfbwt::pfp::AuPair::remove_simple(std::set<std::string_view>& removed_trigger_s
                 if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
                 {
                     std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
-                    if (curr_id > (std::numeric_limits<size_type>::max() - 10)) { spdlog::error("Current id size (bytes) not big enough"); std::exit(EXIT_FAILURE); }
-        
-                    merged_phrase_id = curr_id++;
+
+                    merged_phrase_id = D_prime.insert(merged_phrase);
                     merged_phrase_id = merged_phrase_id - 1; // compatibility with values from the parse
-                    D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
                     merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
         
                     removed_phrases.insert(pair_first_v);
@@ -359,11 +364,9 @@ vcfbwt::pfp::AuPair::remove_by_cost(std::set<std::string_view>& removed_trigger_
             if (not merged_pairs.contains(std::pair(pair_first_v, pair_second_v)))
             {
                 std::string merged_phrase = D_prime.at(pair_first_v) + D_prime.at(pair_second_v).substr(window_length);
-                if (curr_id > (std::numeric_limits<size_type>::max() - 10)) { spdlog::error("Current id size (bytes) not big enough"); std::exit(EXIT_FAILURE); }
 
-                merged_phrase_id = curr_id++;
+                merged_phrase_id = D_prime.insert(merged_phrase);
                 merged_phrase_id = merged_phrase_id - 1; // compatibility with values from the parse
-                D_prime.d_prime_map.insert(std::pair(merged_phrase_id, merged_phrase));
                 merged_pairs.insert(std::make_pair(std::make_pair(pair_first_v, pair_second_v), merged_phrase_id));
 
                 removed_phrases.insert(pair_first_v);
@@ -483,9 +486,12 @@ vcfbwt::pfp::AuPair::close()
             sorted_phrases.emplace_back(std::ref(D_prime.d_prime_vector[i]), i);
         }
     }
-    for (auto& d_pair : D_prime.d_prime_map)
+    for (std::size_t i = 0; i < D_prime.d_prime_vector_additions.size(); i++)
     {
-        sorted_phrases.emplace_back(std::pair(std::ref(d_pair.second), d_pair.first));
+        if (!D_prime.d_prime_vector_additions[i].empty())
+        {
+            sorted_phrases.emplace_back(std::ref(D_prime.d_prime_vector_additions[i]), i + D_prime.d_prime_vector.size());
+        }
     }
     
     std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller);
