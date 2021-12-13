@@ -12,79 +12,79 @@ const std::string vcfbwt::VCF::vcf_freq = "AF";
 
 //------------------------------------------------------------------------------
 
-vcfbwt::Sample::iterator::iterator(const Sample& sample, std::size_t genotype) :
-sample_(sample), genotype(genotype),
+vcfbwt::Contig::iterator::iterator(const Contig& contig, std::size_t genotype) :
+contig_(contig), genotype(genotype),
 ref_it_(0), sam_it_(0), var_it_(0), curr_var_it_(0), prev_variation_it(0),
-curr_char_(NULL), sample_length_(sample.reference_.size())
+curr_char_(NULL), contig_length_(contig.reference_.size())
 {
-    // Compute sample length, might take some time
+    // Compute contig length, might take some time
     long long int indels = 0; // could be negative, so int
-    for (std::size_t i = 0; i < this->sample_.variations.size(); i++)
+    for (std::size_t i = 0; i < this->contig_.variations.size(); i++)
     {
-        std::size_t var_id = this->sample_.variations[i];
-        int var_genotype = this->sample_.genotypes[i][this->genotype];
+        std::size_t var_id = this->contig_.variations[i];
+        int var_genotype = this->contig_.genotypes[i][this->genotype];
         if (var_genotype != 0)
         {
-            indels += sample_.variations_list[var_id].alt[var_genotype].size() -
-                      sample_.variations_list[var_id].ref_len;
+            indels += contig_.variations_list[var_id].alt[var_genotype].size() -
+                      contig_.variations_list[var_id].ref_len;
         }
         
     }
-    sample_length_ = sample_length_ + indels;
-    while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+    contig_length_ = contig_length_ + indels;
+    while (var_it_ < contig_.variations.size() and contig_.genotypes[var_it_][genotype] == 0)
     { var_it_++; }
     this->operator++();
 }
 
 bool
-vcfbwt::Sample::iterator::end() { return ref_it_ > this->sample_.reference_.size(); }
+vcfbwt::Contig::iterator::end() { return ref_it_ > this->contig_.reference_.size(); }
 
 const char
-vcfbwt::Sample::iterator::operator*() { return *curr_char_; }
+vcfbwt::Contig::iterator::operator*() { return *curr_char_; }
 
 bool
-vcfbwt::Sample::iterator::in_a_variation()
+vcfbwt::Contig::iterator::in_a_variation()
 {
-    const Variation& curr_variation = sample_.variations_list[sample_.variations[var_it_]];
+    const Variation& curr_variation = contig_.variations_list[contig_.variations[var_it_]];
     return (ref_it_ == curr_variation.pos);
 }
 
 std::size_t
-vcfbwt::Sample::iterator::next_variation() const
+vcfbwt::Contig::iterator::next_variation() const
 {
-    if (var_it_ < sample_.variations.size()) { return sample_.get_variation(var_it_).pos; }
-    else { return sample_.reference_.size() - 1; }
+    if (var_it_ < contig_.variations.size()) { return contig_.get_variation(var_it_).pos; }
+    else { return contig_.reference_.size() - 1; }
 }
 
 std::size_t
-vcfbwt::Sample::iterator::prev_variation() const
+vcfbwt::Contig::iterator::prev_variation() const
 {
-    if (var_it_ == 0) { spdlog::error("vcfbwt::Sample::iterator::prev_variation() var_it == 0"); std::exit(EXIT_FAILURE); }
-    return sample_.get_variation(prev_variation_it).pos;
+    if (var_it_ == 0) { spdlog::error("vcfbwt::Contig::iterator::prev_variation() var_it == 0"); std::exit(EXIT_FAILURE); }
+    return contig_.get_variation(prev_variation_it).pos;
 }
 
 std::size_t
-vcfbwt::Sample::iterator::next_variation_distance() const
+vcfbwt::Contig::iterator::next_variation_distance() const
 {
     return this->next_variation() - (this->ref_it_ - 1);
 }
 
 void
-vcfbwt::Sample::iterator::operator++()
+vcfbwt::Contig::iterator::operator++()
 {
     // Ci sono ancora variazioni da processare
-    if (var_it_ < sample_.variations.size())
+    if (var_it_ < contig_.variations.size())
     {
-        const Variation& curr_variation = sample_.variations_list[sample_.variations[var_it_]];
+        const Variation& curr_variation = contig_.variations_list[contig_.variations[var_it_]];
         
         if (ref_it_ < curr_variation.pos)
         {
-            curr_char_ = &(sample_.reference_[ref_it_]); ref_it_++; sam_it_++;
+            curr_char_ = &(contig_.reference_[ref_it_]); ref_it_++; sam_it_++;
             return;
         }
         
         // Più nucleotidi nella variaizione
-        int var_genotype = sample_.genotypes[var_it_][genotype];
+        int var_genotype = contig_.genotypes[var_it_][genotype];
         if (curr_variation.alt[var_genotype].size() > 1)
         {
             if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
@@ -97,7 +97,7 @@ vcfbwt::Sample::iterator::operator++()
                 curr_char_ = & curr_variation.alt[var_genotype].back();
                 prev_variation_it = var_it_;
                 var_it_++;
-                while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+                while (var_it_ < contig_.variations.size() and contig_.genotypes[var_it_][genotype] == 0)
                 { var_it_++; }
                 curr_var_it_ = 0; ref_it_ += curr_variation.ref_len; sam_it_++;
             }
@@ -108,25 +108,25 @@ vcfbwt::Sample::iterator::operator++()
             curr_char_ = & curr_variation.alt[var_genotype].front();
             ref_it_ += curr_variation.ref_len; sam_it_++; prev_variation_it = var_it_;
             var_it_++;
-            while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+            while (var_it_ < contig_.variations.size() and contig_.genotypes[var_it_][genotype] == 0)
             { var_it_++; }
         }
     }
     // Non ci sono più variazioni, itera sulla reference
-    else { curr_char_ = &(sample_.reference_[ref_it_]); ref_it_++; sam_it_++; }
+    else { curr_char_ = &(contig_.reference_[ref_it_]); ref_it_++; sam_it_++; }
 }
 
 void
-vcfbwt::Sample::iterator::go_to(std::size_t i)
+vcfbwt::Contig::iterator::go_to(std::size_t i)
 {
-    if (i >= this->sample_.reference_.size())
+    if (i >= this->contig_.reference_.size())
     {
-        spdlog::error("vcfbwt::Sample::iterator::go_to(std::size_t i) Error: i >= reference.size()");
+        spdlog::error("vcfbwt::Contig::iterator::go_to(std::size_t i) Error: i >= reference.size()");
         std::exit(EXIT_FAILURE);
     }
     if (i < ref_it_)
     {
-        spdlog::error("vcfbwt::Sample::iterator::go_to(std::size_t i) Error: i < ref_it_ (going back not allowed)");
+        spdlog::error("vcfbwt::Contig::iterator::go_to(std::size_t i) Error: i < ref_it_ (going back not allowed)");
         std::exit(EXIT_FAILURE);
     }
     
@@ -134,6 +134,33 @@ vcfbwt::Sample::iterator::go_to(std::size_t i)
     while (ref_it_ < i)
     {
         this->operator++();
+    }
+}
+
+//------------------------------------------------------------------------------
+
+vcfbwt::Sample::iterator::iterator(const Sample& sample, std::size_t genotype) :
+sample_(sample), genotype(genotype)
+{
+    v_it_ = sample_.contigs.begin();
+    if(v_it_ != sample_.contigs.end())
+        c_it_ = new vcfbwt::Contig::iterator(*v_it_, genotype);
+}
+
+bool
+vcfbwt::Sample::iterator::end() { return (c_it_->end() and (v_it_ == sample_.contigs.end())); }
+
+const char
+vcfbwt::Sample::iterator::operator*() { return c_it_->operator*(); }
+
+void
+vcfbwt::Sample::iterator::operator++()
+{
+    c_it_->operator++();
+    if(c_it_->end() and (++v_it_ != sample_.contigs.end()))
+    {
+        delete c_it_;
+        c_it_ = new vcfbwt::Contig::iterator(*v_it_, genotype);
     }
 }
 
@@ -169,10 +196,32 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
     zstr::istream is(in_stream);
     std::string line;
     
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { reference.append(line); } }
-    if (not last) { reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); }
+    while (getline(is, line)) 
+    { 
+        // TODO: Remove the second reference append when we can use multiple ReferenceParses.
+        if ( not (line.empty() or line[0] == '>') ) { references.back().append(line); reference.append(line);} 
+        else 
+        { 
+            // Update lengths
+            if( ref_sum_lengths.size() > 1 ) ref_sum_lengths.push_back(ref_sum_lengths.back());
+            else ref_sum_lengths.push_back(0);
+            if(references.size()>0) ref_sum_lengths.back() += references.back().size();
+            // Create the new reference
+            std::string name = line.substr(1,line.find(' ')-1); // -1 to remove the space
+            spdlog::info("Read contig {}.", name);
+            // TODO: store also the description
+            references_id.insert(std::make_pair(name, references.size())); 
+            references.push_back(""); 
+            // Add contig
+            this->variations.push_back(std::vector<Variation>());
+            this->contigs.push_back(Contig(name, references.back(), this->variations.back(), ref_sum_lengths.back()));
+        }
+    }
+    if (not last) { references.back().push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME);}
 
-    ref_sum_lengths.push_back(reference.size());
+    // This is considered with  the next round
+    // if( ref_sum_lengths.size() > 1 ) ref_sum_lengths.push_back(ref_sum_lengths.back())
+    // ref_sum_lengths.back() += references.back().size();
 
     spdlog::info("Done reading {}", ref_path);
 }
@@ -180,9 +229,9 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_variations,
-                      std::vector<Sample>& l_samples, std::unordered_map<std::string, std::size_t>& l_samples_id,
-                      std::size_t i)
+vcfbwt::VCF::init_vcf(const std::string& vcf_path,
+                      std::vector<Sample>& l_samples, 
+                      std::unordered_map<std::string, std::size_t>& l_samples_id)
 {
     // open VCF file
     htsFile * inf = bcf_open(vcf_path.c_str(), "r");
@@ -199,12 +248,14 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     // get l_samples ids from header
     std::size_t n_samples = bcf_hdr_nsamples(hdr);
-    if (this->max_samples == 0) { set_max_samples(n_samples); }
+    // TODO: We need to make this general to be able to handle different species
+    if (this->max_samples == 0) { set_max_samples(n_samples); } 
 
+    // We can add the list of samples 
     std::size_t size_before = l_samples.size();
     for (std::size_t i = 0; i < std::min(n_samples, this->max_samples); i++)
     {
-        vcfbwt::Sample s(std::string(hdr->samples[i]), this->reference, l_variations);
+        vcfbwt::Sample s(std::string(hdr->samples[i]));
         if (l_samples_id.find(s.id()) == l_samples_id.end())
         {
             l_samples.push_back(s);
@@ -223,13 +274,49 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         std::exit(EXIT_FAILURE);
     }
     
+    int rid = -1; // Current contig id in the vcf file;
+    std::string contig_name = ""; // Current contig name in the vcf file;
+    size_t contig_id = 0; // Current contig id in the vcf file;
+    size_t offset = 0;
+    std::vector<size_t> c_id_list; 
+
     // start parsing
     while (bcf_read(inf, hdr, rec) == 0)
     {
+        // Check if we have a different contig
+        if(rid != rec->rid)
+        {
+            rid = rec->rid;
+            const char* c_name = bcf_hdr_id2name(hdr, rid);
+            // Get the contig id in the list of contigs
+            auto it = this->references_id.find(std::string(c_name));
+            if (it != this->references_id.end())
+            {
+                contig_id = it->second;
+                c_id_list.push_back(contig_id);
+                contig_name = std::string(c_name);
+                offset = contigs[contig_id].offset(); // when using multiple vcfs
+                // Add contigs to samples
+                for (std::size_t i = 0; i < std::min(n_samples, this->max_samples); i++)
+                {
+                    std::string sample_name = std::string(hdr->samples[i]);
+                    if((input_samples.empty()) or input_samples.contains(sample_name))
+                    {
+                        vcfbwt::Contig c(this->contigs[contig_id]);
+                        auto id = l_samples_id.find(sample_name);
+                        l_samples[id->second].contigs.push_back(c); 
+                        // I am assuming that each contig comes from only one VCF file
+                        // TODO: Add check that a conting has not been already included. 
+                    }
+                }   
+            }
+            else spdlog::error("Unknown contig {} in VCF file.", c_name); // TODO: Consider skipping it
+        }
+
         vcfbwt::Variation var;
         
         var.ref_len = rec->rlen;
-        std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
+        // std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
         var.pos = rec->pos + offset;
         var.freq = 0;
         
@@ -288,13 +375,13 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         var.freq += 1;
                         var.used = true;
                         // Add variation to sample, size() because we have not added the variations to the list yet
-                        l_samples[id->second].variations.emplace_back(l_variations.size());
-                        l_samples[id->second].genotypes.emplace_back(alleles_idx);
+                        l_samples[id->second].contigs.back().variations.emplace_back(this->variations[contig_id].size());
+                        l_samples[id->second].contigs.back().genotypes.emplace_back(alleles_idx);
                     }
                 }
             }
         }
-        if (var.used) { l_variations.push_back(var); }
+        if (var.used) { this->variations[contig_id].push_back(var); }
         free(gt_arr);
     }
     
@@ -305,19 +392,23 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     // Compute normalized variations frequency
     std::size_t number_of_samples = 0;
-    for (auto& s : l_samples) { if (s.variations.size() > 0) { number_of_samples += 1; } }
-    for (auto& v : l_variations) { v.freq = v.freq / double(number_of_samples); }
-    
-    // print some statistics
-    spdlog::info("Variations size [{}]: {}GB", l_variations.size(), inGigabytes(l_variations.size() * sizeof(Variation)));
-    spdlog::info("Reference size: {} GB", inGigabytes(reference.size()));
-    
+    for (auto& s : l_samples) { if (s.contigs.size() > 0) { number_of_samples += 1; } }
+    for (auto& c : c_id_list) 
+    {
+        spdlog::info("Contig {}", this->contigs[c].id());
+        for (auto& v : this->variations[c]) { v.freq = v.freq / double(number_of_samples); }
+        // print some statistics
+        spdlog::info("Variations size [{}]: {}GB", this->variations[c].size(), inGigabytes(this->variations[c].size() * sizeof(Variation)));
+        spdlog::info("Reference size: {} GB", inGigabytes(references[c].size()));
+
+    }
     std::size_t tot_a_s = 0;
     for (auto& s : l_samples)
-    {
-        tot_a_s += s.variations.size();
-    }
+        for(auto& t : s.contigs) tot_a_s += t.variations.size();
+    
     spdlog::info("Samples size: {} GB", inGigabytes(tot_a_s * 8));
+    
+    
 }
 
 //------------------------------------------------------------------------------
@@ -325,12 +416,12 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
 void
 vcfbwt::VCF::init_vcf(const std::string &vcf_path, std::size_t i)
 {
-    init_vcf(vcf_path, variations, samples, samples_id, i);
+    init_vcf(vcf_path, samples, samples_id);
     std::size_t tot_a_s = 0, tot_samples = 0;
     for (auto& s : this->samples)
     {
-        tot_a_s += s.variations.size();
-        if (s.variations.size() > 0) { tot_samples += 1; }
+        for(auto& c : s.contigs) tot_a_s += c.variations.size();
+        if (s.contigs.size() > 0) { tot_samples += 1; }
     }
     spdlog::info("Average variations per sample: {}", tot_a_s / tot_samples);
 }
@@ -349,6 +440,8 @@ vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path)
 
 //------------------------------------------------------------------------------
 
+// We can make the assumption/request that each Sample contig is contained in only one VCF file
+// If that is not true, we can ask to merge the VCF files.
 void
 vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
 {
@@ -361,59 +454,54 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
     std::vector<std::unordered_map<std::string, std::size_t>> tmp_samples_id;
 
     tmp_samples_array.resize(vcfs_path.size());
-    tmp_variations_array.resize(vcfs_path.size());
     tmp_samples_id.resize(vcfs_path.size());
 
     #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < vcfs_path.size(); i++)
     {
         init_vcf(vcfs_path[i],
-                 tmp_variations_array[i],
                  tmp_samples_array[i],
-                 tmp_samples_id[i],
-                 i);
+                 tmp_samples_id[i]);
     }
 
     // Merge tmp structures into global structures
     spdlog::info("Merging variations");
     for (std::size_t i = 0; i < vcfs_path.size(); i++)
     {
-        std::size_t prev_variations_arr_size = variations.size();
-        this->variations.insert(this->variations.end(), tmp_variations_array[i].begin(), tmp_variations_array[i].end());
-        tmp_variations_array[i].clear();
 
         for (auto& sample : tmp_samples_array[i])
         {
             if (this->samples_id.find(sample.id()) == this->samples_id.end())
             {
-                Sample s(sample.id(), this->reference, this->variations);
+                Sample s(sample.id());
                 this->samples.push_back(s);
                 this->samples_id.insert(std::make_pair(sample.id(), this->samples.size() - 1));
             }
 
-            for (auto& sample_variation : sample.variations)
+            for (auto& contig : sample.contigs)
             {
-                this->samples[samples_id[sample.id()]].variations.push_back(sample_variation + prev_variations_arr_size);
+                this->samples[samples_id[sample.id()]].contigs.push_back(std::move(contig));
             }
-    
-            for (auto& genotype_info : sample.genotypes)
-            {
-                this->samples[samples_id[sample.id()]].genotypes.push_back(genotype_info);
-            }
+
         }
         tmp_samples_array[i].clear();
         tmp_samples_id[i].clear();
     }
 
     // print some statistics
-    spdlog::info("Variations size [{}]: {}GB", variations.size(), inGigabytes(variations.size() * sizeof(Variation)));
-    spdlog::info("Reference size: {} GB", inGigabytes(reference.size()));
-    
+    for (size_t c = 0; c < this->contigs.size(); ++c) 
+    {
+        spdlog::info("Contig {}", this->contigs[c].id());
+        spdlog::info("Variations size [{}]: {}GB", this->variations[c].size(), inGigabytes(this->variations[c].size() * sizeof(Variation)));
+        spdlog::info("Reference size: {} GB", inGigabytes(references[c].size()));
+
+    }
+
     std::size_t tot_a_s = 0, tot_samples = 0;
     for (auto& s : this->samples)
     {
-        tot_a_s += s.variations.size();
-        if (s.variations.size() > 0) { tot_samples += 1; }
+        for(auto& c : s.contigs) tot_a_s += s.contigs.size();
+        if (s.contigs.size() > 0) { tot_samples += 1; }
     }
     spdlog::info("Samples size: {} GB", inGigabytes(tot_a_s * 8));
     spdlog::info("Average variations per sample: {}", tot_a_s / tot_samples);

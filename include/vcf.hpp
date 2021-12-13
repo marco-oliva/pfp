@@ -46,31 +46,35 @@ struct Variation
     enum variation_type { H1, H2, H12 };
 };
 
-class Sample
+
+class Contig
 {
 private:
     
     const std::string& reference_;
     const std::vector<Variation>& variations_list;
     
-    std::string sample_id;
-    bool is_last_sample = false;
+    std::size_t offset_ = 0;
+    
+    std::string contig_id;
+    bool is_last_contig = false;
     
     friend class iterator;
     
 public:
     
-    void set_last() { this->is_last_sample = true; }
-    bool last() const { return this->is_last_sample; }
+    void set_last() { this->is_last_contig = true; }
+    bool last() const { return this->is_last_contig; }
+    size_t offset() const { return this->offset_; }
     
     // variation, variation type
     std::vector<std::size_t> variations;
     std::vector<std::vector<int>> genotypes;
 
-    const std::string& id() const { return this->sample_id; }
+    const std::string& id() const { return this->contig_id; }
     
-    Sample(const std::string& id, const std::string& ref, const std::vector<Variation>& variations)
-    : sample_id(id), reference_(ref), variations_list(variations) {}
+    Contig(const std::string& id, const std::string& ref, const std::vector<Variation>& variations, const size_t offset)
+    : contig_id(id), reference_(ref), variations_list(variations), offset_(offset) {}
     
     const Variation& get_variation(size_type i) const { return this->variations_list[variations[i]]; }
     
@@ -80,19 +84,19 @@ public:
     {
     private:
         
-        const Sample& sample_;
+        const Contig& contig_;
         std::size_t genotype;
         std::size_t ref_it_;
         std::size_t sam_it_;
         std::size_t var_it_;
         std::size_t prev_variation_it;
         std::size_t curr_var_it_;
-        std::size_t sample_length_;
+        std::size_t contig_length_;
         const char* curr_char_;
         
     public:
         
-        iterator(const Sample& sample, std::size_t genotype = 0);
+        iterator(const Contig& contig, std::size_t genotype = 0);
         
         bool end();
         void operator++();
@@ -108,7 +112,50 @@ public:
         std::size_t next_variation_distance() const;
         std::size_t prev_variation() const;
         
-        std::size_t length() const { return sample_length_; }
+        std::size_t length() const { return contig_length_; }
+    };
+};
+
+
+class Sample
+{  
+protected:
+
+    std::string sample_id;
+
+    bool is_last_sample = false;
+        
+    friend class iterator;
+
+public:
+
+    Sample(const std::string& id)
+    : sample_id(id){}
+
+    void set_last() { this->is_last_sample = true; } //TODO: Check if we need to set also the contig flag
+    bool last() const { return this->is_last_sample; }
+
+    const std::string& id() const { return this->sample_id; }
+    
+    // The actual list of contigs of the sample.
+    std::vector<Contig> contigs;
+
+    class iterator
+    {
+    private:
+        
+        const Sample& sample_;
+        std::size_t genotype;
+        vcfbwt::Contig::iterator* c_it_ = nullptr;
+        std::vector<Contig>::const_iterator v_it_;
+
+    public:
+        
+        iterator(const Sample& sample, std::size_t genotype = 0);
+        ~iterator() {if(c_it_ != nullptr) delete c_it_;}
+        bool end();
+        void operator++();
+        const char operator*();
     };
 };
 
@@ -119,9 +166,12 @@ class VCF
 
 private:
     
-    std::string reference;
+    std::string reference; // TODO: Replace it with as many parses as references.
+    std::vector<std::string> references;
+    std::unordered_map<std::string, std::size_t> references_id;
     
-    std::vector<Variation> variations;
+    std::vector<std::vector<Variation>> variations;
+    std::vector<Contig> contigs;
     std::vector<Sample> samples;
     std::unordered_map<std::string, std::size_t> samples_id;
     
@@ -133,9 +183,9 @@ private:
 
     void init_samples(const std::string& samples_path);
     
-    void init_vcf(const std::string& vcf_path, std::vector<Variation>& l_variations,
-                  std::vector<Sample>& l_samples, std::unordered_map<std::string, std::size_t>& l_samples_id,
-                  std::size_t i = 0);
+    void init_vcf(const std::string& vcf_path,
+                  std::vector<Sample>& l_samples, std::unordered_map<std::string, 
+                  std::size_t>& l_samples_id);
     void init_vcf(const std::string& vcf_path, std::size_t i = 0);
     void init_ref(const std::string& ref_path, bool last = true);
     
@@ -152,7 +202,7 @@ public:
         if (samples_path != "") { init_samples(samples_path); }
         init_ref(ref_path); init_vcf(vcf_path);
         for (std::size_t i = 0; i < samples.size(); i++)
-        { if (not samples.at(i).variations.empty()) { this->populated_samples.push_back(i); } }
+        { if (not samples.at(i).contigs.empty()) { this->populated_samples.push_back(i); } }
 
         this->samples.at(populated_samples.back()).set_last();
     }
@@ -162,7 +212,7 @@ public:
         if (samples_path != "") { init_samples(samples_path); }
         init_multi_ref(refs_path); init_multi_vcf(vcfs_path);
         for (std::size_t i = 0; i < samples.size(); i++)
-        { if (not samples.at(i).variations.empty()) { this->populated_samples.push_back(i); } }
+        { if (not samples.at(i).contigs.empty()) { this->populated_samples.push_back(i); } }
 
         this->samples.at(populated_samples.back()).set_last();
     }
@@ -171,7 +221,7 @@ public:
     
     std::size_t size() const { return this->populated_samples.size(); }
     Sample& operator[](std::size_t i) { assert(i < size()); return samples.at(populated_samples.at(i)); }
-    const std::vector<Variation>& get_variations() const { return this->variations; }
+    const std::vector<std::vector<Variation>>& get_variations() const { return this->variations; }
     const std::string& get_reference() const { return this->reference; }
     void set_max_samples(std::size_t max) { this->max_samples = max; }
 };

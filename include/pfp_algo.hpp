@@ -15,6 +15,7 @@
 #include <vcf.hpp>
 #include <utils.hpp>
 #include <internals.hpp>
+// #include <leviosam.hpp>
 
 namespace vcfbwt
 {

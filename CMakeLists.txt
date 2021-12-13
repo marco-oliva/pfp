@@ -78,6 +78,28 @@ if(HTSlib_FOUND)
     message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
 endif()
 
+
+find_library(LEVIOSAM_LIB lvsam)
+if(NOT LEVIOSAM_LIB)
+    message(STATUS "leviosam library not found. Building as an external content.")
+    include(FetchContent)
+    
+    FetchContent_Declare(
+        leviosam
+        GIT_REPOSITORY https://github.com/maxrossi91/levioSAM.git
+        GIT_TAG master
+        )
+        
+    FetchContent_GetProperties(leviosam)
+    if(NOT leviosam_POPULATED)
+        FetchContent_Populate(leviosam)
+        set(BUILD_TESTS OFF CACHE BOOL "Avoid building LevioSAM tests")
+
+        add_subdirectory(${leviosam_SOURCE_DIR} ${leviosam_BINARY_DIR} EXCLUDE_FROM_ALL)
+        target_include_directories(lvsam PUBLIC ${leviosam_SOURCE_DIR}/src ${CMAKE_INCLUDE_PATH})
+        # target_link_libraries(lvsam ${HTS_LIB})
+    endif()
+endif()
 ################################################################################
 # Lib
 
@@ -94,7 +116,7 @@ add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread ssl crypto)
+set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread lvsam)# ssl crypto)
 
 ################################################################################
 # Tests
@@ -142,12 +164,12 @@ add_executable(unparse64 unparse.cpp)
 target_compile_options(unparse64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(unparse64 pfp64 ${VCF_LIB_DEPS})
 
-# Integrity Check
-add_executable(check check_integrity.cpp)
-target_link_libraries(check pfp ${VCF_LIB_DEPS})
-add_executable(check64 check_integrity.cpp)
-target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
+# # Integrity Check
+# add_executable(check check_integrity.cpp)
+# target_link_libraries(check pfp ${VCF_LIB_DEPS})
+# add_executable(check64 check_integrity.cpp)
+# target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
+# target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 
 
 

@@ -654,46 +654,47 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     REQUIRE(check);
 }
 
-TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
-{
-    std::vector<std::string> vcf_file_names =
-            {
-                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
-                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz"
-            };
+// Removed because we are assuming references with different names
+// TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
+// {
+//     std::vector<std::string> vcf_file_names =
+//             {
+//                     testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
+//                     testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz"
+//             };
 
-    std::vector<std::string> ref_file_names =
-            {
-                    testfiles_dir + "/Y.fa.gz",
-                    testfiles_dir + "/Y.fa.gz"
-            };
+//     std::vector<std::string> ref_file_names =
+//             {
+//                     testfiles_dir + "/Y.fa.gz",
+//                     testfiles_dir + "/Y.fa.gz"
+//             };
 
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 1);
+//     vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 1);
 
-    REQUIRE(vcf[0].id() == "HG00096");
+//     REQUIRE(vcf[0].id() == "HG00096");
 
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
+//     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+//     std::ifstream in_stream(test_sample_path);
 
-    REQUIRE(vcfbwt::is_gzipped(in_stream));
+//     REQUIRE(vcfbwt::is_gzipped(in_stream));
 
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-    from_fasta.push_back(vcfbwt::pfp::DOLLAR_PRIME);
-    from_fasta.append(from_fasta);
-    from_fasta.pop_back();
+//     zstr::istream is(in_stream);
+//     std::string line, from_fasta;
+//     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+//     from_fasta.push_back(vcfbwt::pfp::DOLLAR_PRIME);
+//     from_fasta.append(from_fasta);
+//     from_fasta.pop_back();
 
 
-    vcfbwt::Sample::iterator it(vcf[0]);
-    std::string from_vcf;
-    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+//     vcfbwt::Sample::iterator it(vcf[0]);
+//     std::string from_vcf;
+//     while (not it.end()) { from_vcf.push_back(*it); ++it; }
 
-    std::size_t i = 0;
-    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
-            and (from_vcf[i] == from_fasta[i])) { i++; }
-    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
-}
+//     std::size_t i = 0;
+//     while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
+//             and (from_vcf[i] == from_fasta[i])) { i++; }
+//     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+// }
 
 TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
 {

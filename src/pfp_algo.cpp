@@ -212,9 +212,8 @@ vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, Re
 void
 vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
 {
-    Sample::iterator sample_iterator(sample, this->working_genotype);
     this->samples_processed.push_back(sample.id());
-    
+    // TODO: The part below should be reicluded in the for once we will use one parse per each reference contig
     std::string phrase;
     
     // Karp Robin Hash Function for sliding window
@@ -224,84 +223,93 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     phrase.append(this->w - 1, DOLLAR_PRIME);
     phrase.append(1, DOLLAR_SEQUENCE);
     kr_hash.initialize(phrase);
-    
+
     // Shorthands
     std::vector<size_type>& tsp = reference_parse->trigger_strings_position;
     
     std::size_t start_window = 0, end_window = 0;
-    while (not sample_iterator.end())
+
+    for(auto& contig: sample.contigs)
     {
-        // Compute where we are on the reference
-        std::size_t pos_on_reference = sample_iterator.get_ref_it();
+        Contig::iterator contig_iterator(contig, this->working_genotype);
+
+        // // Initialize the Lift builder
+        // lift::Lift_builder lvs_builder(sample.length());
         
-        if ( not ((sample_iterator.get_var_it() > 0) and (sample_iterator.prev_variation() > (pos_on_reference - (8 * this->w)))))
+        while (not contig_iterator.end())
         {
-            // Set start postion to the position in the reference parse after the last computed phrase
-            if (params.use_acceleration and ((phrase.size() == this->w) and ((pos_on_reference != 0) and (phrase[0] != DOLLAR_PRIME))))
-            {
-                start_window = end_window;
-                while ((tsp[start_window] + this->w) <= pos_on_reference and (start_window < tsp.size() - 2))
-                { start_window++; }
-    
-                // Iterate over the parse up to the next variation
-                while (tsp[end_window + 1] < (sample_iterator.next_variation() - (this->w + 1))) { end_window++; }
-                
-                // If the window is not empty
-                if ((start_window < end_window - 1) and (tsp[end_window] > pos_on_reference))
-                {
-                    spdlog::debug("------------------------------------------------------------");
-                    spdlog::debug("from {}", sample.get_reference().substr(tsp[start_window - 1], this->w));
-                    spdlog::debug("copied from {} to {}", tsp[start_window], tsp[end_window] + this->w);
-                    spdlog::debug("next variation: {}", sample_iterator.next_variation());
-                    spdlog::debug("skipped phrases: {}", end_window - start_window);
-                    
-                    // copy from parse[start_window : end_window]
-                    out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
-                    this->parse_size += end_window - start_window + 1;
+            // Compute where we are on the reference
+            std::size_t pos_on_reference = contig_iterator.get_ref_it();
             
-                    // move iterators and re initialize phrase
-                    sample_iterator.go_to(tsp[end_window]);
-                    phrase.clear();
-                    for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}
+            if ( not ((contig_iterator.get_var_it() > 0) and (contig_iterator.prev_variation() > (pos_on_reference - (8 * this->w)))))
+            {
+                // Set start postion to the position in the reference parse after the last computed phrase
+                if (params.use_acceleration and ((phrase.size() == this->w) and ((pos_on_reference != 0) and (phrase[0] != DOLLAR_PRIME))))
+                {
+                    start_window = end_window;
+                    while ((tsp[start_window] + this->w) <= pos_on_reference and (start_window < tsp.size() - 2))
+                    { start_window++; }
+        
+                    // Iterate over the parse up to the next variation
+                    while (tsp[end_window + 1] < (contig_iterator.next_variation() - (this->w + 1))) { end_window++; }
                     
-                    kr_hash.reset(); kr_hash.initialize(phrase);
-                    
-                    ++sample_iterator;
-                    spdlog::debug("New phrase [{}]: {}", phrase.size(), phrase);
-                    spdlog::debug("------------------------------------------------------------");
+                    // If the window is not empty
+                    if ((start_window < end_window - 1) and (tsp[end_window] > pos_on_reference))
+                    {
+                        spdlog::debug("------------------------------------------------------------");
+                        spdlog::debug("from {}", contig.get_reference().substr(tsp[start_window - 1], this->w));
+                        spdlog::debug("copied from {} to {}", tsp[start_window], tsp[end_window] + this->w);
+                        spdlog::debug("next variation: {}", contig_iterator.next_variation());
+                        spdlog::debug("skipped phrases: {}", end_window - start_window);
+                        
+                        // copy from parse[start_window : end_window]
+                        out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
+                        this->parse_size += end_window - start_window + 1;
+                
+                        // move iterators and re initialize phrase
+                        contig_iterator.go_to(tsp[end_window]);
+                        phrase.clear();
+                        for (std::size_t i = 0; i < this->w; i++) { ++contig_iterator; phrase.push_back(*contig_iterator);}
+                        
+                        kr_hash.reset(); kr_hash.initialize(phrase);
+                        
+                        ++contig_iterator;
+                        spdlog::debug("New phrase [{}]: {}", phrase.size(), phrase);
+                        spdlog::debug("------------------------------------------------------------");
+                    }
                 }
             }
-        }
-        
-        // Next phrase should contain a variation so parse as normal, also if we don't
-        // want to use the acceleration we should always end up here
-        phrase.push_back(*sample_iterator);
-        kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]);
-        ++sample_iterator;
-    
-        if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
-        {
-            std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-            hash_type ts_hash = KarpRabinHash::string_hash(ts);
-            if (this->reference_parse->to_ignore_ts_hash.contains(ts_hash)) { continue; }
             
-            hash_type hash = this->dictionary->check_and_add(phrase);
+            // Next phrase should contain a variation so parse as normal, also if we don't
+            // want to use the acceleration we should always end up here
+            phrase.push_back(*contig_iterator);
+            kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]);
+            ++contig_iterator;
         
-            out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
-    
-            if (phrase[0] != DOLLAR_PRIME)
+            if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
             {
-                spdlog::debug("------------------------------------------------------------");
-                spdlog::debug("Parsed phrase [{}] {}", phrase.size(), phrase);
-                spdlog::debug("------------------------------------------------------------");
-            }
+                std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
+                hash_type ts_hash = KarpRabinHash::string_hash(ts);
+                if (this->reference_parse->to_ignore_ts_hash.contains(ts_hash)) { continue; }
+                
+                hash_type hash = this->dictionary->check_and_add(phrase);
             
-            phrase.erase(phrase.begin(), phrase.end() - this->w); // Keep the last w chars
-    
-            kr_hash.reset(); kr_hash.initialize(phrase);
+                out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+        
+                if (phrase[0] != DOLLAR_PRIME)
+                {
+                    spdlog::debug("------------------------------------------------------------");
+                    spdlog::debug("Parsed phrase [{}] {}", phrase.size(), phrase);
+                    spdlog::debug("------------------------------------------------------------");
+                }
+                
+                phrase.erase(phrase.begin(), phrase.end() - this->w); // Keep the last w chars
+        
+                kr_hash.reset(); kr_hash.initialize(phrase);
+            }
         }
     }
-    
+
     // Last phrase
     if (phrase.size() > this->w)
     {
