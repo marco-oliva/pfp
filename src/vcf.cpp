@@ -183,6 +183,19 @@ vcfbwt::VCF::init_samples(const std::string& samples_path)
 }
 
 void
+vcfbwt::VCF::init_contigs()
+{
+    this->variations.reserve(references.size());
+    this->contigs.reserve(references.size());
+    for(size_t i = 0; i < references.size(); ++i)
+    {
+        // Add contig
+        this->variations.push_back(std::vector<Variation>());
+        this->contigs.push_back(Contig(references_name[i], references[i], this->variations.back(), ref_sum_lengths[i]));
+    }
+}
+
+void
 vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 {
     spdlog::info("Reading reference file: {}", ref_path);
@@ -211,10 +224,8 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
             spdlog::info("Read contig {}.", name);
             // TODO: store also the description
             references_id.insert(std::make_pair(name, references.size())); 
+            references_name.push_back(name); 
             references.push_back(""); 
-            // Add contig
-            this->variations.push_back(std::vector<Variation>());
-            this->contigs.push_back(Contig(name, references.back(), this->variations.back(), ref_sum_lengths.back()));
         }
     }
     if (not last) { references.back().push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME);}

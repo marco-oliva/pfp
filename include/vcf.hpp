@@ -76,6 +76,30 @@ public:
     Contig(const std::string& id, const std::string& ref, const std::vector<Variation>& variations, const size_t offset)
     : contig_id(id), reference_(ref), variations_list(variations), offset_(offset) {}
     
+    Contig(Contig&& other)
+    :   reference_(other.reference_), 
+        variations_list(other.variations_list),
+        contig_id(std::move(other.contig_id)),
+        offset_(other.offset_),
+        is_last_contig(other.is_last_contig),
+        variations(std::move(other.variations)),
+        genotypes(std::move(other.genotypes))
+    {
+
+    }
+    
+    Contig(const Contig& other)
+    :   reference_(other.reference_), 
+        variations_list(other.variations_list),
+        contig_id(other.contig_id),
+        offset_(other.offset_),
+        is_last_contig(other.is_last_contig),
+        variations(other.variations),
+        genotypes(other.genotypes)
+    {
+
+    }
+
     const Variation& get_variation(size_type i) const { return this->variations_list[variations[i]]; }
     
     const std::string& get_reference() const { return this->reference_; }
@@ -168,6 +192,7 @@ private:
     
     std::string reference; // TODO: Replace it with as many parses as references.
     std::vector<std::string> references;
+    std::vector<std::string> references_name;
     std::unordered_map<std::string, std::size_t> references_id;
     
     std::vector<std::vector<Variation>> variations;
@@ -192,6 +217,7 @@ private:
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
     void init_multi_ref(const std::vector<std::string>& refs_path);
 
+    void init_contigs();
 
 public:
     
@@ -200,7 +226,7 @@ public:
     VCF(const std::string& ref_path, const std::string& vcf_path, const std::string& samples_path, std::size_t ms = 0) : max_samples(ms)
     {
         if (samples_path != "") { init_samples(samples_path); }
-        init_ref(ref_path); init_vcf(vcf_path);
+        init_ref(ref_path); init_contigs(); init_vcf(vcf_path);
         for (std::size_t i = 0; i < samples.size(); i++)
         { if (not samples.at(i).contigs.empty()) { this->populated_samples.push_back(i); } }
 
@@ -210,7 +236,7 @@ public:
     VCF(const std::vector<std::string>& refs_path, const std::vector<std::string>& vcfs_path, const std::string& samples_path, std::size_t ms = 0) : max_samples(ms)
     {
         if (samples_path != "") { init_samples(samples_path); }
-        init_multi_ref(refs_path); init_multi_vcf(vcfs_path);
+        init_multi_ref(refs_path); init_contigs(); init_multi_vcf(vcfs_path);
         for (std::size_t i = 0; i < samples.size(); i++)
         { if (not samples.at(i).contigs.empty()) { this->populated_samples.push_back(i); } }
 
