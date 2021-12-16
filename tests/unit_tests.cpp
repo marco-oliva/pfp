@@ -548,6 +548,36 @@ TEST_CASE( "Selecting only Sample: HG00103", "[VCF parser]" )
     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
 }
 
+TEST_CASE( "Selecting only Sample: HG00096 Chr 22", "[VCF parser chr22]" )
+{
+    std::string vcf_file_name = testfiles_dir + "/chr.22.10.vcf.gz";
+    std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz";
+    std::string samples_file_name = testfiles_dir + "/allowed_samples_list.txt";
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
+
+    REQUIRE(vcf[0].id() == "HG00096");
+
+    std::string test_sample_path = testfiles_dir + "/HG00096_chr22_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+
+    REQUIRE(vcfbwt::is_gzipped(in_stream));
+
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    vcfbwt::Sample::iterator it(vcf[0]);
+    std::string from_vcf;
+    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+
+    std::size_t i = 0;
+    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
+            and (from_vcf[i] == from_fasta[i])) { i++; }
+    spdlog::info("i: {}, fasta: {}, vcf: {}", i, from_fasta.size(), from_vcf.size());
+    spdlog::info("i: {}, fasta: {}, vcf: {}", i, from_fasta[i], from_vcf[i]);
+    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+}
+
 TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
@@ -993,7 +1023,7 @@ int main( int argc, char* argv[] )
     if( returnCode != 0 ) return returnCode;
 
     spdlog::info("Tests running with w: {}\tp: {}", w_global, p_global);
-
+    spdlog::set_level(spdlog::level::debug);
     session.run();
 }
 

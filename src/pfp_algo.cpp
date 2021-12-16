@@ -213,7 +213,7 @@ void
 vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
 {
     this->samples_processed.push_back(sample.id());
-    // TODO: The part below should be reicluded in the for once we will use one parse per each reference contig
+    // TODO: The part below should be reicluded in the for once we will use one parse per each reference contig.
     std::string phrase;
     
     // Karp Robin Hash Function for sliding window
@@ -233,9 +233,6 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     {
         Contig::iterator contig_iterator(contig, this->working_genotype);
 
-        // // Initialize the Lift builder
-        // lift::Lift_builder lvs_builder(sample.length());
-        
         while (not contig_iterator.end())
         {
             // Compute where we are on the reference
@@ -308,6 +305,21 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                 kr_hash.reset(); kr_hash.initialize(phrase);
             }
         }
+
+        // Build the lifting
+        if(params.compute_lifting)
+        {
+            // Initialize the Lift builder
+            lift::Lift_builder lvs_builder(contig_iterator.length());
+            size_t offset = contig.offset();
+            // Iterate throgh all the variations
+            for(size_t i = 0; i < contig.variations.size(); ++i)
+            {
+                const vcfbwt::Variation& variation = contig.get_variation(i);
+
+            }
+        }
+        
     }
 
     // Last phrase

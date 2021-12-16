@@ -15,7 +15,7 @@
 #include <vcf.hpp>
 #include <utils.hpp>
 #include <internals.hpp>
-// #include <leviosam.hpp>
+#include <leviosam.hpp>
 
 namespace vcfbwt
 {
@@ -88,6 +88,7 @@ struct Params
     bool print_out_statistics_csv = false;
     bool compute_occurrences = true;
     bool auPair = false;
+    bool compute_lifting = false;
     std::string ignore_ts_file;
 };
 

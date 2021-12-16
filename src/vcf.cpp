@@ -290,7 +290,9 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
     size_t contig_id = 0; // Current contig id in the vcf file;
     size_t offset = 0;
     std::vector<size_t> c_id_list; 
-
+    // TODO: Replace those when we will use one array for each aplotype in Contig
+    std::vector<std::vector<int>> tppos(1, std::vector<int>(n_samples,0));
+    std::vector<std::vector<bool>> prev_is_ins(1, std::vector<bool>(n_samples,false));
     // start parsing
     while (bcf_read(inf, hdr, rec) == 0)
     {
@@ -337,6 +339,8 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
         for (int allele_idx = 0; allele_idx < rec->n_allele; allele_idx++)
         {
             var.alt.push_back(rec->d.allele[allele_idx]);
+            var.types.push_back(rec->d.var[allele_idx].type); // Type of variation
+            // var.len.push_back(rec->d.var[allele_idx].n); // Number of bases affected. Negative for deletions.
         }
         
         int32_t *gt_arr = NULL, ngt_arr = 0;
@@ -345,10 +349,15 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
         {
             int max_ploidy = ngt/n_samples;
             bool skip_this_variation = false;
+            while (max_ploidy > tppos.size())
+            {
+                tppos.push_back(std::vector<int>(n_samples,0));
+                prev_is_ins.push_back(std::vector<bool>(n_samples,false));
+            }
             for (std::size_t i_s = 0; i_s < n_samples; i_s++)
             {
                 if (skip_this_variation) { break; }
-                int32_t *ptr = gt_arr + i_s * max_ploidy;
+                int32_t *ptr = gt_arr + i_s * max_ploidy; // TODO: Check correctness if we skip samples
                 std::vector<int> alleles_idx(max_ploidy, 0);
                 bool alt_alleles_set = false;
                 for (std::size_t j = 0; j < max_ploidy; j++)
@@ -364,6 +373,35 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
                         // the VCF 0-based allele index
                         int allele_index = bcf_gt_allele(ptr[j]);
                         
+                        assert( var.types[allele_index] == bcf_get_variant_type(rec, allele_index) );
+
+                        // Determine if overlap. Logic copied from leviosam's: 
+                        // https://github.com/alshai/levioSAM/blob/f72d84ad1141c84e4b315c0dc5d705d2c0d5b936/src/leviosam.hpp#L530
+                        // copied from bcftools consensus`:
+                        // https://github.com/samtools/bcftools/blob/df43fd4781298e961efc951ba33fc4cdcc165a19/consensus.c#L579
+
+                        // For some variant types POS+REF refer to the base *before* the event; in such case set trim_beg
+                        int trim_beg = 0;
+                        int var_len  = rec->d.var[allele_index].n;
+                        if ( var.types[allele_index] & VCF_INDEL ) trim_beg = 1;
+                        else if ( (var.types[allele_index] & VCF_OTHER) && !strcasecmp(rec->d.allele[allele_index],"<DEL>") ) {
+                            trim_beg = 1;
+                            var_len  = 1 - var.ref_len;
+                        }
+                        else if ( (var.types[allele_index] & VCF_OTHER) && !strncasecmp(rec->d.allele[allele_index],"<INS",4) )
+                            trim_beg = 1;
+
+                        // TODO: Replace rec->pos with var.pos when including multiple reference parses.
+                        if (rec->pos <= tppos[j][i_s]) {
+                            int overlap = 0;
+                            if ( rec->pos < tppos[j][i_s] || !trim_beg || var_len==0 || prev_is_ins[j][i_s] ) overlap = 1;
+                            if (overlap) {
+                                // if (verbose) fprintf(stderr, "Skipping variant %s:%lld\n", bcf_seqname(hdr, rec), rec->pos + 1);
+                                spdlog::debug("vcfbwt::VCF::init_vcf: Skipping overlapping variantat sample {} in pos {}", i_s, var.pos);
+                                continue;
+                            }
+                        }
+
                         // Skip symbolic allele
                         if (var.alt[allele_index][0] == '<')
                         {
@@ -371,6 +409,10 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
                             skip_this_variation = true;
                             continue;
                         }
+                        // Update tppos and prev_is_ins
+                        tppos[j][i_s] = rec->pos + rec->rlen - 1;
+                        prev_is_ins[j][i_s] = (var.alt[0].size() < var.alt[allele_index].size());
+
                         alleles_idx[j] = allele_index;
                         alt_alleles_set = true;
                     }
