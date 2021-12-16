@@ -85,31 +85,50 @@ vcfbwt::Sample::iterator::operator++()
         
         // Più nucleotidi nella variaizione
         int var_genotype = sample_.genotypes[var_it_][genotype];
-        if (curr_variation.alt[var_genotype].size() > 1)
+        // Handling same position insertions see bcftools consensus:
+        // https://github.com/samtools/bcftools/blob/df43fd4781298e961efc951ba33fc4cdcc165a19/consensus.c#L723
+        int gap = ref_it_ - curr_variation.pos;
+        if (gap > curr_var_it_)
         {
-            if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
+            // Check length of unchanged bases
+            int start = 0;
+            int len = curr_variation.alt[var_genotype].size();
+            assert(len >= gap);
+            while (start < std::min(gap, len) && curr_variation.alt[var_genotype][start] == curr_variation.alt[0][start])
+                ++start;
+            if (start < gap)
             {
-                curr_char_ = & curr_variation.alt[var_genotype][curr_var_it_];
-                curr_var_it_++; sam_it_++;
+                spdlog::error("vcfbwt::Contig::iterator::operator++() Error: variant overriding previous variant.");
+                std::exit(EXIT_FAILURE);
             }
-            else
-            {
-                curr_char_ = & curr_variation.alt[var_genotype].back();
-                prev_variation_it = var_it_;
-                var_it_++;
-                while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
-                { var_it_++; }
-                curr_var_it_ = 0; ref_it_ += curr_variation.ref_len; sam_it_++;
-            }
-            
+            // We need to preserve preceeding variants
+            curr_var_it_ = gap;
         }
-        else
+
+        bool get_next_variant = true;
+
+        if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
         {
-            curr_char_ = & curr_variation.alt[var_genotype].front();
-            ref_it_ += curr_variation.ref_len; sam_it_++; prev_variation_it = var_it_;
+            curr_char_ = &curr_variation.alt[var_genotype][curr_var_it_];
+            curr_var_it_++;
+            get_next_variant = false;
+        }
+        else if (curr_var_it_ < curr_variation.alt[var_genotype].size())
+            curr_char_ = &curr_variation.alt[var_genotype].back();
+        else
+            curr_char_ = &(sample_.reference_[ref_it_++ + curr_variation.ref_len - gap]);
+
+        sam_it_++;
+        if (get_next_variant)
+        {
+            prev_variation_it = var_it_;
             var_it_++;
             while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
-            { var_it_++; }
+            {
+                var_it_++;
+            }
+            curr_var_it_ = 0;
+            ref_it_ += curr_variation.ref_len - gap; // Adding -gap to balance the sipping
         }
     }
     // Non ci sono più variazioni, itera sulla reference
@@ -222,6 +241,9 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         bcf_hdr_destroy(hdr);
         std::exit(EXIT_FAILURE);
     }
+
+    std::vector<std::vector<int>> tppos(1, std::vector<int>(n_samples,0));
+    std::vector<std::vector<bool>> prev_is_ins(1, std::vector<bool>(n_samples,false));
     
     // start parsing
     while (bcf_read(inf, hdr, rec) == 0)
@@ -246,6 +268,11 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         if ( ngt > 0 )
         {
             int max_ploidy = ngt/n_samples;
+            while (max_ploidy > tppos.size())
+            {
+                tppos.push_back(std::vector<int>(n_samples,0));
+                prev_is_ins.push_back(std::vector<bool>(n_samples,false));
+            }
             bool skip_this_variation = false;
             for (std::size_t i_s = 0; i_s < n_samples; i_s++)
             {
@@ -265,7 +292,33 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                     {
                         // the VCF 0-based allele index
                         int allele_index = bcf_gt_allele(ptr[j]);
-                        
+                        int var_type = bcf_get_variant_type(rec, allele_index);
+
+                        // Determine if overlap. Logic copied from leviosam's: 
+                        // https://github.com/alshai/levioSAM/blob/f72d84ad1141c84e4b315c0dc5d705d2c0d5b936/src/leviosam.hpp#L530
+                        // copied from bcftools consensus`:
+                        // https://github.com/samtools/bcftools/blob/df43fd4781298e961efc951ba33fc4cdcc165a19/consensus.c#L579
+
+                        // For some variant types POS+REF refer to the base *before* the event; in such case set trim_beg
+                        int trim_beg = 0;
+                        int var_len  = rec->d.var[allele_index].n;
+                        if ( var_type & VCF_INDEL ) trim_beg = 1;
+                        else if ( (var_type & VCF_OTHER) && !strcasecmp(rec->d.allele[allele_index],"<DEL>") ) {
+                            trim_beg = 1;
+                            var_len  = 1 - var.ref_len;
+                        }
+                        else if ( (var_type & VCF_OTHER) && !strncasecmp(rec->d.allele[allele_index],"<INS",4) )
+                            trim_beg = 1;
+
+                        if (rec->pos <= tppos[j][i_s]) {
+                            int overlap = 0;
+                            if ( rec->pos < tppos[j][i_s] || !trim_beg || var_len==0 || prev_is_ins[j][i_s] ) overlap = 1;
+                            if (overlap) {
+                                spdlog::debug("vcfbwt::VCF::init_vcf: Skipping overlapping variantat sample {} in pos {}", i_s, var.pos);
+                                continue;
+                            }
+                        }
+
                         // Skip symbolic allele
                         if (var.alt[allele_index][0] == '<')
                         {
@@ -273,6 +326,10 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                             skip_this_variation = true;
                             continue;
                         }
+                        // Update tppos and prev_is_ins
+                        tppos[j][i_s] = rec->pos + rec->rlen - 1;
+                        prev_is_ins[j][i_s] = (var.alt[0].size() < var.alt[allele_index].size());
+
                         alleles_idx[j] = allele_index;
                         alt_alleles_set = true;
                     }
