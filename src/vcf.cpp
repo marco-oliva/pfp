@@ -17,6 +17,8 @@ contig_(contig), genotype(genotype),
 ref_it_(0), sam_it_(0), var_it_(0), curr_var_it_(0), prev_variation_it(0),
 curr_char_(NULL), contig_length_(contig.reference_.size())
 {
+    // TODO: remove this initialization when moving to multiparse reference
+    ref_it_ = contig.offset(); // Initialize the ref_it_ with the contig offset
     // Compute contig length, might take some time
     long long int indels = 0; // could be negative, so int
     for (std::size_t i = 0; i < this->contig_.variations.size(); i++)
@@ -85,31 +87,47 @@ vcfbwt::Contig::iterator::operator++()
         
         // Più nucleotidi nella variaizione
         int var_genotype = contig_.genotypes[var_it_][genotype];
-        if (curr_variation.alt[var_genotype].size() > 1)
+
+        // Handling same position insertions see bcftools consensus:
+        // https://github.com/samtools/bcftools/blob/df43fd4781298e961efc951ba33fc4cdcc165a19/consensus.c#L723
+        int gap = ref_it_ - curr_variation.pos;
+        if ( gap > curr_var_it_ )
         {
-            if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
+            // Check length of unchanged bases
+            int start = 0;
+            int len = curr_variation.alt[var_genotype].size();
+            assert ( len >= gap );
+            while ( start < std::min(gap,len) && curr_variation.alt[var_genotype][start] == curr_variation.alt[0][start]) ++start;
+            if (start < gap)
             {
-                curr_char_ = & curr_variation.alt[var_genotype][curr_var_it_];
-                curr_var_it_++; sam_it_++;
+                spdlog::error("vcfbwt::Contig::iterator::operator++() Error: variant overriding previous variant.");
+                std::exit(EXIT_FAILURE);
             }
-            else
-            {
-                curr_char_ = & curr_variation.alt[var_genotype].back();
-                prev_variation_it = var_it_;
-                var_it_++;
-                while (var_it_ < contig_.variations.size() and contig_.genotypes[var_it_][genotype] == 0)
-                { var_it_++; }
-                curr_var_it_ = 0; ref_it_ += curr_variation.ref_len; sam_it_++;
-            }
-            
+            // We need to preserve preceeding variants
+            curr_var_it_ = gap;
         }
-        else
+
+        bool get_next_variant = true;
+
+        if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
         {
-            curr_char_ = & curr_variation.alt[var_genotype].front();
-            ref_it_ += curr_variation.ref_len; sam_it_++; prev_variation_it = var_it_;
+            curr_char_ = & curr_variation.alt[var_genotype][curr_var_it_];
+            curr_var_it_++;
+            get_next_variant = false;
+        }
+        else if(curr_var_it_ < curr_variation.alt[var_genotype].size())
+            curr_char_ = & curr_variation.alt[var_genotype].back();
+        else
+            curr_char_ = &(contig_.reference_[ref_it_++ + curr_variation.ref_len - gap]);
+
+        sam_it_ ++;
+        if(get_next_variant)
+        {
+            prev_variation_it = var_it_;
             var_it_++;
             while (var_it_ < contig_.variations.size() and contig_.genotypes[var_it_][genotype] == 0)
             { var_it_++; }
+            curr_var_it_ = 0; ref_it_ += curr_variation.ref_len - gap; // Adding -gap to balance the sipping
         }
     }
     // Non ci sono più variazioni, itera sulla reference
@@ -289,7 +307,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
     std::string contig_name = ""; // Current contig name in the vcf file;
     size_t contig_id = 0; // Current contig id in the vcf file;
     size_t offset = 0;
-    std::vector<size_t> c_id_list; 
+    std::vector<size_t> c_id_list; // Contig id list
     // TODO: Replace those when we will use one array for each aplotype in Contig
     std::vector<std::vector<int>> tppos(1, std::vector<int>(n_samples,0));
     std::vector<std::vector<bool>> prev_is_ins(1, std::vector<bool>(n_samples,false));
@@ -397,7 +415,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
                             if ( rec->pos < tppos[j][i_s] || !trim_beg || var_len==0 || prev_is_ins[j][i_s] ) overlap = 1;
                             if (overlap) {
                                 // if (verbose) fprintf(stderr, "Skipping variant %s:%lld\n", bcf_seqname(hdr, rec), rec->pos + 1);
-                                spdlog::debug("vcfbwt::VCF::init_vcf: Skipping overlapping variantat sample {} in pos {}", i_s, var.pos);
+                                spdlog::debug("vcfbwt::VCF::init_vcf: Skipping overlapping variantat sample {} in pos {}", hdr->samples[i_s], var.pos);
                                 continue;
                             }
                         }
