@@ -520,6 +520,33 @@ TEST_CASE( "Sample: HG00103", "[VCF parser]" )
     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
 }
 
+TEST_CASE( "Sample: HG00101", "[VCF parser]" )
+{
+    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 2);
+
+    REQUIRE(vcf[1].id() == "HG00101");
+
+    std::string test_sample_path = testfiles_dir + "/HG00101_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+
+    REQUIRE(vcfbwt::is_gzipped(in_stream));
+
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    vcfbwt::Sample::iterator it(vcf[1]);
+    std::string from_vcf;
+    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+
+    std::size_t i = 0;
+    while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
+    and (from_vcf[i] == from_fasta[i])) { i++; }
+    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+}
+
 TEST_CASE( "Selecting only Sample: HG00103", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
@@ -568,13 +595,11 @@ TEST_CASE( "Selecting only Sample: HG00096 Chr 22", "[VCF parser chr22]" )
 
     vcfbwt::Sample::iterator it(vcf[0]);
     std::string from_vcf;
-    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+    while (not it.end()) { from_vcf.push_back(*it); ++it;}
 
     std::size_t i = 0;
     while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
             and (from_vcf[i] == from_fasta[i])) { i++; }
-    spdlog::info("i: {}, fasta: {}, vcf: {}", i, from_fasta.size(), from_vcf.size());
-    spdlog::info("i: {}, fasta: {}, vcf: {}", i, from_fasta[i], from_vcf[i]);
     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
 }
 
@@ -689,14 +714,14 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF multi-parser]" )
 {
     std::vector<std::string> vcf_file_names =
             {
-                    testfiles_dir + "/chr.22.10.vcf.gz",
-                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz"
+                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
+                    testfiles_dir + "/chr.22.10.vcf.gz"
             };
 
     std::vector<std::string> ref_file_names =
             {
-                    testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz",
-                    testfiles_dir + "/Y.fa.gz"
+                    testfiles_dir + "/Y.fa.gz",
+                    testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz"
             };
 
     vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 1);
@@ -723,7 +748,14 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF multi-parser]" )
 
     vcfbwt::Sample::iterator it(vcf[0]);
     std::string from_vcf;
-    while (not it.end()) { from_vcf.push_back(*it); ++it; }
+    size_t dummy = 0;
+    while (not it.end()) { 
+        from_vcf.push_back(*it); 
+        ++it; 
+        if(from_vcf.size() > 75427230){
+            dummy = 1;
+        }    
+    }
 
     std::size_t i = 0;
     while ( ((i < from_vcf.size()) and (i < from_fasta.size()))
@@ -1023,7 +1055,7 @@ int main( int argc, char* argv[] )
     if( returnCode != 0 ) return returnCode;
 
     spdlog::info("Tests running with w: {}\tp: {}", w_global, p_global);
-    spdlog::set_level(spdlog::level::debug);
+    // spdlog::set_level(spdlog::level::debug);
     session.run();
 }
 
