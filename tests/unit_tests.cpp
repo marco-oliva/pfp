@@ -614,17 +614,26 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     params.w = w_global; params.p = p_global;
     params.use_acceleration = false;
     params.compute_occurrences = true;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+    vcfbwt::pfp::Dictionary dictionary;
+    std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+    
+    auto& references = vcf.get_references();
+    
+    references_parse.reserve(references.size());
+    // TODO: This might be parallelized as well
+    for (size_t i = 0; i < references.size(); ++i) 
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
 
     vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
 
-    worker.init(params, out_prefix, reference_parse, tag);
+    worker.init(params, out_prefix, references_parse, dictionary, tag);
     main_parser.register_worker(worker);
 
     // Run
@@ -667,17 +676,26 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     params.w = w_global; params.p = p_global;
     params.use_acceleration = true;
     params.compute_occurrences = true;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+    vcfbwt::pfp::Dictionary dictionary;
+    std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+    
+    auto& references = vcf.get_references();
+    
+    references_parse.reserve(references.size());
+    // TODO: This might be parallelized as well
+    for (size_t i = 0; i < references.size(); ++i) 
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
 
     vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
 
-    worker.init(params, out_prefix, reference_parse, tag);
+    worker.init(params, out_prefix, references_parse, dictionary, tag);
     main_parser.register_worker(worker);
 
     // Run
@@ -892,17 +910,26 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     params.w = w_global; params.p = p_global;
     params.use_acceleration = false;
     params.compute_occurrences = true;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+    vcfbwt::pfp::Dictionary dictionary;
+    std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+    
+    auto& references = vcf.get_references();
+    
+    references_parse.reserve(references.size());
+    // TODO: This might be parallelized as well
+    for (size_t i = 0; i < references.size(); ++i) 
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
 
     vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
 
-    worker.init(params, out_prefix, reference_parse, tag);
+    worker.init(params, out_prefix, references_parse, dictionary, tag);
     main_parser.register_worker(worker);
 
     // Run
@@ -954,17 +981,25 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     params.w = w_global; params.p = p_global;
     params.use_acceleration = true;
     params.compute_occurrences = true;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
+    vcfbwt::pfp::Dictionary dictionary;
+    std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+    
+    auto& references = vcf.get_references();
+    
+    references_parse.reserve(references.size());
+    // TODO: This might be parallelized as well
+    for (size_t i = 0; i < references.size(); ++i) 
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
 
     std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
 
     vcfbwt::pfp::ParserVCF worker;
     std::size_t tag = 0;
     tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
     tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
 
-    worker.init(params, out_prefix, reference_parse, tag);
+    worker.init(params, out_prefix, references_parse, dictionary, tag);
     main_parser.register_worker(worker);
 
     // Run

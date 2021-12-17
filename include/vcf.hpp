@@ -57,6 +57,7 @@ private:
     const std::vector<Variation>& variations_list;
     
     std::size_t offset_ = 0;
+    std::size_t ref_index_ = 0;
     
     std::string contig_id;
     bool is_last_contig = false;
@@ -68,6 +69,7 @@ public:
     void set_last() { this->is_last_contig = true; }
     bool last() const { return this->is_last_contig; }
     size_t offset() const { return this->offset_; }
+    size_t get_reference_index() const { return this->ref_index_; }
     
     // variation, variation type
     std::vector<std::size_t> variations;
@@ -75,14 +77,15 @@ public:
 
     const std::string& id() const { return this->contig_id; }
     
-    Contig(const std::string& id, const std::string& ref, const std::vector<Variation>& variations, const size_t offset)
-    : contig_id(id), reference_(ref), variations_list(variations), offset_(offset) {}
+    Contig(const std::string& id, const std::string& ref, const std::vector<Variation>& variations, const size_t offset, const size_t ref_idx)
+    : contig_id(id), reference_(ref), variations_list(variations), offset_(offset), ref_index_(ref_idx) {}
     
     Contig(Contig&& other)
     :   reference_(other.reference_), 
         variations_list(other.variations_list),
         contig_id(std::move(other.contig_id)),
         offset_(other.offset_),
+        ref_index_(other.ref_index_),
         is_last_contig(other.is_last_contig),
         variations(std::move(other.variations)),
         genotypes(std::move(other.genotypes))
@@ -95,6 +98,7 @@ public:
         variations_list(other.variations_list),
         contig_id(other.contig_id),
         offset_(other.offset_),
+        ref_index_(other.ref_index_),
         is_last_contig(other.is_last_contig),
         variations(other.variations),
         genotypes(other.genotypes)
@@ -158,7 +162,7 @@ public:
     Sample(const std::string& id)
     : sample_id(id){}
 
-    void set_last() { this->is_last_sample = true; } //TODO: Check if we need to set also the contig flag
+    void set_last() { this->is_last_sample = true; if(contigs.size() > 0) contigs.back().set_last(); } //TODO: Check if we need to set also the contig flag
     bool last() const { return this->is_last_sample; }
 
     const std::string& id() const { return this->sample_id; }
@@ -251,6 +255,7 @@ public:
     Sample& operator[](std::size_t i) { assert(i < size()); return samples.at(populated_samples.at(i)); }
     const std::vector<std::vector<Variation>>& get_variations() const { return this->variations; }
     const std::string& get_reference() const { return this->reference; }
+    const std::vector<std::string>& get_references() const { return this->references; }
     void set_max_samples(std::size_t max) { this->max_samples = max; }
 };
 

@@ -120,7 +120,7 @@ vcfbwt::pfp::Dictionary::hash_to_rank(hash_type hash)
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
+vcfbwt::pfp::ReferenceParse::init(const std::string& reference, bool first)
 {
     if (params.ignore_ts_file.size() > 0)
     {
@@ -149,7 +149,13 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     KarpRabinHash kr_hash(this->params.w);
     
     // Reference as first sample, just one dollar to be compatible with Giovanni's pscan.cpp
-    phrase.append(1, DOLLAR);
+    if (first) phrase.append(1, DOLLAR);
+    else 
+    {
+         // Append w-1 dollar prime and 1 dollar sequence at the end, reference as the first sample
+        phrase.append(this->params.w - 1, DOLLAR_PRIME);
+        phrase.append(1, DOLLAR_SEQUENCE);       
+    }
     
     for (std::size_t ref_it = 0; ref_it < reference.size(); ref_it++)
     {
@@ -165,7 +171,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
             hash_type ts_hash = KarpRabinHash::string_hash(ts);
             if (to_ignore_ts_hash.contains(ts_hash)) { continue; }
             
-            hash_type hash = this->dictionary.check_and_add(phrase);
+            hash_type hash = dictionary.check_and_add(phrase);
             
             this->parse.push_back(hash);
             this->trigger_strings_position.push_back(ref_it - this->params.w + 1);
@@ -183,7 +189,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         phrase.append(this->params.w - 1, DOLLAR_PRIME);
         phrase.append(1, DOLLAR_SEQUENCE);
     
-        hash_type hash = this->dictionary.check_and_add(phrase);
+        hash_type hash = dictionary.check_and_add(phrase);
     
         this->parse.push_back(hash);
         this->trigger_strings_position.push_back(reference.size() - 1);
@@ -194,7 +200,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
 //------------------------------------------------------------------------------
 
 void
-vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, ReferenceParse& rp, std::size_t t)
+vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, std::vector<ReferenceParse>& rp, Dictionary& dict, std::size_t t)
 {
     this->w = params.w; this->out_file_prefix = prefix; this->p = params.p; this->tags = t; this->parse_size = 0;
     if (not ((tags & MAIN) or (tags & WORKER))) { spdlog::error("A parser must be either the main parser or a worker"); std::exit(EXIT_FAILURE); }
@@ -203,8 +209,8 @@ vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, Re
     if ((tags & MAIN) and params.compress_dictionary) { tags = tags | COMPRESSED; }
     this->tmp_out_file_name = TempFile::getName("parse");
     this->out_file.open(tmp_out_file_name, std::ios::binary);
-    this->reference_parse = &rp;
-    this->dictionary = &this->reference_parse->dictionary;
+    this->references_parse = &rp;
+    this->dictionary = &dict;
     
     this->params = params;
 }
@@ -213,24 +219,28 @@ void
 vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
 {
     this->samples_processed.push_back(sample.id());
-    // TODO: The part below should be reicluded in the for once we will use one parse per each reference contig.
+    // TODO: The part below should be reincluded in the for once we will use one parse per each reference contig.
+
     std::string phrase;
     
     // Karp Robin Hash Function for sliding window
     KarpRabinHash kr_hash(this->params.w);
     
-    // Every sample starts with w-1 dollar prime and one dollar seq
-    phrase.append(this->w - 1, DOLLAR_PRIME);
-    phrase.append(1, DOLLAR_SEQUENCE);
-    kr_hash.initialize(phrase);
-
-    // Shorthands
-    std::vector<size_type>& tsp = reference_parse->trigger_strings_position;
-    
-    std::size_t start_window = 0, end_window = 0;
-
     for(auto& contig: sample.contigs)
     {
+        // Every contig starts with w-1 dollar prime and one dollar seq
+        phrase.append(this->w - 1, DOLLAR_PRIME);
+        phrase.append(1, DOLLAR_SEQUENCE);
+        kr_hash.initialize(phrase);
+
+        size_t ref_index = contig.get_reference_index();
+
+        // Shorthands
+        ReferenceParse& reference_parse = (*references_parse)[ref_index];
+        std::vector<size_type>& tsp = reference_parse.trigger_strings_position;
+        
+        std::size_t start_window = 0, end_window = 0;
+
         Contig::iterator contig_iterator(contig, this->working_genotype);
 
         while (not contig_iterator.end())
@@ -260,7 +270,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                         spdlog::debug("skipped phrases: {}", end_window - start_window);
                         
                         // copy from parse[start_window : end_window]
-                        out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
+                        out_file.write((char*) &(reference_parse.parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
                         this->parse_size += end_window - start_window + 1;
                 
                         // move iterators and re initialize phrase
@@ -287,7 +297,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             {
                 std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
                 hash_type ts_hash = KarpRabinHash::string_hash(ts);
-                if (this->reference_parse->to_ignore_ts_hash.contains(ts_hash)) { continue; }
+                if (reference_parse.to_ignore_ts_hash.contains(ts_hash)) { continue; }
                 
                 hash_type hash = this->dictionary->check_and_add(phrase);
             
@@ -306,6 +316,20 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             }
         }
 
+        // Last phrase
+        if (phrase.size() > this->w)
+        {
+            // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
+            phrase.append(this->w - 1, DOLLAR_PRIME);
+            if (contig.last()) { phrase.append(this->w, DOLLAR); }
+            else { phrase.append(1, DOLLAR_SEQUENCE); }
+
+            hash_type hash = this->dictionary->check_and_add(phrase);
+            
+            out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
+        }
+        else { spdlog::error("A sample doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
+
         // Build the lifting
         if(params.compute_lifting)
         {
@@ -316,25 +340,10 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             for(size_t i = 0; i < contig.variations.size(); ++i)
             {
                 const vcfbwt::Variation& variation = contig.get_variation(i);
-
+                
             }
         }
-        
     }
-
-    // Last phrase
-    if (phrase.size() > this->w)
-    {
-        // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
-        phrase.append(this->w - 1, DOLLAR_PRIME);
-        if (sample.last()) { phrase.append(this->w, DOLLAR); }
-        else { phrase.append(1, DOLLAR_SEQUENCE); }
-
-        hash_type hash = this->dictionary->check_and_add(phrase);
-        
-        out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
-    }
-    else { spdlog::error("A sample doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
 }
 
 void
@@ -395,20 +404,23 @@ vcfbwt::pfp::ParserVCF::close()
         }
         
         // repeat for reference
-        if (not this->reference_parse->parse.empty())
+        for(auto& reference_parse : *(this->references_parse))
         {
-            for (size_type i = 0; i < this->reference_parse->parse.size(); i++)
+            if (not reference_parse.parse.empty())
             {
-                hash_type rank = this->dictionary->hash_to_rank(this->reference_parse->parse[i]);
-                this->reference_parse->parse[i] = rank;
-                occurrences[rank - 1] += 1;
-    
-                const std::string& dict_string = this->dictionary->sorted_entry_at(rank - 1);
-                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
-    
-                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-                else { pos_for_sai += dict_string.size() - this->params.w; }
-                sai_file.write((char*) &pos_for_sai, IBYTES);
+                for (size_type i = 0; i < reference_parse.parse.size(); i++)
+                {
+                    hash_type rank = this->dictionary->hash_to_rank(reference_parse.parse[i]);
+                    reference_parse.parse[i] = rank;
+                    occurrences[rank - 1] += 1;
+        
+                    const std::string& dict_string = this->dictionary->sorted_entry_at(rank - 1);
+                    last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+        
+                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                    else { pos_for_sai += dict_string.size() - this->params.w; }
+                    sai_file.write((char*) &pos_for_sai, IBYTES);
+                }
             }
         }
         
@@ -453,13 +465,15 @@ vcfbwt::pfp::ParserVCF::close()
         
         // Reference
         size_type out_parse_size = 0;
-        out_parse_size += this->reference_parse->parse.size();
-        for (auto& e : this->reference_parse->parse)
+        for(auto& reference_parse : *(this->references_parse))
         {
-            size_type out_e = e;
-            merged.write((char*) &out_e, sizeof(size_type));
+            out_parse_size += reference_parse.parse.size();
+            for (auto& e : reference_parse.parse)
+            {
+                size_type out_e = e;
+                merged.write((char*) &out_e, sizeof(size_type));
+            }
         }
-    
         // Main
         if ((this->parse_size) != 0)
         {

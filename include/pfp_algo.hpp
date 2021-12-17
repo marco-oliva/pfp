@@ -103,16 +103,16 @@ class ReferenceParse
 {
 
 public :
-    Dictionary dictionary;
+    Dictionary& dictionary;
     std::vector<hash_type> parse;
     std::vector<size_type> trigger_strings_position; // position of first char of each trigger string
     std::set<hash_type> to_ignore_ts_hash;
     
     const Params& params;
     
-    void init(const std::string& reference);
+    void init(const std::string& reference, bool first = true);
     
-    ReferenceParse(const std::string& reference, const Params& pms) : params(pms) { this->init(reference); }
+    ReferenceParse(const std::string& reference, Dictionary& dict, const Params& pms, bool first = true) : dictionary(dict), params(pms) { this->init(reference, first); }
     const hash_type& operator[](size_type i) const { return this->parse[i]; }
 };
 
@@ -131,7 +131,7 @@ private:
     Params params;
     Statistics statistics;
     
-    ReferenceParse* reference_parse = nullptr;
+    std::vector<ReferenceParse>* references_parse = nullptr;
     Dictionary* dictionary = nullptr;
 
     // Shorthands
@@ -155,12 +155,12 @@ public:
     };
     
     
-    void init(const Params& params, const std::string& out_prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED);
+    void init(const Params& params, const std::string& out_prefix, std::vector<ReferenceParse>& rp, Dictionary& dict, std::size_t t = MAIN | UNCOMPRESSED);
     
-    ParserVCF(const Params& params, const std::string& out_prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED)
+    ParserVCF(const Params& params, const std::string& out_prefix, std::vector<ReferenceParse>& rp, Dictionary& dict, std::size_t t = MAIN | UNCOMPRESSED)
     {
-        if (out_prefix.empty()) { this->init(params, "out", rp, t); }
-        else { this->init(params, out_prefix, rp, t); }
+        if (out_prefix.empty()) { this->init(params, "out", rp, dict, t); }
+        else { this->init(params, out_prefix, rp, dict, t); }
     }
     
     ParserVCF() = default;

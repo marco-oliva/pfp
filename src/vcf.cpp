@@ -17,8 +17,6 @@ contig_(contig), genotype(genotype),
 ref_it_(0), sam_it_(0), var_it_(0), curr_var_it_(0), prev_variation_it(0),
 curr_char_(NULL), contig_length_(contig.reference_.size())
 {
-    // TODO: remove this initialization when moving to multiparse reference
-    ref_it_ = contig.offset(); // Initialize the ref_it_ with the contig offset
     // Compute contig length, might take some time
     long long int indels = 0; // could be negative, so int
     for (std::size_t i = 0; i < this->contig_.variations.size(); i++)
@@ -209,7 +207,7 @@ vcfbwt::VCF::init_contigs()
     {
         // Add contig
         this->variations.push_back(std::vector<Variation>());
-        this->contigs.push_back(Contig(references_name[i], references[i], this->variations.back(), ref_sum_lengths[i]));
+        this->contigs.push_back(Contig(references_name[i], references[i], this->variations.back(), ref_sum_lengths[i], i));
     }
 }
 
@@ -326,7 +324,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
                 contig_id = it->second;
                 c_id_list.push_back(contig_id);
                 contig_name = std::string(c_name);
-                offset = contigs[contig_id].offset(); // when using multiple vcfs
+                // offset = contigs[contig_id].offset(); // when using multiple vcfs
                 // Add contigs to samples
                 for (std::size_t i = 0; i < std::min(n_samples, this->max_samples); i++)
                 {

@@ -95,16 +95,28 @@ int main(int argc, char **argv)
     
         // Set threads accordingly to configuration
         omp_set_num_threads(threads);
-    
-        vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-    
-        vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
+
+        // Create a dictionary common to all references
+        vcfbwt::pfp::Dictionary dictionary;
+
+        // Parse all references
+        
+        std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+        
+        auto& references = vcf.get_references();
+        
+        references_parse.reserve(references.size());
+        // TODO: This might be parallelized as well
+        for (size_t i = 0; i < references.size(); ++i) 
+            references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+
+        vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
     
         std::vector<vcfbwt::pfp::ParserVCF> workers(threads);
         for (std::size_t i = 0; i < workers.size(); i++)
         {
             std::size_t tag = vcfbwt::pfp::ParserVCF::WORKER | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-            workers[i].init(params, "", reference_parse, tag);
+            workers[i].init(params, "", references_parse, dictionary, tag);
             main_parser.register_worker(workers[i]);
         }
 
