@@ -221,13 +221,13 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     this->samples_processed.push_back(sample.id());
     // TODO: The part below should be reincluded in the for once we will use one parse per each reference contig.
 
-    std::string phrase;
     
     // Karp Robin Hash Function for sliding window
     KarpRabinHash kr_hash(this->params.w);
     
     for(auto& contig: sample.contigs)
     {
+        std::string phrase;
         // Every contig starts with w-1 dollar prime and one dollar seq
         phrase.append(this->w - 1, DOLLAR_PRIME);
         phrase.append(1, DOLLAR_SEQUENCE);
@@ -237,7 +237,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
 
         // Shorthands
         ReferenceParse& reference_parse = (*references_parse)[ref_index];
-        std::vector<size_type>& tsp = reference_parse.trigger_strings_position;
+        std::vector<long long int>& tsp = reference_parse.trigger_strings_position;
         
         std::size_t start_window = 0, end_window = 0;
 

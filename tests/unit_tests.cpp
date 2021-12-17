@@ -769,10 +769,7 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF multi-parser]" )
     size_t dummy = 0;
     while (not it.end()) { 
         from_vcf.push_back(*it); 
-        ++it; 
-        if(from_vcf.size() > 75427230){
-            dummy = 1;
-        }    
+        ++it;  
     }
 
     std::size_t i = 0;
@@ -781,6 +778,88 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF multi-parser]" )
     spdlog::info("i: {}, fasta: {}, vcf: {}", i, from_fasta.size(), from_vcf.size());
     spdlog::info("i: {}, fasta: {}, vcf: {}", i, from_fasta[i], from_vcf[i]);
     REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+}
+
+TEST_CASE( "Reference + Sample HG00096 Chr 22 and Y, WITH acceleration", "[PFP algorithm]" )
+{
+    std::vector<std::string> vcf_file_names =
+            {
+                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
+                    testfiles_dir + "/chr.22.10.vcf.gz"
+            };
+
+    std::vector<std::string> ref_file_names =
+            {
+                    testfiles_dir + "/Y.fa.gz",
+                    testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz"
+            };
+
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 1);
+
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    params.use_acceleration = true;
+    params.compute_occurrences = true;
+    vcfbwt::pfp::Dictionary dictionary;
+    std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+    
+    auto& references = vcf.get_references();
+    
+    references_parse.reserve(references.size());
+    // TODO: This might be parallelized as well
+    for (size_t i = 0; i < references.size(); ++i) 
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+
+
+    std::string out_prefix = testfiles_dir + "/parser_out";
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
+
+    vcfbwt::pfp::ParserVCF worker;
+    std::size_t tag = 0;
+    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
+    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+
+    worker.init(params, out_prefix, references_parse, dictionary, tag);
+    main_parser.register_worker(worker);
+
+    // Run
+    worker(vcf[0]);
+
+    // Close the main parser
+    main_parser.close();
+
+    // Generate the desired outcome from the test files, reference first
+    std::string what_it_should_be;
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+
+    for(auto& reference: vcf.get_references())
+    {
+        what_it_should_be.insert(what_it_should_be.end(), reference.begin(), reference.end());
+        what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+        what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    }
+
+    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+
+    test_sample_path = testfiles_dir + "/HG00096_chr22_H1.fa.gz";
+    std::ifstream in_stream_(test_sample_path);
+    zstr::istream is_(in_stream_);
+    while (getline(is_, line)) { if ( not (line.empty() or line[0] == '>') ) { what_it_should_be.append(line); } }
+
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+    // Check
+    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    REQUIRE(check);
 }
 
 TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
