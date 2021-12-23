@@ -154,7 +154,8 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, bool first)
     {
          // Append w-1 dollar prime and 1 dollar sequence at the end, reference as the first sample
         phrase.append(this->params.w - 1, DOLLAR_PRIME);
-        phrase.append(1, DOLLAR_SEQUENCE);       
+        phrase.append(1, DOLLAR_SEQUENCE);   
+        kr_hash.initialize(phrase);    
     }
     
     for (std::size_t ref_it = 0; ref_it < reference.size(); ref_it++)
@@ -206,9 +207,23 @@ vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, st
     if (not ((tags & MAIN) or (tags & WORKER))) { spdlog::error("A parser must be either the main parser or a worker"); std::exit(EXIT_FAILURE); }
     
     if (tags & MAIN) {this->out_file_name = out_file_prefix + EXT::PARSE; }
+    if ((tags & MAIN) and params.compute_lifting) { this->out_lift_name = out_file_prefix + EXT::LIFTING; }
+    if ((tags & MAIN) and params.report_lengths) { this->out_len_name = out_file_prefix + EXT::LENGTHS; }
     if ((tags & MAIN) and params.compress_dictionary) { tags = tags | COMPRESSED; }
     this->tmp_out_file_name = TempFile::getName("parse");
     this->out_file.open(tmp_out_file_name, std::ios::binary);
+    if(params.compute_lifting)
+    {
+        this->tmp_out_lift_name = TempFile::getName("lift");
+        this->out_lift.open(tmp_out_lift_name, std::ios::binary);
+    }
+    if(params.report_lengths)
+    {
+        this->tmp_out_len_name = TempFile::getName("lengths");
+        this->out_len.open(tmp_out_len_name, std::ios::binary);
+    }
+
+
     this->references_parse = &rp;
     this->dictionary = &dict;
     
@@ -222,11 +237,11 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     // TODO: The part below should be reincluded in the for once we will use one parse per each reference contig.
 
     
-    // Karp Robin Hash Function for sliding window
-    KarpRabinHash kr_hash(this->params.w);
     
     for(auto& contig: sample.contigs)
     {
+        // Karp Robin Hash Function for sliding window
+        KarpRabinHash kr_hash(this->params.w);
         std::string phrase;
         // Every contig starts with w-1 dollar prime and one dollar seq
         phrase.append(this->w - 1, DOLLAR_PRIME);
@@ -258,13 +273,13 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                     { start_window++; }
         
                     // Iterate over the parse up to the next variation
-                    while (tsp[end_window + 1] < (contig_iterator.next_variation() - (this->w + 1))) { end_window++; }
+                    while (tsp[end_window + 1] < (long long int)(contig_iterator.next_variation() - (this->w + 1))) { end_window++; }
                     
                     // If the window is not empty
                     if ((start_window < end_window - 1) and (tsp[end_window] > pos_on_reference))
                     {
                         spdlog::debug("------------------------------------------------------------");
-                        spdlog::debug("from {}", contig.get_reference().substr(tsp[start_window - 1], this->w));
+                        // spdlog::debug("from {}", contig.get_reference().substr(tsp[start_window - 1], this->w)); // Throws exceptions
                         spdlog::debug("copied from {} to {}", tsp[start_window], tsp[end_window] + this->w);
                         spdlog::debug("next variation: {}", contig_iterator.next_variation());
                         spdlog::debug("skipped phrases: {}", end_window - start_window);
@@ -333,15 +348,39 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         // Build the lifting
         if(params.compute_lifting)
         {
+            const size_t genotype = this->working_genotype;
             // Initialize the Lift builder
             lift::Lift_builder lvs_builder(contig_iterator.length());
-            size_t offset = contig.offset();
             // Iterate throgh all the variations
             for(size_t i = 0; i < contig.variations.size(); ++i)
             {
                 const vcfbwt::Variation& variation = contig.get_variation(i);
-                
+
+                // Get only variation in the current genotype
+                if( contig.genotypes[i][genotype] == 0)
+                    continue;
+
+                const int rlen = variation.alt[0].size(); // Length of the reference allele
+                const int alen = variation.alt[genotype].size(); // Length of the alternate allele
+                lvs_builder.set(variation.pos, variation.types[genotype], rlen, alen );  
             }
+
+            // Build lifting data_structure
+            lvs_builder.finalize();
+            lift::Lift lift(lvs_builder);
+            // Serialize the data structure
+            // TODO: Serialize the reference
+            lift.serialize(out_lift);
+        }
+
+        // Reporting contig lengths
+        if(params.report_lengths)
+        {
+            // Include the last w characters at the end of each contig
+            size_t length = contig_iterator.length() + this->params.w;
+            if (contig.last()) length += this->params.w - 1;
+            const std::string contig_name = sample.id() + ":" + contig.id();
+            out_len << contig_name << " " << length << std::endl;
         }
     }
 }
@@ -496,6 +535,62 @@ vcfbwt::pfp::ParserVCF::close()
         merged.close();
         
         this->parse_size = out_parse_size;
+
+        // Merging the lifting components
+        if (params.compute_lifting)
+        {
+            std::ofstream merged(out_lift_name, std::ios_base::binary);
+            // Main
+            std::ifstream main_parse(this->tmp_out_lift_name);
+            merged << main_parse.rdbuf();
+            main_parse.close();
+            // Workers
+            for (auto worker : registered_workers)
+            {
+                if (worker.get().parse_size != 0)
+                {
+                    out_parse_size += worker.get().parse_size;
+                    std::ifstream worker_parse(worker.get().tmp_out_lift_name);
+                    merged << worker_parse.rdbuf();
+                    worker_parse.close();
+                }
+            }
+            merged.close();
+        }
+
+        // Merging the length components
+        if (params.report_lengths)
+        {
+            std::ofstream merged(out_len_name);
+
+            // Dummy sequence of length 1 for the first dollar in the parse
+            merged << "Dummy 1" << std::endl;
+            // Reference
+            for(auto& reference_parse : *(this->references_parse))
+            {
+                // Include the last w characters at the end of each contig
+                const size_t length = reference_parse.length() + this->params.w;
+                const std::string contig_name = reference_parse.id();
+                merged << contig_name << " " << length << std::endl;
+            }
+
+            // Main
+            std::ifstream main_parse(this->tmp_out_len_name);
+            merged << main_parse.rdbuf();
+            main_parse.close();
+            // Workers
+            for (auto worker : registered_workers)
+            {
+                if (worker.get().parse_size != 0)
+                {
+                    out_parse_size += worker.get().parse_size;
+                    std::ifstream worker_parse(worker.get().tmp_out_len_name);
+                    merged << worker_parse.rdbuf();
+                    worker_parse.close();
+                }
+            }
+            merged.close();
+        }
         
         // Print dicitionary on disk
         if (tags & UNCOMPRESSED)
