@@ -244,7 +244,7 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
             references.push_back(""); 
         }
     }
-    if (not last) { references.back().push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME);}
+    if (not last) reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME);
 
     // This is considered with  the next round
     // if( ref_sum_lengths.size() > 1 ) ref_sum_lengths.push_back(ref_sum_lengths.back())

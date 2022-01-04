@@ -104,11 +104,12 @@ int main(int argc, char **argv)
         std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
         
         auto& references = vcf.get_references();
+        auto& references_name = vcf.get_references_name();
         
         references_parse.reserve(references.size());
         // TODO: This might be parallelized as well
         for (size_t i = 0; i < references.size(); ++i) 
-            references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+            references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
 
         vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
     

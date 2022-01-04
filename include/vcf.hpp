@@ -256,6 +256,7 @@ public:
     const std::vector<std::vector<Variation>>& get_variations() const { return this->variations; }
     const std::string& get_reference() const { return this->reference; }
     const std::vector<std::string>& get_references() const { return this->references; }
+    const std::vector<std::string>& get_references_name() const { return this->references_name; }
     void set_max_samples(std::size_t max) { this->max_samples = max; }
 };
 

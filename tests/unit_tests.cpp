@@ -44,12 +44,23 @@ unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::s
     std::vector<std::string> dictionary;
     vcfbwt::pfp::ParserUtils::read_dictionary(in_prefix + dictionary_ext, dictionary);
     
+    std::string prev_trigger = dictionary[parse[0]-1].substr(0, window_length);
+    size_t j = 0;
+
     std::string unparsed;
     for (auto& p : parse)
     {
         if (p > dictionary.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+        // Check trigger strings
+        std::string curr_trigger = dictionary[p - 1].substr(0, window_length);
+        if (curr_trigger != prev_trigger)
+            spdlog::info("Trigger string mismatch aty length: {}", unparsed.size());
+        prev_trigger = dictionary[p - 1].substr(dictionary[p - 1].size() - window_length, dictionary[p - 1].size());
+
         std::string dict_string = dictionary[p - 1].substr(0, dictionary[p - 1].size() - window_length);
         unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
+
+        ++j;
     }
     unparsed.append(window_length, DOLLAR);
     
@@ -618,11 +629,12 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
     
     auto& references = vcf.get_references();
+    auto& references_name = vcf.get_references_name();
     
     references_parse.reserve(references.size());
     // TODO: This might be parallelized as well
     for (size_t i = 0; i < references.size(); ++i) 
-        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
 
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -680,11 +692,12 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
     
     auto& references = vcf.get_references();
-    
+    auto& references_name = vcf.get_references_name();
+
     references_parse.reserve(references.size());
     // TODO: This might be parallelized as well
     for (size_t i = 0; i < references.size(); ++i) 
-        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
 
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -805,11 +818,12 @@ TEST_CASE( "Reference + Sample HG00096 Chr 22 and Y, WITH acceleration", "[PFP a
     std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
     
     auto& references = vcf.get_references();
+    auto& references_name = vcf.get_references_name();
     
     references_parse.reserve(references.size());
     // TODO: This might be parallelized as well
     for (size_t i = 0; i < references.size(); ++i) 
-        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
 
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -830,8 +844,11 @@ TEST_CASE( "Reference + Sample HG00096 Chr 22 and Y, WITH acceleration", "[PFP a
     main_parser.close();
 
     // Generate the desired outcome from the test files, reference first
+
+
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+
 
     for(auto& reference: vcf.get_references())
     {
@@ -839,6 +856,7 @@ TEST_CASE( "Reference + Sample HG00096 Chr 22 and Y, WITH acceleration", "[PFP a
         what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
         what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     }
+
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::ifstream in_stream(test_sample_path);
@@ -853,13 +871,147 @@ TEST_CASE( "Reference + Sample HG00096 Chr 22 and Y, WITH acceleration", "[PFP a
     test_sample_path = testfiles_dir + "/HG00096_chr22_H1.fa.gz";
     std::ifstream in_stream_(test_sample_path);
     zstr::istream is_(in_stream_);
-    while (getline(is_, line)) { if ( not (line.empty() or line[0] == '>') ) { what_it_should_be.append(line); } }
+    from_fasta.clear();
+    while (getline(is_, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+
+
+
     // Check
     bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
+}
+
+TEST_CASE( "Sample: HG00096, twice chromosomes 22 and Y with lengths", "[VCF contig lengths]" )
+{
+        std::vector<std::string> vcf_file_names =
+            {
+                    testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz",
+                    testfiles_dir + "/chr.22.10.vcf.gz"
+            };
+
+    std::vector<std::string> ref_file_names =
+            {
+                    testfiles_dir + "/Y.fa.gz",
+                    testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz"
+            };
+
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 1);
+
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    params.use_acceleration = true;
+    params.report_lengths = true;
+    vcfbwt::pfp::Dictionary dictionary;
+    std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+    
+    auto& references = vcf.get_references();
+    auto& references_name = vcf.get_references_name();
+    
+    references_parse.reserve(references.size());
+    // TODO: This might be parallelized as well
+    for (size_t i = 0; i < references.size(); ++i) 
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
+
+
+    std::string out_prefix = testfiles_dir + "/parser_out";
+    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
+
+    vcfbwt::pfp::ParserVCF worker;
+    std::size_t tag = 0;
+    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
+    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
+
+    worker.init(params, out_prefix, references_parse, dictionary, tag);
+    main_parser.register_worker(worker);
+
+    // Run
+    worker(vcf[0]);
+
+    // Close the main parser
+    main_parser.close();
+
+    // Generate the desired outcome from the test files, reference first
+    std::vector<std::string> lidx_names;
+    std::vector<size_t> lidx_lengths;
+    std::string what_it_should_be;
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    lidx_names.push_back("Dummy");
+    lidx_lengths.push_back(1);
+
+    for(auto& reference: vcf.get_references())
+    {
+        what_it_should_be.insert(what_it_should_be.end(), reference.begin(), reference.end());
+        what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+        what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+        lidx_lengths.push_back(reference.size() + params.w);
+    }
+
+    for(auto& reference: vcf.get_references_name())
+        lidx_names.push_back(reference);
+
+    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+
+    lidx_lengths.push_back((from_fasta.size() + params.w));
+    lidx_names.push_back("HG00096:Y");
+
+    test_sample_path = testfiles_dir + "/HG00096_chr22_H1.fa.gz";
+    std::ifstream in_stream_(test_sample_path);
+    zstr::istream is_(in_stream_);
+    from_fasta.clear();
+    while (getline(is_, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+
+    lidx_lengths.push_back((from_fasta.size() + params.w + params.w - 1));
+    lidx_names.push_back("HG00096:22");
+    // Check
+    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    REQUIRE(check);
+
+    std::ifstream in_lidx(out_prefix + ".lidx");
+    std::vector<std::string> from_lidx_file_names;
+    std::vector<size_t> from_lidx_file_lengths;
+    while (not in_lidx.eof()) 
+    { 
+        std::string tmp_name;
+        std::size_t tmp_length;
+        in_lidx >> tmp_name >> tmp_length;
+        if (tmp_name != "")
+        {
+            from_lidx_file_names.push_back(tmp_name);
+            from_lidx_file_lengths.push_back(tmp_length);
+        }
+    }
+
+    for(auto& elem: from_lidx_file_names)
+        spdlog::info(elem);
+    for(auto& elem: from_lidx_file_lengths)
+        spdlog::info(elem);
+
+    for(auto& elem: lidx_names)
+        spdlog::info(elem);
+    for(auto& elem: lidx_lengths)
+        spdlog::info(elem);
+
+    REQUIRE(from_lidx_file_names.size() == lidx_names.size());
+    REQUIRE(from_lidx_file_lengths.size() == lidx_lengths.size());
+    for(size_t i = 0; i < lidx_names.size(); ++i)
+        REQUIRE(((from_lidx_file_names[i] == lidx_names[i]) and (from_lidx_file_lengths[i] == lidx_lengths[i])));
 }
 
 TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
@@ -993,11 +1145,12 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
     std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
     
     auto& references = vcf.get_references();
+    auto& references_name = vcf.get_references_name();
     
     references_parse.reserve(references.size());
     // TODO: This might be parallelized as well
     for (size_t i = 0; i < references.size(); ++i) 
-        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
 
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -1064,11 +1217,12 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
     std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
     
     auto& references = vcf.get_references();
+    auto& references_name = vcf.get_references_name();
     
     references_parse.reserve(references.size());
     // TODO: This might be parallelized as well
     for (size_t i = 0; i < references.size(); ++i) 
-        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], dictionary, params, (i==0) ) ) );
+        references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
 
     std::string out_prefix = testfiles_dir + "/parser_out";
     vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);

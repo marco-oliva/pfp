@@ -89,6 +89,7 @@ struct Params
     bool compute_occurrences = true;
     bool auPair = false;
     bool compute_lifting = false;
+    bool report_lengths = false;
     std::string ignore_ts_file;
 };
 
@@ -102,17 +103,23 @@ struct Statistics
 class ReferenceParse
 {
 
+    const std::size_t ref_length;
+    const std::string ref_id;
 public :
     Dictionary& dictionary;
     std::vector<hash_type> parse;
-    std::vector<size_type> trigger_strings_position; // position of first char of each trigger string
+    std::vector<long long int> trigger_strings_position; // position of first char of each trigger string
+    // std::vector<size_type> trigger_strings_position; // position of first char of each trigger string
     std::set<hash_type> to_ignore_ts_hash;
     
     const Params& params;
+
+    const std::string& id() const { return this->ref_id; }
+    const std::size_t length() const { return this->ref_length; }
     
     void init(const std::string& reference, bool first = true);
     
-    ReferenceParse(const std::string& reference, Dictionary& dict, const Params& pms, bool first = true) : dictionary(dict), params(pms) { this->init(reference, first); }
+    ReferenceParse(const std::string& reference, const std::string& id, Dictionary& dict, const Params& pms, bool first = true) : dictionary(dict), params(pms), ref_length(reference.size()), ref_id(id) { this->init(reference, first); }
     const hash_type& operator[](size_type i) const { return this->parse[i]; }
 };
 
@@ -126,6 +133,17 @@ private:
     std::string out_file_prefix;
     std::string out_file_name;
     std::string tmp_out_file_name;
+
+    std::ofstream out_lift;
+    std::string out_lift_prefix;
+    std::string out_lift_name;
+    std::string tmp_out_lift_name;
+
+    std::ofstream out_len;
+    std::string out_len_prefix;
+    std::string out_len_name;
+    std::string tmp_out_len_name;
+    
     std::vector<std::string> samples_processed;
     
     Params params;

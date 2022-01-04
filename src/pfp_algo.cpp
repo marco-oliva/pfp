@@ -394,6 +394,8 @@ vcfbwt::pfp::ParserVCF::close()
     {
         vcfbwt::DiskWrites::update(out_file.tellp()); // Disk Stats
         this->out_file.close();
+        if(params.compute_lifting) this->out_lift.close();
+        if(params.report_lengths) this->out_len.close();
     }
     
     // Output parse, substitute hash with rank
@@ -533,17 +535,18 @@ vcfbwt::pfp::ParserVCF::close()
         }
         vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
         merged.close();
-        
-        this->parse_size = out_parse_size;
 
         // Merging the lifting components
         if (params.compute_lifting)
         {
             std::ofstream merged(out_lift_name, std::ios_base::binary);
             // Main
-            std::ifstream main_parse(this->tmp_out_lift_name);
-            merged << main_parse.rdbuf();
-            main_parse.close();
+            if ((this->parse_size) != 0)
+            {
+                std::ifstream main_parse(this->tmp_out_lift_name);
+                merged << main_parse.rdbuf();
+                main_parse.close();
+            }
             // Workers
             for (auto worker : registered_workers)
             {
@@ -555,6 +558,7 @@ vcfbwt::pfp::ParserVCF::close()
                     worker_parse.close();
                 }
             }
+            vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
             merged.close();
         }
 
@@ -575,22 +579,31 @@ vcfbwt::pfp::ParserVCF::close()
             }
 
             // Main
-            std::ifstream main_parse(this->tmp_out_len_name);
-            merged << main_parse.rdbuf();
-            main_parse.close();
+            if ((this->parse_size) != 0)
+            {
+                std::ifstream main_parse(this->tmp_out_len_name);
+                if(not main_parse.is_open())
+                    spdlog::error("Cannot open file ", this->tmp_out_len_name);
+                merged << main_parse.rdbuf();
+                main_parse.close();
+            }
             // Workers
             for (auto worker : registered_workers)
             {
                 if (worker.get().parse_size != 0)
                 {
-                    out_parse_size += worker.get().parse_size;
                     std::ifstream worker_parse(worker.get().tmp_out_len_name);
+                    if(not worker_parse.is_open())
+                        spdlog::error("Cannot open file ", worker.get().tmp_out_len_name);
                     merged << worker_parse.rdbuf();
                     worker_parse.close();
                 }
             }
+            vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
             merged.close();
         }
+
+        this->parse_size = out_parse_size;
         
         // Print dicitionary on disk
         if (tags & UNCOMPRESSED)
