@@ -145,6 +145,7 @@ private:
     std::string tmp_out_len_name;
     
     std::vector<std::string> samples_processed;
+    std::vector<std::pair<std::string, std::string>> contigs_processed;
     
     Params params;
     Statistics statistics;

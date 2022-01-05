@@ -208,7 +208,7 @@ vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, st
     
     if (tags & MAIN) {this->out_file_name = out_file_prefix + EXT::PARSE; }
     if ((tags & MAIN) and params.compute_lifting) { this->out_lift_name = out_file_prefix + EXT::LIFTING; }
-    if ((tags & MAIN) and params.report_lengths) { this->out_len_name = out_file_prefix + EXT::LENGTHS; }
+    if ((tags & MAIN) and ( params.report_lengths or params.compute_lifting ) ) { this->out_len_name = out_file_prefix + EXT::LENGTHS; }
     if ((tags & MAIN) and params.compress_dictionary) { tags = tags | COMPRESSED; }
     this->tmp_out_file_name = TempFile::getName("parse");
     this->out_file.open(tmp_out_file_name, std::ios::binary);
@@ -217,7 +217,7 @@ vcfbwt::pfp::ParserVCF::init(const Params& params, const std::string& prefix, st
         this->tmp_out_lift_name = TempFile::getName("lift");
         this->out_lift.open(tmp_out_lift_name, std::ios::binary);
     }
-    if(params.report_lengths)
+    if(params.report_lengths or params.compute_lifting)
     {
         this->tmp_out_len_name = TempFile::getName("lengths");
         this->out_len.open(tmp_out_len_name, std::ios::binary);
@@ -240,6 +240,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     
     for(auto& contig: sample.contigs)
     {
+        this->contigs_processed.push_back(std::make_pair(sample.id(), contig.id()));
         // Karp Robin Hash Function for sliding window
         KarpRabinHash kr_hash(this->params.w);
         std::string phrase;
@@ -368,13 +369,19 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             // Build lifting data_structure
             lvs_builder.finalize();
             lift::Lift lift(lvs_builder);
+            // Serialize the reference
+            // size_t tmp = contig.id().size();
+            // out_lift.write((char *)&tmp, sizeof(contig.id().size()));
+            // out_lift.write((char *)contig.id().data(), ((contig.id().size()) * sizeof(contig.id()[0])));
+            // out_lift.write((char *)&ref_index, sizeof(ref_index)); 
+            size_t offset = contig.offset() - 1; // -1 because we have a dollar at the begionning
+            out_lift.write((char *)&offset, sizeof(offset)); 
             // Serialize the data structure
-            // TODO: Serialize the reference
             lift.serialize(out_lift);
         }
 
         // Reporting contig lengths
-        if(params.report_lengths)
+        if(params.report_lengths or params.compute_lifting)
         {
             // Include the last w characters at the end of each contig
             size_t length = contig_iterator.length() + this->params.w;
@@ -395,7 +402,7 @@ vcfbwt::pfp::ParserVCF::close()
         vcfbwt::DiskWrites::update(out_file.tellp()); // Disk Stats
         this->out_file.close();
         if(params.compute_lifting) this->out_lift.close();
-        if(params.report_lengths) this->out_len.close();
+        if(params.report_lengths or params.compute_lifting) this->out_len.close();
     }
     
     // Output parse, substitute hash with rank
@@ -515,12 +522,14 @@ vcfbwt::pfp::ParserVCF::close()
                 merged.write((char*) &out_e, sizeof(size_type));
             }
         }
+        size_t n_contigs = 0;
         // Main
         if ((this->parse_size) != 0)
         {
             std::ifstream main_parse(this->tmp_out_file_name);
             merged << main_parse.rdbuf();
             out_parse_size += this->parse_size;
+            n_contigs += this->contigs_processed.size();
         }
         
         // Workers
@@ -531,44 +540,17 @@ vcfbwt::pfp::ParserVCF::close()
                 out_parse_size += worker.get().parse_size;
                 std::ifstream worker_parse(worker.get().tmp_out_file_name);
                 merged << worker_parse.rdbuf();
+                n_contigs += worker.get().contigs_processed.size();
             }
         }
         vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
         merged.close();
 
-        // Merging the lifting components
-        if (params.compute_lifting)
-        {
-            std::ofstream merged(out_lift_name, std::ios_base::binary);
-            // Main
-            if ((this->parse_size) != 0)
-            {
-                std::ifstream main_parse(this->tmp_out_lift_name);
-                merged << main_parse.rdbuf();
-                main_parse.close();
-            }
-            // Workers
-            for (auto worker : registered_workers)
-            {
-                if (worker.get().parse_size != 0)
-                {
-                    out_parse_size += worker.get().parse_size;
-                    std::ifstream worker_parse(worker.get().tmp_out_lift_name);
-                    merged << worker_parse.rdbuf();
-                    worker_parse.close();
-                }
-            }
-            vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
-            merged.close();
-        }
-
         // Merging the length components
-        if (params.report_lengths)
+        if (params.report_lengths or params.compute_lifting)
         {
             std::ofstream merged(out_len_name);
 
-            // Dummy sequence of length 1 for the first dollar in the parse
-            merged << "Dummy 1" << std::endl;
             // Reference
             for(auto& reference_parse : *(this->references_parse))
             {
@@ -602,6 +584,98 @@ vcfbwt::pfp::ParserVCF::close()
             vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
             merged.close();
         }
+
+        // Merging the lifting components
+        if (params.compute_lifting)
+        {
+            std::ofstream merged(out_lift_name, std::ios_base::binary);
+
+            // if compute_lifting => report_lengths
+            std::vector<size_t> onset(1,0);
+            std::vector<size_t> lengths;
+            size_t u = 0;            
+            std::vector<std::string> names;
+
+            // Reading the lengths
+            std::ifstream in_lidx(out_len_name);
+            while (not in_lidx.eof()) 
+            { 
+                std::string tmp_name;
+                std::size_t tmp_length;
+                in_lidx >> tmp_name >> tmp_length;
+                if (tmp_name != "")
+                {
+                    u += tmp_length;
+                    names.push_back(tmp_name);
+                    lengths.push_back(tmp_length);
+                    onset.push_back(u);
+                }
+            }
+            ++u;
+            in_lidx.close();
+            // Build the seqidx structure
+            sdsl::sd_vector_builder builder(u, onset.size());
+            for (auto idx : onset)
+                builder.set(idx);
+
+            sdsl::sd_vector<> starts(builder);
+            sdsl::sd_vector<>::rank_1_type rank1(&starts);
+            sdsl::sd_vector<>::select_1_type select1(&starts);
+            // Writing the seqidx on disk
+            merged.write((char *)&u, sizeof(u));
+
+            starts.serialize(merged);
+            sdsl::serialize(names.size(), merged);
+            for(size_t i = 0; i < names.size(); ++i)
+            {
+                sdsl::serialize(names[i].size(), merged);
+                merged.write((char *)names[i].data(), names[i].size());
+            }
+
+            n_contigs += this->references_parse->size();
+            // Write the total number of contigs
+            merged.write((char *)&n_contigs, sizeof(n_contigs));
+
+            // Build the empty liftings for the references
+            size_t clen = 0;
+            for(size_t i = 0; i < this->references_parse->size(); ++i)
+            {
+                const size_t len = lengths[i];
+
+                sdsl::bit_vector ibv(len);
+                sdsl::bit_vector dbv(len);
+                sdsl::bit_vector sbv(len);
+
+                lift::Lift lift(ibv, dbv, sbv); 
+
+                sdsl::serialize(clen, merged);
+                lift.serialize(merged);  
+
+                clen += len;       
+            }
+
+            // Main
+            if ((this->parse_size) != 0)
+            {
+                std::ifstream main_parse(this->tmp_out_lift_name);
+                merged << main_parse.rdbuf();
+                main_parse.close();
+            }
+            // Workers
+            for (auto worker : registered_workers)
+            {
+                if (worker.get().parse_size != 0)
+                {
+                    out_parse_size += worker.get().parse_size;
+                    std::ifstream worker_parse(worker.get().tmp_out_lift_name);
+                    merged << worker_parse.rdbuf();
+                    worker_parse.close();
+                }
+            }
+            vcfbwt::DiskWrites::update(merged.tellp()); // Disk Stats
+            merged.close();
+        }
+
 
         this->parse_size = out_parse_size;
         

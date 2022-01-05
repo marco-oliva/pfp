@@ -43,6 +43,8 @@ int main(int argc, char **argv)
     app.add_option("-j, --threads", threads, "Number of threads")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Also output compressed the dictionary")->configurable();
+    app.add_flag("-i, --idx", params.report_lengths, "Also output contig length list in .lidx format")->configurable();
+    app.add_flag("-l, --leviosam", params.compute_lifting, "Also output lifting file in multiple leviosam format")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats")->configurable();
     app.add_flag("--verbose", verbose, "Verbose output")->configurable();

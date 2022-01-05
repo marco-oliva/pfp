@@ -940,8 +940,7 @@ TEST_CASE( "Sample: HG00096, twice chromosomes 22 and Y with lengths", "[VCF con
     std::vector<size_t> lidx_lengths;
     std::string what_it_should_be;
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
-    lidx_names.push_back("Dummy");
-    lidx_lengths.push_back(1);
+
 
     for(auto& reference: vcf.get_references())
     {
