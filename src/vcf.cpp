@@ -106,6 +106,7 @@ vcfbwt::Sample::iterator::operator++()
         }
 
         bool get_next_variant = true;
+        bool iterate = false;
 
         if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
         {
@@ -116,7 +117,7 @@ vcfbwt::Sample::iterator::operator++()
         else if (curr_var_it_ < curr_variation.alt[var_genotype].size())
             curr_char_ = &curr_variation.alt[var_genotype].back();
         else
-            curr_char_ = &(sample_.reference_[ref_it_++ + curr_variation.ref_len - gap]);
+            iterate = true; // We evaluate the next position that might be either on the reference or another variation
 
         sam_it_++;
         if (get_next_variant)
@@ -130,6 +131,8 @@ vcfbwt::Sample::iterator::operator++()
             curr_var_it_ = 0;
             ref_it_ += curr_variation.ref_len - gap; // Adding -gap to balance the sipping
         }
+
+        if (iterate) this->operator++();
     }
     // Non ci sono più variazioni, itera sulla reference
     else { curr_char_ = &(sample_.reference_[ref_it_]); ref_it_++; sam_it_++; }
