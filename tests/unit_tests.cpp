@@ -493,6 +493,45 @@ TEST_CASE( "Constructor", "[VCF parser]" )
     REQUIRE(all_match);
 }
 
+TEST_CASE("Sample: HG00101", "[VCF parser]")
+{
+    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
+    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 2);
+
+    REQUIRE(vcf[1].id() == "HG00101");
+
+    std::string test_sample_path = testfiles_dir + "/HG00101_chrY_H1.fa.gz";
+    std::ifstream in_stream(test_sample_path);
+
+    REQUIRE(vcfbwt::is_gzipped(in_stream));
+
+    zstr::istream is(in_stream);
+    std::string line, from_fasta;
+    while (getline(is, line))
+    {
+        if (not(line.empty() or line[0] == '>'))
+        {
+            from_fasta.append(line);
+        }
+    }
+
+    vcfbwt::Sample::iterator it(vcf[1]);
+    std::string from_vcf;
+    while (not it.end())
+    {
+        from_vcf.push_back(*it);
+        ++it;
+    }
+
+    std::size_t i = 0;
+    while (((i < from_vcf.size()) and (i < from_fasta.size())) and (from_vcf[i] == from_fasta[i]))
+    {
+        i++;
+    }
+    REQUIRE(((i == (from_vcf.size())) and (i == (from_fasta.size()))));
+}
+
 TEST_CASE( "Sample: HG00103", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
