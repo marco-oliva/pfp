@@ -76,7 +76,7 @@ vcfbwt::Contig::iterator::operator++()
     if (var_it_ < contig_.variations.size())
     {
         const Variation& curr_variation = contig_.variations_list[contig_.variations[var_it_]];
-        
+
         if (ref_it_ < curr_variation.pos)
         {
             curr_char_ = &(contig_.reference_[ref_it_]); ref_it_++; sam_it_++;
@@ -98,7 +98,7 @@ vcfbwt::Contig::iterator::operator++()
             while ( start < std::min(gap,len) && curr_variation.alt[var_genotype][start] == curr_variation.alt[0][start]) ++start;
             if (start < gap)
             {
-                spdlog::error("vcfbwt::Contig::iterator::operator++() Error: variant overriding previous variant.");
+                spdlog::error("vcfbwt::Contig::iterator::operator++() Error: variant overwriting previous variant.");
                 std::exit(EXIT_FAILURE);
             }
             // We need to preserve preceeding variants
@@ -106,6 +106,7 @@ vcfbwt::Contig::iterator::operator++()
         }
 
         bool get_next_variant = true;
+        bool iterate = false;
 
         if (curr_var_it_ < curr_variation.alt[var_genotype].size() - 1)
         {
@@ -115,8 +116,9 @@ vcfbwt::Contig::iterator::operator++()
         }
         else if(curr_var_it_ < curr_variation.alt[var_genotype].size())
             curr_char_ = & curr_variation.alt[var_genotype].back();
-        else
-            curr_char_ = &(contig_.reference_[ref_it_++ + curr_variation.ref_len - gap]);
+        else // This operation is not safe. We have to evaluate if the next variation ovarlaps
+            // curr_char_ = &(contig_.reference_[ref_it_++ + curr_variation.ref_len - gap]);
+            iterate = true; // We evaluate the next position that might be wither on the reference or another variation
 
         sam_it_ ++;
         if(get_next_variant)
@@ -127,6 +129,8 @@ vcfbwt::Contig::iterator::operator++()
             { var_it_++; }
             curr_var_it_ = 0; ref_it_ += curr_variation.ref_len - gap; // Adding -gap to balance the sipping
         }
+        
+        if ( iterate ) this->operator++();
     }
     // Non ci sono più variazioni, itera sulla reference
     else { curr_char_ = &(contig_.reference_[ref_it_]); ref_it_++; sam_it_++; }
