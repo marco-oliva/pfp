@@ -12,7 +12,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-
+message(STATUS "Install directory: ${CMAKE_INSTALL_PREFIX}")
 ################################################################################
 # Version number
 execute_process(
@@ -173,9 +173,4 @@ target_link_libraries(unparse64 pfp64 ${VCF_LIB_DEPS})
 # target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
 # target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 
-
-
-
-
-
-
+install(TARGETS pfp++ pfp++64 AuPair AuPair64 mpfp++ mpfp++64 unparse unparse64 TYPE RUNTIME)
