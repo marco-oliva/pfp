@@ -386,7 +386,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             // Include the last w characters at the end of each contig
             size_t length = contig_iterator.length() + this->params.w;
             if (contig.last()) length += this->params.w - 1;
-            const std::string contig_name = sample.id() + ":" + contig.id();
+            const std::string contig_name = sample.id() + ":H" + std::to_string(this->working_genotype + 1) + ":" + contig.id();
             out_len << contig_name << " " << length << std::endl;
         }
     }
