@@ -964,7 +964,7 @@ TEST_CASE( "Sample: HG00096, twice chromosomes 22 and Y with lengths", "[VCF con
     what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     lidx_lengths.push_back((from_fasta.size() + params.w));
-    lidx_names.push_back("HG00096:Y");
+    lidx_names.push_back("HG00096:H1:Y");
 
     test_sample_path = testfiles_dir + "/HG00096_chr22_H1.fa.gz";
     std::ifstream in_stream_(test_sample_path);
@@ -977,7 +977,7 @@ TEST_CASE( "Sample: HG00096, twice chromosomes 22 and Y with lengths", "[VCF con
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     lidx_lengths.push_back((from_fasta.size() + params.w + params.w - 1));
-    lidx_names.push_back("HG00096:22");
+    lidx_names.push_back("HG00096:H1:22");
     // Check
     bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
@@ -996,16 +996,6 @@ TEST_CASE( "Sample: HG00096, twice chromosomes 22 and Y with lengths", "[VCF con
             from_lidx_file_lengths.push_back(tmp_length);
         }
     }
-
-    for(auto& elem: from_lidx_file_names)
-        spdlog::info(elem);
-    for(auto& elem: from_lidx_file_lengths)
-        spdlog::info(elem);
-
-    for(auto& elem: lidx_names)
-        spdlog::info(elem);
-    for(auto& elem: lidx_lengths)
-        spdlog::info(elem);
 
     REQUIRE(from_lidx_file_names.size() == lidx_names.size());
     REQUIRE(from_lidx_file_lengths.size() == lidx_lengths.size());
