@@ -19,6 +19,9 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 
 if(CURL_FOUND)
         include_directories(${CURL_INCLUDE_DIRS})
+else()
+        unset(CURL_LIBRARIES)
+        unset(CURL)
 endif()
 
 #target_link_libraries(DukasCompiler ${LIBLZMA_LIBRARIES})
