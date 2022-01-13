@@ -11,12 +11,15 @@ include(LibFindMacros)
 libfind_package(HTSLib ZLIB REQUIRED)
 libfind_package(HTSLib LibLZMA REQUIRED)
 libfind_package(HTSLib BZip2 REQUIRED)
-libfind_package(HTSLib CURL REQUIRED)
+libfind_package(HTSLib CURL)
 
 include_directories(${LIBLZMA_INCLUDE_DIRS})
 include_directories(${BZIP2_INCLUDE_DIR})
 include_directories(${ZLIB_INCLUDE_DIRS})
-include_directories(${CURL_INCLUDE_DIRS})
+
+if(CURL_FOUND)
+        include_directories(${CURL_INCLUDE_DIRS})
+endif()
 
 #target_link_libraries(DukasCompiler ${LIBLZMA_LIBRARIES})
 
