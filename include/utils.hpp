@@ -141,7 +141,7 @@ class KarpRabinHash
 public:
     KarpRabinHash(size_type n, bool debug = false);
     
-    void initialize(const std::string& window);
+    void initialize(const std::string_view& window);
     void update(char_type char_out, char_type char_in);
     void reset();
     
@@ -166,6 +166,89 @@ public:
     static hash_type string_hash(const std::string_view& s);
 };
 
+class Mersenne_KarpRabinHash4
+{
+public:
+    Mersenne_KarpRabinHash4(size_type n, bool debug = false);
+
+    void initialize(const std::string_view& window);
+    void update(const char_type* chars_out, const char_type* chars_in);
+    void reset();
+
+    const hash_type& get_hash() const { return this->hash_value; }
+
+private:
+
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    size_type window_length_32;
+    hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
+
+public:
+    constexpr static hash_type kr_p_pow = 61;                     //
+    constexpr static hash_type kr_prime = (1ull << kr_p_pow) - 1; // 9th Mersenne Prime
+    constexpr static hash_type kr_base  = 660162925935593667;     // random number in range (1, kr_prime - 1)
+
+    static hash_type string_hash(const std::string_view& s);
+};
+
+class Mersenne_KarpRabinHash
+{
+public:
+    Mersenne_KarpRabinHash(size_type n, bool debug = false);
+
+    void initialize(const std::string_view& window);
+    void update(const char_type char_out, const char_type char_in);
+    void reset();
+
+    const hash_type& get_hash() const { return this->hash_value; }
+
+private:
+
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    size_type window_length_32;
+    hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
+
+public:
+    constexpr static hash_type kr_p_pow = 61;                     //
+    constexpr static hash_type kr_prime = (1ull << kr_p_pow) - 1; // 9th Mersenne Prime
+    constexpr static hash_type kr_base  = 660162925935593667;     // random number in range (1, kr_prime - 1)
+
+    static hash_type string_hash(const std::string_view& s);
+};
+
+class Mersenne_KarpRabinHashSIMD
+{
+public:
+    Mersenne_KarpRabinHashSIMD(size_type n, bool debug = false);
+
+    void initialize(const std::string_view& window);
+    void update(const char_type char_out, const char_type char_in);
+    void reset();
+
+    const hash_type& get_hash() const { return this->hash_value; }
+
+private:
+
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    size_type window_length_32;
+    hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
+
+public:
+    constexpr static hash_type kr_p_pow = 61;                     //
+    constexpr static hash_type kr_prime = (1ull << kr_p_pow) - 1; // 9th Mersenne Prime
+    constexpr static hash_type kr_base  = 660162925935593667;     // random number in range (1, kr_prime - 1)
+
+    static hash_type string_hash(const std::string_view& s);
+};
 
 //------------------------------------------------------------------------------
 

@@ -34,7 +34,7 @@ void
 vcfbwt::KarpRabinHash::reset() { this->hash_value = 0; }
 
 void
-vcfbwt::KarpRabinHash::initialize(const std::string& window)
+vcfbwt::KarpRabinHash::initialize(const std::string_view& window)
 {
     if (debug_) { debug_content_ = window; }
     
@@ -66,7 +66,7 @@ vcfbwt::KarpRabinHash::string_hash(const std::string_view& s)
     hash_type result = 0;
     hash_type constant_to_n_minus_one_mod = modular_pow(kr_constant, s.size() - 1, kr_prime);
     
-    for (hash_type i = 0; i < s.size(); i++)
+    for (size_type i = 0; i < s.size(); i++)
     {
         char_type c = s[s.size() - 1 - i];
         result += c * modular_pow(kr_constant, i, kr_prime);
@@ -74,6 +74,176 @@ vcfbwt::KarpRabinHash::string_hash(const std::string_view& s)
     }
     
     return result;
+}
+
+//------------------------------------------------------------------------------
+
+vcfbwt::Mersenne_KarpRabinHash4::Mersenne_KarpRabinHash4(size_type n, bool debug) : window_length(n), debug_(debug)
+{
+    assert(this->window_length % 4 == 0 and this->window_length >= 4);
+    this->window_length_32 = window_length / 4;
+
+    this->constant_to_n_minus_one_mod = modular_pow(kr_base, window_length - 1, kr_prime);
+}
+
+void
+vcfbwt::Mersenne_KarpRabinHash4::reset() { this->hash_value = 0; }
+
+void
+vcfbwt::Mersenne_KarpRabinHash4::initialize(const std::string_view& window)
+{
+    if (debug_) { debug_content_ = window; }
+
+    uint32_t* string32 = (uint32_t*) window.data();
+    hash_type h = 1; //not 0!
+    for (size_type i = 0; i < this->window_length_32; i++) // window always multiple of 4
+    {
+        unsigned __int128 hc = (unsigned __int128)h*kr_base + string32[i]; //x64 compilers generate standard mul instruction
+        hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
+        lo = (lo & kr_prime) + (lo >> kr_p_pow);
+        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    }
+    this->hash_value = h;
+}
+
+void
+vcfbwt::Mersenne_KarpRabinHash4::update(const vcfbwt::char_type* chars_out, const vcfbwt::char_type* chars_in)
+{
+    if (debug_)
+    {
+        for (size_type  i = 0; i < 4; i++) { assert(debug_content_[i] == chars_out[i]); }
+        debug_content_.erase(0, 4);
+        debug_content_.append((char*) chars_in, 4);
+    }
+
+    uint32_t *s32c_in = (uint32_t*) chars_in, *s32c_out = (uint32_t*) chars_out;
+    unsigned __int128 hc = (unsigned __int128) hash_value + kr_prime; // negative avoiders
+    hc = hc - (unsigned __int128) constant_to_n_minus_one_mod * (*(s32c_out)); // take chars_out out
+    hc = hc * kr_base + *s32c_in;
+
+    hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+    lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
+    lo = (lo & kr_prime) + (lo >> kr_p_pow);
+    hash_value = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+}
+
+vcfbwt::hash_type
+vcfbwt::Mersenne_KarpRabinHash4::string_hash(const std::string_view& s)
+{
+    uint32_t* string32 = (uint32_t*) s.data();
+    hash_type h = 1; //not 0!
+    for (size_type i = 0; i < s.size() / 4; i++) // window always multiple of 4
+    {
+        unsigned __int128 hc = (unsigned __int128)h*kr_base + string32[i]; //x64 compilers generate standard mul instruction
+        hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
+        lo = (lo & kr_prime) + (lo >> kr_p_pow);
+        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    }
+    return h;
+}
+
+//------------------------------------------------------------------------------
+
+vcfbwt::Mersenne_KarpRabinHash::Mersenne_KarpRabinHash(size_type n, bool debug) : window_length(n), debug_(debug)
+{
+    assert(this->window_length % 4 == 0 and this->window_length >= 4);
+    this->window_length_32 = window_length / 4;
+
+    this->constant_to_n_minus_one_mod = modular_pow(kr_base, window_length - 1, kr_prime);
+}
+
+void
+vcfbwt::Mersenne_KarpRabinHash::reset() { this->hash_value = 0; }
+
+void
+vcfbwt::Mersenne_KarpRabinHash::initialize(const std::string_view& window)
+{
+    if (debug_) { debug_content_ = window; }
+
+    hash_type h = 1; //not 0!
+    for (size_type i = 0; i < this->window_length; i++) // window always multiple of 4
+    {
+        unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) window[i]; //x64 compilers generate standard mul instruction
+        hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
+        lo = (lo & kr_prime) + (lo >> kr_p_pow);
+        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    }
+    this->hash_value = h;
+}
+
+void
+vcfbwt::Mersenne_KarpRabinHash::update(const vcfbwt::char_type char_out, const vcfbwt::char_type char_in)
+{
+    if (debug_) { assert(debug_content_[0] == char_out); debug_content_.erase(0, 1); debug_content_.append(1, char_in); }
+
+    unsigned __int128 hc = (unsigned __int128) hash_value + kr_prime; // negative avoiders
+    hc = hc - (unsigned __int128) constant_to_n_minus_one_mod * char_out; // take char_out out
+    hc = hc * kr_base + char_in;
+
+    hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+    lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
+    lo = (lo & kr_prime) + (lo >> kr_p_pow);
+    hash_value = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+}
+
+vcfbwt::hash_type
+vcfbwt::Mersenne_KarpRabinHash::string_hash(const std::string_view& s)
+{
+    return 0; // not implemented
+}
+
+//------------------------------------------------------------------------------
+
+vcfbwt::Mersenne_KarpRabinHashSIMD::Mersenne_KarpRabinHashSIMD(size_type n, bool debug) : window_length(n), debug_(debug)
+{
+    assert(this->window_length % 4 == 0 and this->window_length >= 4);
+    this->window_length_32 = window_length / 4;
+
+    this->constant_to_n_minus_one_mod = modular_pow(kr_base, window_length - 1, kr_prime);
+}
+
+void
+vcfbwt::Mersenne_KarpRabinHashSIMD::reset() { this->hash_value = 0; }
+
+void
+vcfbwt::Mersenne_KarpRabinHashSIMD::initialize(const std::string_view& window)
+{
+    if (debug_) { debug_content_ = window; }
+
+    hash_type h = 1; //not 0!
+    for (size_type i = 0; i < this->window_length; i++) // window always multiple of 4
+    {
+        unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) window[i]; //x64 compilers generate standard mul instruction
+        hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
+        lo = (lo & kr_prime) + (lo >> kr_p_pow);
+        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    }
+    this->hash_value = h;
+}
+
+void
+vcfbwt::Mersenne_KarpRabinHashSIMD::update(const vcfbwt::char_type char_out, const vcfbwt::char_type char_in)
+{
+    if (debug_) { assert(debug_content_[0] == char_out); debug_content_.erase(0, 1); debug_content_.append(1, char_in); }
+
+    unsigned __int128 hc = (unsigned __int128) hash_value + kr_prime; // negative avoiders
+    hc = hc - (unsigned __int128) constant_to_n_minus_one_mod * char_out; // take char_out out
+    hc = hc * kr_base + char_in;
+
+    hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+    lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
+    lo = (lo & kr_prime) + (lo >> kr_p_pow);
+    hash_value = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+}
+
+vcfbwt::hash_type
+vcfbwt::Mersenne_KarpRabinHashSIMD::string_hash(const std::string_view& s)
+{
+    return 0; // not implemented
 }
 
 //------------------------------------------------------------------------------

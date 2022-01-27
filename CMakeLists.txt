@@ -149,9 +149,12 @@ add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 
-
-
-
+# Benchmakrs
+add_executable(benchmarks_kr_hash benchmarks/kr_hash.cpp)
+target_link_libraries(benchmarks_kr_hash pfp ${VCF_LIB_DEPS})
+add_executable(benchmarks_kr_hash64 benchmarks/kr_hash.cpp)
+target_compile_options(benchmarks_kr_hash64 PRIVATE "-DPFP_LONG_TYPE=ON")
+target_link_libraries(benchmarks_kr_hash64 pfp64 ${VCF_LIB_DEPS})
 
 
 
