@@ -374,7 +374,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             // out_lift.write((char *)&tmp, sizeof(contig.id().size()));
             // out_lift.write((char *)contig.id().data(), ((contig.id().size()) * sizeof(contig.id()[0])));
             // out_lift.write((char *)&ref_index, sizeof(ref_index)); 
-            size_t offset = contig.offset() - 1; // -1 because we have a dollar at the begionning
+            size_t offset = contig.offset();
             out_lift.write((char *)&offset, sizeof(offset)); 
             // Serialize the data structure
             lift.serialize(out_lift);
