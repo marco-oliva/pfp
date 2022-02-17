@@ -350,24 +350,28 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         if(params.compute_lifting)
         {
             const size_t genotype = this->working_genotype;
+            // Include the last w characters at the end of each contig
+            size_t length = contig_iterator.length() + this->params.w;
+            if (contig.last()) length += this->params.w - 1;
             // Initialize the Lift builder
-            lift::Lift_builder lvs_builder(contig_iterator.length());
+            lift::Lift_builder lvs_builder(length);
             // Iterate throgh all the variations
             for(size_t i = 0; i < contig.variations.size(); ++i)
             {
                 const vcfbwt::Variation& variation = contig.get_variation(i);
 
+                const size_t var_genotype = contig.genotypes[i][genotype];
                 // Get only variation in the current genotype
-                if( contig.genotypes[i][genotype] == 0)
+                if( var_genotype == 0)
                     continue;
 
                 const int rlen = variation.alt[0].size(); // Length of the reference allele
-                const int alen = variation.alt[genotype].size(); // Length of the alternate allele
-                lvs_builder.set(variation.pos, variation.types[genotype], rlen, alen );  
+                const int alen = variation.alt[var_genotype].size(); // Length of the alternate allele
+                lvs_builder.set(variation.pos, variation.types[var_genotype], rlen, alen );  
             }
 
             // Build lifting data_structure
-            lvs_builder.finalize();
+            // lvs_builder.finalize();
             lift::Lift lift(lvs_builder);
             // Serialize the reference
             // size_t tmp = contig.id().size();
