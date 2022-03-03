@@ -91,9 +91,13 @@ int main(int argc, char **argv)
     {
         // Set tmp file dir
         if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
-    
+        
+        int last_genotype = 0;
+        if ( haplotype_string == "2" or haplotype_string == "12" )
+            last_genotype = 1;
+
         // Parse the VCF
-        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, max_samples);
+        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, last_genotype, max_samples);
     
         // Set threads accordingly to configuration
         omp_set_num_threads(threads);

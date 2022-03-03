@@ -337,7 +337,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         {
             // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
             phrase.append(this->w - 1, DOLLAR_PRIME);
-            if (contig.last()) { phrase.append(this->w, DOLLAR); }
+            if (contig.last(this->working_genotype)) { phrase.append(this->w, DOLLAR); }
             else { phrase.append(1, DOLLAR_SEQUENCE); }
 
             hash_type hash = this->dictionary->check_and_add(phrase);
@@ -352,7 +352,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             const size_t genotype = this->working_genotype;
             // Include the last w characters at the end of each contig
             size_t length = contig_iterator.length() + this->params.w;
-            if (contig.last()) length += this->params.w - 1;
+            if (contig.last(this->working_genotype)) length += this->params.w - 1;
             // Initialize the Lift builder
             lift::Lift_builder lvs_builder(length);
             // Iterate throgh all the variations
@@ -389,7 +389,8 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         {
             // Include the last w characters at the end of each contig
             size_t length = contig_iterator.length() + this->params.w;
-            if (contig.last()) length += this->params.w - 1;
+            if (contig.last(this->working_genotype))
+                length += this->params.w - 1;
             const std::string contig_name = sample.id() + "_H" + std::to_string(this->working_genotype + 1) + "_" + contig.id();
             out_len << contig_name << " " << length << std::endl;
         }
