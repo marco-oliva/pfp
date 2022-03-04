@@ -88,6 +88,7 @@ public:
         offset_(other.offset_),
         ref_index_(other.ref_index_),
         is_last_contig(other.is_last_contig),
+        last_variation_type(other.last_variation_type),
         variations(std::move(other.variations)),
         genotypes(std::move(other.genotypes))
     {
@@ -101,6 +102,7 @@ public:
         offset_(other.offset_),
         ref_index_(other.ref_index_),
         is_last_contig(other.is_last_contig),
+        last_variation_type(other.last_variation_type),
         variations(other.variations),
         genotypes(other.genotypes)
     {
