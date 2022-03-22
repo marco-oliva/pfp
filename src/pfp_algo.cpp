@@ -143,7 +143,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, bool first)
     }
     
     std::string phrase;
-    spdlog::info("Parsing reference");
+    spdlog::info("Parsing reference contig " + this->ref_id);
     
     // Karp Robin Hash Function for sliding window
     KarpRabinHash kr_hash(this->params.w);
@@ -240,6 +240,8 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     
     for(auto& contig: sample.contigs)
     {
+        if (contig.get_ploidy() <= this->working_genotype)
+            continue;
         this->contigs_processed.push_back(std::make_pair(sample.id(), contig.id()));
         // Karp Robin Hash Function for sliding window
         KarpRabinHash kr_hash(this->params.w);

@@ -62,6 +62,7 @@ private:
     std::string contig_id;
     bool is_last_contig = false;
     int last_variation_type = 0;
+    int max_ploidy = 0; // Number of haplotypes in the contig
     
     friend class iterator;
     
@@ -71,6 +72,9 @@ public:
     bool last(const int type) const { return this->is_last_contig and (type == last_variation_type); }
     size_t offset() const { return this->offset_; }
     size_t get_reference_index() const { return this->ref_index_; }
+    void set_ploidy(int ploidy) { this->max_ploidy = ploidy; }
+    void update_ploidy(int ploidy) { this->max_ploidy = std::max(this->max_ploidy, ploidy); }
+    int get_ploidy() const { return this->max_ploidy; }
     
     // variation, variation type
     std::vector<std::size_t> variations;
@@ -89,6 +93,7 @@ public:
         ref_index_(other.ref_index_),
         is_last_contig(other.is_last_contig),
         last_variation_type(other.last_variation_type),
+        max_ploidy(other.max_ploidy),
         variations(std::move(other.variations)),
         genotypes(std::move(other.genotypes))
     {
@@ -103,6 +108,7 @@ public:
         ref_index_(other.ref_index_),
         is_last_contig(other.is_last_contig),
         last_variation_type(other.last_variation_type),
+        max_ploidy(other.max_ploidy),
         variations(other.variations),
         genotypes(other.genotypes)
     {
@@ -166,7 +172,20 @@ public:
     Sample(const std::string& id)
     : sample_id(id){}
 
-    void set_last(int type) { this->is_last_sample = true; last_variation_type = type; if(contigs.size() > 0) contigs.back().set_last(type); } //TODO: Check if we need to set also the contig flag
+    bool set_last(int type) 
+    { 
+        this->is_last_sample = true;
+        this->last_variation_type = type;
+        size_t i = 0;
+        const size_t n = contigs.size();
+
+        while (i < n and this->contigs[n - i - 1].get_ploidy() <= type){++i;}
+
+        if(i < n) this->contigs[n - i - 1].set_last(type);
+        else return false;
+
+        return true;
+    } //TODO: Check if we need to set also the contig flag
     bool last(const int type) const { return this->is_last_sample and (type == last_variation_type); }
 
     const std::string& id() const { return this->sample_id; }

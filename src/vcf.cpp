@@ -163,6 +163,8 @@ vcfbwt::Sample::iterator::iterator(const Sample& sample, std::size_t genotype) :
 sample_(sample), genotype(genotype)
 {
     v_it_ = sample_.contigs.begin();
+    while (v_it_ != sample_.contigs.end() and genotype < v_it_->get_ploidy())
+        ++v_it_;
     if(v_it_ != sample_.contigs.end())
         c_it_ = new vcfbwt::Contig::iterator(*v_it_, genotype);
 }
@@ -177,11 +179,18 @@ void
 vcfbwt::Sample::iterator::operator++()
 {
     c_it_->operator++();
-    if(c_it_->end() and (++v_it_ != sample_.contigs.end()))
+    if( c_it_->end() )
     {
         delete c_it_;
-        c_it_ = new vcfbwt::Contig::iterator(*v_it_, genotype);
+        while (++v_it_ != sample_.contigs.end() and genotype < v_it_->get_ploidy()){}
+        if (v_it_ != sample_.contigs.end())
+            c_it_ = new vcfbwt::Contig::iterator(*v_it_, genotype);
     }
+    // if(c_it_->end() and (++v_it_ != sample_.contigs.end()))
+    // {
+    //     delete c_it_;
+    //     c_it_ = new vcfbwt::Contig::iterator(*v_it_, genotype);
+    // }
 }
 
 //------------------------------------------------------------------------------
@@ -450,6 +459,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path,
                         // Add variation to sample, size() because we have not added the variations to the list yet
                         l_samples[id->second].contigs.back().variations.emplace_back(this->variations[contig_id].size());
                         l_samples[id->second].contigs.back().genotypes.emplace_back(alleles_idx);
+                        l_samples[id->second].contigs.back().update_ploidy(max_ploidy);
                     }
                 }
             }
