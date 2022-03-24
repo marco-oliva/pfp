@@ -161,6 +161,8 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, bool first)
     for (std::size_t ref_it = 0; ref_it < reference.size(); ref_it++)
     {
         char c = reference[ref_it];
+
+        if (params.acgt_only) c = acgt_only_table[c];
         
         phrase.push_back(c);
         if (phrase.size() == params.w) { kr_hash.initialize(phrase); }

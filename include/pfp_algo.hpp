@@ -33,6 +33,25 @@ enum SPECIAL_TYPES
     DOLLAR_PRIME = 5
 };
 
+static const unsigned char acgt_only_table[256] = {
+      0,  1,  2,  3,  4,  5,'N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','A','N','C','N','N','N','G','N','N','N','N','N','N','N','N',
+    'N','N','N','N','T','N','N','N','N','N','N','N','N','N','N','N',
+    'N','A','N','C','N','N','N','G','N','N','N','N','N','N','N','N',
+    'N','N','N','N','T','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
+    };
+
 //------------------------------------------------------------------------------
 
 class Dictionary
@@ -90,6 +109,7 @@ struct Params
     bool auPair = false;
     bool compute_lifting = false;
     bool report_lengths = false;
+    bool acgt_only = false;
     std::string ignore_ts_file;
 };
 
