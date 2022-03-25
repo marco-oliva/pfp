@@ -43,6 +43,7 @@ int main(int argc, char **argv)
     if (prev_parse_element > dict.size()) { spdlog::error("Something wrong in the parse"); std::exit(EXIT_FAILURE); }
     if (prev_parse_element != 1) { spdlog::error("First element of the parse sould be 1"); std::exit(EXIT_FAILURE); }
 
+    bool failed = false;
     spdlog::info("Checking parse");
     while (not parse_stream.eof())
     {
@@ -62,10 +63,14 @@ int main(int argc, char **argv)
                           dict[prev_parse_element - 1].substr(dict[prev_parse_element - 1].size() - (2 * window_size), (2 * window_size)),
                           curr_parse_element, vcfbwt::string_hash(dict[curr_parse_element - 1].c_str(), dict[curr_parse_element - 1].size()),
                           dict[curr_parse_element - 1].substr(0, (2 * window_size)));
+            failed = true;
         }
 
         prev_parse_element = curr_parse_element;
     }
 
     parse_stream.close();
+
+    if ( failed )
+        std::exit(EXIT_FAILURE);
 }
