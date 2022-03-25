@@ -45,9 +45,9 @@ int main(int argc, char **argv)
 
     bool failed = false;
     spdlog::info("Checking parse");
+    parse_stream.read((char*)&curr_parse_element, sizeof(vcfbwt::size_type));
     while (not parse_stream.eof())
     {
-        parse_stream.read((char*)&curr_parse_element, sizeof(vcfbwt::size_type));
 
         if (curr_parse_element > dict.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
         if (curr_parse_element == 0) { spdlog::error("Element in the parse is 0, skipping"); continue; }
@@ -67,6 +67,7 @@ int main(int argc, char **argv)
         }
 
         prev_parse_element = curr_parse_element;
+        parse_stream.read((char*)&curr_parse_element, sizeof(vcfbwt::size_type));
     }
 
     parse_stream.close();
