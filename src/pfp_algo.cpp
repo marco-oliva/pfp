@@ -190,7 +190,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference, bool first)
     }
     
     // Last phrase
-    if (phrase.size() > this->params.w)
+    if (phrase.size() >= this->params.w)
     {
         // Append w-1 dollar prime and 1 dollar sequence at the end, reference as the first sample
         phrase.append(this->params.w - 1, DOLLAR_PRIME);
@@ -343,7 +343,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         assert(contig_iterator.length() == (contig_iterator.get_sam_it() - 1)); // -1 because of the last voi itration
 
         // Last phrase
-        if (phrase.size() > this->w)
+        if (phrase.size() >= this->w)
         {
             // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
             phrase.append(this->w - 1, DOLLAR_PRIME);
