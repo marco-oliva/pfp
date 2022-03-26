@@ -54,7 +54,7 @@ unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::s
         // Check trigger strings
         std::string curr_trigger = dictionary[p - 1].substr(0, window_length);
         if (curr_trigger != prev_trigger)
-            spdlog::info("Trigger string mismatch aty length: {}", unparsed.size());
+            spdlog::info("Trigger string mismatch at length: {} tr1: {} tr2: {} p: {}", unparsed.size(), curr_trigger, prev_trigger, p-1);
         prev_trigger = dictionary[p - 1].substr(dictionary[p - 1].size() - window_length, dictionary[p - 1].size());
 
         std::string dict_string = dictionary[p - 1].substr(0, dictionary[p - 1].size() - window_length);
@@ -63,6 +63,43 @@ unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::s
         ++j;
     }
     unparsed.append(window_length, DOLLAR);
+    
+    // Compare the two strings
+    std::size_t i = 0;
+    while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
+    and (unparsed[i] == what_it_should_be[i])) { i++; }
+    spdlog::info("First missmatch: {}", i);
+    size_t x = 20;
+    for (j = std::max(i - x, (size_t)0); (j < (i + x)) and ((j < unparsed.size()) and (j < what_it_should_be.size())); ++j )
+        spdlog::info("Characters[{}]: {} {}", j, unparsed[j], what_it_should_be[j]);
+    return ((i == (unparsed.size())) and (i == (what_it_should_be.size())));
+}
+
+bool
+unparse_and_check_compressed(std::string& in_prefix, std::string& what_it_should_be, std::size_t window_length, char DOLLAR)
+{
+    // Unparse
+    std::vector<vcfbwt::size_type> parse;
+    std::string parse_ext = vcfbwt::EXT::PARSE;
+    std::string dictionary_ext = vcfbwt::EXT::DICT_COMPRESSED;
+    std::string dictionary_len_ext = vcfbwt::EXT::DICT_COMPRESSED_LENGTHS;
+    vcfbwt::pfp::ParserUtils::read_parse(in_prefix + parse_ext, parse);
+    std::vector<std::string> dictionary;
+    vcfbwt::pfp::ParserUtils::read_compressed_dictionary(in_prefix + dictionary_ext, in_prefix + dictionary_len_ext, dictionary);
+
+    std::string prev_trigger = dictionary[parse[0]-1].substr(0, window_length);
+    size_t j = 0;
+
+    std::string unparsed;
+    unparsed.append(1, DOLLAR);
+    for (auto& p : parse)
+    {
+        if (p > dictionary.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
+        unparsed.insert(unparsed.end(),  dictionary[p - 1].begin(),  dictionary[p - 1].end());
+
+        ++j;
+    }
+    // unparsed.append(window_length, DOLLAR);
     
     // Compare the two strings
     std::size_t i = 0;
@@ -465,7 +502,7 @@ TEST_CASE( "Constructor with samples specified", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "");
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global);
 
     // read_samples list from file
     std::ifstream samples_file(testfiles_dir + "/samples_list.txt");
@@ -488,7 +525,7 @@ TEST_CASE( "Constructor", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "");
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global);
 
     // read_samples list from file
     std::ifstream samples_file(testfiles_dir + "/samples_list.txt");
@@ -511,7 +548,7 @@ TEST_CASE( "Sample: HG00103", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 0, 3);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global, 0, 3);
 
     REQUIRE(vcf[2].id() == "HG00103");
 
@@ -538,7 +575,7 @@ TEST_CASE( "Sample: HG00101", "[VCF parser]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 0, 2);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global, 0, 2);
 
     REQUIRE(vcf[1].id() == "HG00101");
 
@@ -566,7 +603,7 @@ TEST_CASE( "Selecting only Sample: HG00103", "[VCF parser]" )
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
     std::string samples_file_name = testfiles_dir + "/allowed_samples_list.txt";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, samples_file_name);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, samples_file_name, w_global);
 
     REQUIRE(vcf[0].id() == "HG00103");
 
@@ -594,7 +631,7 @@ TEST_CASE( "Selecting only Sample: HG00096 Chr 22", "[VCF parser chr22]" )
     std::string vcf_file_name = testfiles_dir + "/chr.22.10.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz";
     std::string samples_file_name = testfiles_dir + "/allowed_samples_list.txt";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global, 1);
 
     REQUIRE(vcf[0].id() == "HG00096");
 
@@ -621,7 +658,7 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 0, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global, 0, 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -684,7 +721,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 0, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global, 0, 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -758,7 +795,7 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF multi-parser]" )
                     testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz"
             };
 
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 0, 1);
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", w_global, 0, 1);
 
     REQUIRE(vcf[0].id() == "HG00096");
 
@@ -810,7 +847,7 @@ TEST_CASE( "Reference + Sample HG00096 Chr 22 and Y, WITH acceleration", "[PFP a
                     testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz"
             };
 
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 0,1);
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", w_global, 0, 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -902,7 +939,7 @@ TEST_CASE( "Sample: HG00096, twice chromosomes 22 and Y with lengths and lifting
                     testfiles_dir + "/Homo_sapiens.GRCh37.dna.chromosome.22.fa.gz"
             };
 
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 0, 1);
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", w_global, 0, 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -1114,14 +1151,16 @@ TEST_CASE( "Sample: HG00096, twice chromosome 4 with lengths and lifting", "[Chr
                     testfiles_dir + "/chr4.fa.gz"
             };
 
-    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 0, 1);
+    vcfbwt::VCF vcf(ref_file_names, vcf_file_names, "", 10, 0, 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
+    params.w = 10; params.p = 100;
     params.use_acceleration = true;
     params.report_lengths = true;
     params.compute_lifting = true;
+    params.compress_dictionary = true;
     vcfbwt::pfp::Dictionary dictionary;
     std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
     
@@ -1184,6 +1223,9 @@ TEST_CASE( "Sample: HG00096, twice chromosome 4 with lengths and lifting", "[Chr
 
     // Check
     bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    REQUIRE(check);
+    // Check
+    check = unparse_and_check_compressed(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 
     std::ifstream in_lidx(out_prefix + ".lidx");
@@ -1409,7 +1451,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 0, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global, 0, 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
@@ -1481,7 +1523,7 @@ TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
 {
     std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
     std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 0, 1);
+    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", w_global, 0, 1);
 
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;

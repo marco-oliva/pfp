@@ -241,10 +241,10 @@ private:
                   std::vector<Sample>& l_samples, std::unordered_map<std::string, 
                   std::size_t>& l_samples_id);
     void init_vcf(const std::string& vcf_path, std::size_t i = 0);
-    void init_ref(const std::string& ref_path, bool last = true);
-    
+    void init_ref(const std::string &ref_path, const size_t w, bool last = true);
+
     void init_multi_vcf(const std::vector<std::string>& vcfs_path);
-    void init_multi_ref(const std::vector<std::string>& refs_path);
+    void init_multi_ref(const std::vector<std::string> &refs_path, const size_t w);
 
     void init_contigs();
 
@@ -252,20 +252,20 @@ public:
     
     static const std::string vcf_freq;
 
-    VCF(const std::string &ref_path, const std::string &vcf_path, const std::string &samples_path, const int last_genotype = 0, std::size_t ms = 0) : max_samples(ms)
+    VCF(const std::string &ref_path, const std::string &vcf_path, const std::string &samples_path, const size_t w, const int last_genotype = 0, std::size_t ms = 0) : max_samples(ms)
     {
         if (samples_path != "") { init_samples(samples_path); }
-        init_ref(ref_path); init_contigs(); init_vcf(vcf_path);
+        init_ref(ref_path, w); init_contigs(); init_vcf(vcf_path);
         for (std::size_t i = 0; i < samples.size(); i++)
         { if (not samples.at(i).contigs.empty()) { this->populated_samples.push_back(i); } }
 
         this->samples.at(populated_samples.back()).set_last(last_genotype);
     }
 
-    VCF(const std::vector<std::string>& refs_path, const std::vector<std::string>& vcfs_path, const std::string& samples_path, const int last_genotype = 0, std::size_t ms = 0) : max_samples(ms)
+    VCF(const std::vector<std::string> &refs_path, const std::vector<std::string> &vcfs_path, const std::string &samples_path, const size_t w, const int last_genotype = 0, std::size_t ms = 0) : max_samples(ms)
     {
         if (samples_path != "") { init_samples(samples_path); }
-        init_multi_ref(refs_path); init_contigs(); init_multi_vcf(vcfs_path);
+        init_multi_ref(refs_path, w); init_contigs(); init_multi_vcf(vcfs_path);
         for (std::size_t i = 0; i < samples.size(); i++)
         { if (not samples.at(i).contigs.empty()) { this->populated_samples.push_back(i); } }
 

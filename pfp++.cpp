@@ -98,7 +98,7 @@ int main(int argc, char **argv)
             last_genotype = 1;
 
         // Parse the VCF
-        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, last_genotype, max_samples);
+        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, params.w, last_genotype, max_samples);
     
         // Set threads accordingly to configuration
         omp_set_num_threads(threads);

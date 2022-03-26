@@ -28,7 +28,6 @@ curr_char_(NULL), contig_length_(contig.reference_.size())
             indels += contig_.variations_list[var_id].alt[var_genotype].size() -
                       contig_.variations_list[var_id].ref_len;
         }
-        
     }
     contig_length_ = contig_length_ + indels;
     while (var_it_ < contig_.variations.size() and contig_.genotypes[var_it_][genotype] == 0)
@@ -77,9 +76,16 @@ vcfbwt::Contig::iterator::operator++()
     {
         const Variation& curr_variation = contig_.variations_list[contig_.variations[var_it_]];
 
+        if (sam_it_ >= (211222826 - 191154286 - 20))
+        {
+            size_t stop = 0;
+        }
+
         if (ref_it_ < curr_variation.pos)
         {
-            curr_char_ = &(contig_.reference_[ref_it_]); ref_it_++; sam_it_++;
+            curr_char_ = &(contig_.reference_[ref_it_]);
+            ref_it_++;
+            sam_it_++;
             return;
         }
         
@@ -120,7 +126,6 @@ vcfbwt::Contig::iterator::operator++()
             // curr_char_ = &(contig_.reference_[ref_it_++ + curr_variation.ref_len - gap]);
             iterate = true; // We evaluate the next position that might be wither on the reference or another variation
 
-        sam_it_ ++;
         if(get_next_variant)
         {
             prev_variation_it = var_it_;
@@ -131,6 +136,7 @@ vcfbwt::Contig::iterator::operator++()
         }
         
         if ( iterate ) this->operator++();
+        else sam_it_ ++;
     }
     // Non ci sono più variazioni, itera sulla reference
     else { curr_char_ = &(contig_.reference_[ref_it_]); ref_it_++; sam_it_++; }
@@ -225,7 +231,7 @@ vcfbwt::VCF::init_contigs()
 }
 
 void
-vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
+vcfbwt::VCF::init_ref(const std::string& ref_path, const size_t w, bool last)
 {
     spdlog::info("Reading reference file: {}", ref_path);
     std::ifstream in_stream(ref_path);
@@ -246,8 +252,8 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
         { 
             // Update lengths
             if( ref_sum_lengths.size() > 1 ) ref_sum_lengths.push_back(ref_sum_lengths.back());
-            else ref_sum_lengths.push_back(0);
-            if(references.size()>0) ref_sum_lengths.back() += references.back().size();
+            else ref_sum_lengths.push_back(1);
+            if(references.size()>0) ref_sum_lengths.back() += references.back().size() + w; // The +w is for the separator that has to be counted in the offset
             // Create the new reference
             std::string name = line.substr(1,line.find(' ')-1); // -1 to remove the space
             spdlog::info("Read contig {}.", name);
@@ -513,12 +519,12 @@ vcfbwt::VCF::init_vcf(const std::string &vcf_path, std::size_t i)
 
 
 void
-vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path)
+vcfbwt::VCF::init_multi_ref(const std::vector<std::string>& refs_path, const size_t w)
 {
     if (refs_path.size() == 0) { spdlog::error("No reference file provided"); std::exit(EXIT_FAILURE); }
     
     spdlog::info("Opening {} ref files, assuming input order reflects the intended genome order", refs_path.size());
-    for (std::size_t i = 0; i < refs_path.size(); i++) { init_ref(refs_path[i], i == (refs_path.size() - 1)); }
+    for (std::size_t i = 0; i < refs_path.size(); i++) { init_ref(refs_path[i], w, i == (refs_path.size() - 1)); }
 }
 
 //------------------------------------------------------------------------------
