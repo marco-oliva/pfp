@@ -389,7 +389,8 @@ public:
     
     static void read_parse(std::string parse_file_name, std::vector<size_type>& parse);
     static void read_dictionary(std::string dic_file_name, std::vector<std::string>& dictionary_vector);
-    static void merge(std::string left_prefix, std::string right_prefix, std::string out_prefix, const Params& params);
+    static void read_compressed_dictionary(std::string dic_file_name, std::string len_file_name, std::vector<std::string> &dictionary_vector);
+    static void merge(std::string left_prefix, std::string right_prefix, std::string out_prefix, const Params &params);
     static void parse_fasta(std::string fasta_file_name, std::string out_prefix, const Params& params);
     
     static std::vector<std::size_t> compute_occurrences(std::vector<std::string>& dictionary_vector, std::vector<size_type>& parse);
