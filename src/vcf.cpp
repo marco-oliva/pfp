@@ -6,6 +6,7 @@
 
 #include <vcf.hpp>
 #include <pfp_algo.hpp>
+#include <ctype.h>
 
 const std::string vcfbwt::VCF::vcf_freq = "AF";
 
@@ -255,7 +256,10 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, const size_t w, bool last)
             else ref_sum_lengths.push_back(1);
             if(references.size()>0) ref_sum_lengths.back() += references.back().size() + w; // The +w is for the separator that has to be counted in the offset
             // Create the new reference
-            std::string name = line.substr(1,line.find(' ')-1); // -1 to remove the space
+            std::string name = "";
+            for (size_t i = 1; i < line.size(); name.push_back(line[i++]))
+                if (isspace(line[i])) break;
+            // line.substr(1, line.find(' ') - 1); // -1 to remove the space
             spdlog::info("Read contig {}.", name);
             // TODO: store also the description
             references_id.insert(std::make_pair(name, references.size())); 

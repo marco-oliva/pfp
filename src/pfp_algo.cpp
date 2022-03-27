@@ -613,12 +613,12 @@ vcfbwt::pfp::ParserVCF::close()
             std::vector<std::string> names;
 
             // Reading the lengths
+            std::string tmp_name;
+            std::size_t tmp_length;
+            // while (not in_lidx.eof()) 
             std::ifstream in_lidx(out_len_name);
-            while (not in_lidx.eof()) 
+            while (in_lidx >> tmp_name >> tmp_length )
             { 
-                std::string tmp_name;
-                std::size_t tmp_length;
-                in_lidx >> tmp_name >> tmp_length;
                 if (tmp_name != "")
                 {
                     u += tmp_length;
