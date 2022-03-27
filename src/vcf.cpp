@@ -253,7 +253,7 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, const size_t w, bool last)
         { 
             // Update lengths
             if( ref_sum_lengths.size() > 1 ) ref_sum_lengths.push_back(ref_sum_lengths.back());
-            else ref_sum_lengths.push_back(1);
+            else ref_sum_lengths.push_back(0);
             if(references.size()>0) ref_sum_lengths.back() += references.back().size() + w; // The +w is for the separator that has to be counted in the offset
             // Create the new reference
             std::string name = "";
