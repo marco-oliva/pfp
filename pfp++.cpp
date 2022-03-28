@@ -43,6 +43,9 @@ int main(int argc, char **argv)
     app.add_option("-j, --threads", threads, "Number of threads")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Tmp file directory")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Also output compressed the dictionary")->configurable();
+    app.add_flag("-i, --idx", params.report_lengths, "Also output contig length list in .lidx format")->configurable();
+    app.add_flag("-l, --leviosam", params.compute_lifting, "Also output lifting file in multiple leviosam format")->configurable();
+    app.add_flag("--acgt-only", params.acgt_only, "Convert all non ACGT characters to N.")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats")->configurable();
     app.add_flag("--verbose", verbose, "Verbose output")->configurable();
@@ -91,24 +94,37 @@ int main(int argc, char **argv)
         if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
 
         int last_genotype = 0;
-        if (haplotype_string == "2" or haplotype_string == "12")
+        if ( haplotype_string == "2" or haplotype_string == "12" )
             last_genotype = 1;
 
         // Parse the VCF
-        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, max_samples, last_genotype);
-
+        vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, params.w, last_genotype, max_samples);
+    
         // Set threads accordingly to configuration
         omp_set_num_threads(threads);
-    
-        vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-    
-        vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
+
+        // Create a dictionary common to all references
+        vcfbwt::pfp::Dictionary dictionary;
+
+        // Parse all references
+        
+        std::vector<vcfbwt::pfp::ReferenceParse> references_parse;
+        
+        auto& references = vcf.get_references();
+        auto& references_name = vcf.get_references_name();
+        
+        references_parse.reserve(references.size());
+        // TODO: This might be parallelized as well
+        for (size_t i = 0; i < references.size(); ++i) 
+            references_parse.push_back( std::move( vcfbwt::pfp::ReferenceParse( references[i], references_name[i], dictionary, params, (i==0) ) ) );
+
+        vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, references_parse, dictionary);
     
         std::vector<vcfbwt::pfp::ParserVCF> workers(threads);
         for (std::size_t i = 0; i < workers.size(); i++)
         {
             std::size_t tag = vcfbwt::pfp::ParserVCF::WORKER | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-            workers[i].init(params, "", reference_parse, tag);
+            workers[i].init(params, "", references_parse, dictionary, tag);
             main_parser.register_worker(workers[i]);
         }
 
