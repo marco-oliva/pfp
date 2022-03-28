@@ -15,7 +15,6 @@
 #include <vcf.hpp>
 #include <utils.hpp>
 #include <internals.hpp>
-#include <leviosam.hpp>
 
 namespace vcfbwt
 {
@@ -32,25 +31,6 @@ enum SPECIAL_TYPES
     DOLLAR_SEQUENCE = 4,
     DOLLAR_PRIME = 5
 };
-
-static const unsigned char acgt_only_table[256] = {
-      0,  1,  2,  3,  4,  5,'N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','A','N','C','N','N','N','G','N','N','N','N','N','N','N','N',
-    'N','N','N','N','T','N','N','N','N','N','N','N','N','N','N','N',
-    'N','A','N','C','N','N','N','G','N','N','N','N','N','N','N','N',
-    'N','N','N','N','T','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    'N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N',
-    };
 
 //------------------------------------------------------------------------------
 
@@ -107,9 +87,6 @@ struct Params
     bool print_out_statistics_csv = false;
     bool compute_occurrences = true;
     bool auPair = false;
-    bool compute_lifting = false;
-    bool report_lengths = false;
-    bool acgt_only = false;
     std::string ignore_ts_file;
 };
 
@@ -123,23 +100,17 @@ struct Statistics
 class ReferenceParse
 {
 
-    const std::size_t ref_length;
-    const std::string ref_id;
 public :
-    Dictionary& dictionary;
+    Dictionary dictionary;
     std::vector<hash_type> parse;
-    std::vector<long long int> trigger_strings_position; // position of first char of each trigger string
-    // std::vector<size_type> trigger_strings_position; // position of first char of each trigger string
+    std::vector<size_type> trigger_strings_position; // position of first char of each trigger string
     std::set<hash_type> to_ignore_ts_hash;
     
     const Params& params;
-
-    const std::string& id() const { return this->ref_id; }
-    const std::size_t length() const { return this->ref_length; }
     
-    void init(const std::string& reference, bool first = true);
+    void init(const std::string& reference);
     
-    ReferenceParse(const std::string& reference, const std::string& id, Dictionary& dict, const Params& pms, bool first = true) : dictionary(dict), params(pms), ref_length(reference.size()), ref_id(id) { this->init(reference, first); }
+    ReferenceParse(const std::string& reference, const Params& pms) : params(pms) { this->init(reference); }
     const hash_type& operator[](size_type i) const { return this->parse[i]; }
 };
 
@@ -153,24 +124,12 @@ private:
     std::string out_file_prefix;
     std::string out_file_name;
     std::string tmp_out_file_name;
-
-    std::ofstream out_lift;
-    std::string out_lift_prefix;
-    std::string out_lift_name;
-    std::string tmp_out_lift_name;
-
-    std::ofstream out_len;
-    std::string out_len_prefix;
-    std::string out_len_name;
-    std::string tmp_out_len_name;
-    
     std::vector<std::string> samples_processed;
-    std::vector<std::pair<std::string, std::string>> contigs_processed;
     
     Params params;
     Statistics statistics;
     
-    std::vector<ReferenceParse>* references_parse = nullptr;
+    ReferenceParse* reference_parse = nullptr;
     Dictionary* dictionary = nullptr;
 
     // Shorthands
@@ -194,12 +153,12 @@ public:
     };
     
     
-    void init(const Params& params, const std::string& out_prefix, std::vector<ReferenceParse>& rp, Dictionary& dict, std::size_t t = MAIN | UNCOMPRESSED);
+    void init(const Params& params, const std::string& out_prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED);
     
-    ParserVCF(const Params& params, const std::string& out_prefix, std::vector<ReferenceParse>& rp, Dictionary& dict, std::size_t t = MAIN | UNCOMPRESSED)
+    ParserVCF(const Params& params, const std::string& out_prefix, ReferenceParse& rp, std::size_t t = MAIN | UNCOMPRESSED)
     {
-        if (out_prefix.empty()) { this->init(params, "out", rp, dict, t); }
-        else { this->init(params, out_prefix, rp, dict, t); }
+        if (out_prefix.empty()) { this->init(params, "out", rp, t); }
+        else { this->init(params, out_prefix, rp, t); }
     }
     
     ParserVCF() = default;
@@ -389,8 +348,7 @@ public:
     
     static void read_parse(std::string parse_file_name, std::vector<size_type>& parse);
     static void read_dictionary(std::string dic_file_name, std::vector<std::string>& dictionary_vector);
-    static void read_compressed_dictionary(std::string dic_file_name, std::string len_file_name, std::vector<std::string> &dictionary_vector);
-    static void merge(std::string left_prefix, std::string right_prefix, std::string out_prefix, const Params &params);
+    static void merge(std::string left_prefix, std::string right_prefix, std::string out_prefix, const Params& params);
     static void parse_fasta(std::string fasta_file_name, std::string out_prefix, const Params& params);
     
     static std::vector<std::size_t> compute_occurrences(std::vector<std::string>& dictionary_vector, std::vector<size_type>& parse);

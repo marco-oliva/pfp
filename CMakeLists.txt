@@ -12,7 +12,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "Install directory: ${CMAKE_INSTALL_PREFIX}")
+
 ################################################################################
 # Version number
 execute_process(
@@ -103,28 +103,6 @@ else()
     endif()
 endif()
 
-
-find_library(LEVIOSAM_LIB lvsam)
-if(NOT LEVIOSAM_LIB)
-    message(STATUS "leviosam library not found. Building as an external content.")
-    include(FetchContent)
-    
-    FetchContent_Declare(
-        leviosam
-        GIT_REPOSITORY https://github.com/maxrossi91/levioSAM.git
-        GIT_TAG master
-        )
-        
-    FetchContent_GetProperties(leviosam)
-    if(NOT leviosam_POPULATED)
-        FetchContent_Populate(leviosam)
-        set(BUILD_TESTS OFF CACHE BOOL "Avoid building LevioSAM tests")
-
-        add_subdirectory(${leviosam_SOURCE_DIR} ${leviosam_BINARY_DIR} EXCLUDE_FROM_ALL)
-        target_include_directories(lvsam PUBLIC ${leviosam_SOURCE_DIR}/src ${CMAKE_INCLUDE_PATH})
-        target_link_libraries(lvsam INTERFACE ${HTS_LIB} ${SDSL_LIB})
-    endif()
-endif()
 ################################################################################
 # Lib
 
@@ -139,17 +117,13 @@ file(GLOB MURMUR_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/murmur/*.cpp)
 # 32 and 64 bits parse
 add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
-target_link_libraries(pfp lvsam)
-target_link_libraries(pfp64 lvsam)
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl lvsam)
+    set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl)
 else()
-    set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl lvsam pthread)
+    set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread)
 endif()
-
 
 ################################################################################
 # Tests
@@ -204,4 +178,9 @@ add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 
-install(TARGETS pfp++ pfp++64 AuPair AuPair64 mpfp++ mpfp++64 unparse unparse64 check check64 TYPE RUNTIME)
+
+
+
+
+
+
