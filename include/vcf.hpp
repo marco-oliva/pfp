@@ -106,7 +106,7 @@ public:
         std::size_t get_ref_it() const { return ref_it_ - 1; } // -1 because the iterator is pointing the next one
         std::size_t next_variation() const;
         std::size_t next_variation_distance() const;
-        std::size_t prev_variation() const;
+        std::size_t prev_variation_end() const;
         
         std::size_t length() const { return sample_length_; }
     };

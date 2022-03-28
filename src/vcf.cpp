@@ -57,10 +57,10 @@ vcfbwt::Sample::iterator::next_variation() const
 }
 
 std::size_t
-vcfbwt::Sample::iterator::prev_variation() const
+vcfbwt::Sample::iterator::prev_variation_end() const
 {
     if (var_it_ == 0) { spdlog::error("vcfbwt::Sample::iterator::prev_variation() var_it == 0"); std::exit(EXIT_FAILURE); }
-    return sample_.get_variation(prev_variation_it).pos;
+    return sample_.get_variation(prev_variation_it).pos + sample_.get_variation(prev_variation_it).ref_len;
 }
 
 std::size_t
@@ -297,7 +297,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         int allele_index = bcf_gt_allele(ptr[j]);
                         int var_type = bcf_get_variant_type(rec, allele_index);
 
-                        // Determine if overlap. Logic copied from leviosam's: 
+                        // Determine if overlap. Logic copied from leviosam's:
                         // https://github.com/alshai/levioSAM/blob/f72d84ad1141c84e4b315c0dc5d705d2c0d5b936/src/leviosam.hpp#L530
                         // copied from bcftools consensus`:
                         // https://github.com/samtools/bcftools/blob/df43fd4781298e961efc951ba33fc4cdcc165a19/consensus.c#L579
