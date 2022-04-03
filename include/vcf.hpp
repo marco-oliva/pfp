@@ -55,14 +55,14 @@ private:
     
     std::string sample_id;
     bool is_last_sample = false;
-    
+    int last_variation_type = 0;
+
     friend class iterator;
     
 public:
-    
-    void set_last() { this->is_last_sample = true; }
-    bool last() const { return this->is_last_sample; }
-    
+    void set_last(const int type){  this->is_last_sample = true; this->last_variation_type = type; }
+    bool last(const int type) const { return this->is_last_sample and ( type == this->last_variation_type ); }
+
     // variation, variation type
     std::vector<std::size_t> variations;
     std::vector<std::vector<int>> genotypes;
@@ -106,7 +106,7 @@ public:
         std::size_t get_ref_it() const { return ref_it_ - 1; } // -1 because the iterator is pointing the next one
         std::size_t next_variation() const;
         std::size_t next_variation_distance() const;
-        std::size_t prev_variation() const;
+        std::size_t prev_variation_end() const;
         
         std::size_t length() const { return sample_length_; }
     };
@@ -146,25 +146,25 @@ private:
 public:
     
     static const std::string vcf_freq;
-    
-    VCF(const std::string& ref_path, const std::string& vcf_path, const std::string& samples_path, std::size_t ms = 0) : max_samples(ms)
+
+    VCF(const std::string &ref_path, const std::string &vcf_path, const std::string &samples_path, std::size_t ms = 0, const int last_genotype = 0) : max_samples(ms)
     {
         if (samples_path != "") { init_samples(samples_path); }
         init_ref(ref_path); init_vcf(vcf_path);
         for (std::size_t i = 0; i < samples.size(); i++)
         { if (not samples.at(i).variations.empty()) { this->populated_samples.push_back(i); } }
 
-        this->samples.at(populated_samples.back()).set_last();
+        this->samples.at(populated_samples.back()).set_last(last_genotype);
     }
 
-    VCF(const std::vector<std::string>& refs_path, const std::vector<std::string>& vcfs_path, const std::string& samples_path, std::size_t ms = 0) : max_samples(ms)
+    VCF(const std::vector<std::string> &refs_path, const std::vector<std::string> &vcfs_path, const std::string &samples_path, std::size_t ms = 0, const int last_genotype = 0) : max_samples(ms)
     {
         if (samples_path != "") { init_samples(samples_path); }
         init_multi_ref(refs_path); init_multi_vcf(vcfs_path);
         for (std::size_t i = 0; i < samples.size(); i++)
         { if (not samples.at(i).variations.empty()) { this->populated_samples.push_back(i); } }
 
-        this->samples.at(populated_samples.back()).set_last();
+        this->samples.at(populated_samples.back()).set_last(last_genotype);
     }
     
     ~VCF() = default;

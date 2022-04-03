@@ -234,7 +234,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         // Compute where we are on the reference
         std::size_t pos_on_reference = sample_iterator.get_ref_it();
         
-        if ( not ((sample_iterator.get_var_it() > 0) and (sample_iterator.prev_variation() > (pos_on_reference - (8 * this->w)))))
+        if ( not ((sample_iterator.get_var_it() > 0) and (sample_iterator.prev_variation_end() > (pos_on_reference - (2 * this->w)))))
         {
             // Set start postion to the position in the reference parse after the last computed phrase
             if (params.use_acceleration and ((phrase.size() == this->w) and ((pos_on_reference != 0) and (phrase[0] != DOLLAR_PRIME))))
@@ -307,7 +307,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     {
         // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
         phrase.append(this->w - 1, DOLLAR_PRIME);
-        if (sample.last()) { phrase.append(this->w, DOLLAR); }
+        if (sample.last(this->working_genotype)) { phrase.append(this->w, DOLLAR); }
         else { phrase.append(1, DOLLAR_SEQUENCE); }
 
         hash_type hash = this->dictionary->check_and_add(phrase);
