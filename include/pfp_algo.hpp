@@ -103,7 +103,7 @@ class ReferenceParse
 public :
     Dictionary dictionary;
     std::vector<hash_type> parse;
-    std::vector<size_type> trigger_strings_position; // position of first char of each trigger string
+    std::vector<std::size_t> trigger_strings_position; // position of first char of each trigger string
     std::set<hash_type> to_ignore_ts_hash;
     
     const Params& params;

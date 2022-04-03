@@ -226,7 +226,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     kr_hash.initialize(phrase);
     
     // Shorthands
-    std::vector<size_type>& tsp = reference_parse->trigger_strings_position;
+    std::vector<std::size_t>& tsp = reference_parse->trigger_strings_position;
     
     std::size_t start_window = 0, end_window = 0;
     while (not sample_iterator.end())
