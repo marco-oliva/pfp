@@ -425,6 +425,45 @@ TEST_CASE( "Reproducing bug", "[KR Window]" )
 }
 
 //------------------------------------------------------------------------------
+TEST_CASE( "Initialization KR Mersenne", "[KR Mersenne Window]" )
+{
+    std::string test_string = "12345";
+
+    vcfbwt::Mersenne_KarpRabinHash kr_window(5);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(test_string);
+
+    REQUIRE(kr_window.get_hash() == 1337084880462018802);
+}
+
+TEST_CASE( "Update 1 charachter Mersenne", "[KR Mersenne Window]" )
+{
+    std::string test_string = "12345";
+
+    vcfbwt::Mersenne_KarpRabinHash kr_window(5);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(test_string);
+
+    kr_window.update('1', '6');
+
+    REQUIRE(kr_window.get_hash() == 255739482431644834);
+}
+
+TEST_CASE( "Update 2 charachters Mersenne", "[KR Window]" )
+{
+    std::string test_string = "12345";
+
+    vcfbwt::Mersenne_KarpRabinHash kr_window(5);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(test_string);
+
+    kr_window.update('1', '6');
+    kr_window.update('2', '7');
+
+    REQUIRE(kr_window.get_hash() == 1480237093614964817);
+}
+
+//------------------------------------------------------------------------------
 
 TEST_CASE( "Dictionary size", "[Dictionary]")
 {

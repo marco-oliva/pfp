@@ -166,13 +166,44 @@ public:
     static hash_type string_hash(const std::string_view& s);
 };
 
-class Mersenne_KarpRabinHash4
+class KarpRabinHash4
 {
 public:
-    Mersenne_KarpRabinHash4(size_type n, bool debug = false);
+    KarpRabinHash4(size_type n, bool debug = false);
 
     void initialize(const std::string_view& window);
     void update(const char_type* chars_out, const char_type* chars_in);
+    void reset();
+
+    const hash_type& get_hash() const { return this->hash_value; }
+    void set_constant(const hash_type& c) { this->constant = c; }
+    void set_prime(const hash_type& p) { this->prime = p; }
+
+
+private:
+    hash_type constant;
+    hash_type prime;
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    size_type window_length_32;
+    hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
+
+public:
+    constexpr static hash_type kr_prime    = 1999999973;
+    constexpr static hash_type kr_constant = 256;
+
+    static hash_type string_hash(const std::string_view& s);
+};
+
+class Mersenne_KarpRabinHash
+{
+public:
+    Mersenne_KarpRabinHash(size_type n, bool debug = false);
+
+    void initialize(const std::string_view& window);
+    void update(const char_type char_out, const char_type char_in);
     void reset();
 
     const hash_type& get_hash() const { return this->hash_value; }
@@ -194,13 +225,13 @@ public:
     static hash_type string_hash(const std::string_view& s);
 };
 
-class Mersenne_KarpRabinHash
+class Mersenne_KarpRabinHash4
 {
 public:
-    Mersenne_KarpRabinHash(size_type n, bool debug = false);
+    Mersenne_KarpRabinHash4(size_type n, bool debug = false);
 
     void initialize(const std::string_view& window);
-    void update(const char_type char_out, const char_type char_in);
+    void update(const char_type* chars_out, const char_type* chars_in);
     void reset();
 
     const hash_type& get_hash() const { return this->hash_value; }

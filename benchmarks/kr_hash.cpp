@@ -186,6 +186,38 @@ KR(std::string& s)
 }
 
 void
+KR4(std::string& s)
+{
+    vcfbwt::KarpRabinHash4 kr_window(8, false);
+
+    std::string_view init_window(s.c_str(), 32);
+    kr_window.initialize(init_window);
+    vcfbwt::hash_type h = kr_window.get_hash();
+
+    for (vcfbwt::size_type i = 32; i < s.size(); i++)
+    {
+        kr_window.update((const vcfbwt::char_type*) &(s[i - 32]), (const vcfbwt::char_type*) &(s[i]));
+        h = kr_window.get_hash();
+    }
+}
+
+void
+Mersenne_KR4(std::string& s)
+{
+    vcfbwt::Mersenne_KarpRabinHash4 kr_window(32, false);
+
+    std::string_view init_window(s.c_str(), 32);
+    kr_window.initialize(init_window);
+    vcfbwt::hash_type h = kr_window.get_hash();
+
+    for (vcfbwt::size_type i = 32; i < s.size(); i++)
+    {
+        kr_window.update((const vcfbwt::char_type*) &(s[i - 32]), (const vcfbwt::char_type*) &(s[i]));
+        h = kr_window.get_hash();
+    }
+}
+
+void
 KR_string_hash(std::string& s)
 {
     vcfbwt::hash_type hash = vcfbwt::KarpRabinHash::string_hash(s);
@@ -197,27 +229,60 @@ Mersenne_KR_string_hash(std::string& s)
     vcfbwt::hash_type hash = vcfbwt::Mersenne_KarpRabinHash::string_hash(s);
 }
 
+void
+KR4_string_hash(std::string& s)
+{
+    vcfbwt::hash_type hash = vcfbwt::KarpRabinHash4::string_hash(s);
+}
+
+void
+Mersenne_KR4_string_hash(std::string& s)
+{
+    vcfbwt::hash_type hash = vcfbwt::Mersenne_KarpRabinHash4::string_hash(s);
+}
+
 //------------------------------------------------------------------------------
 
-//BENCHMARK(KR, Manzini, 100, 1000)
-//{
-//    KR(test_string);
-//}
-//
-//BENCHMARK(KR, Mersenne, 100, 1000)
-//{
-//    Mersenne_KR(test_string);
-//}
+BENCHMARK(KR, Manzini, 100, 1000)
+{
+    KR(test_string);
+}
+
+BENCHMARK(KR, Mersenne, 100, 1000)
+{
+    Mersenne_KR(test_string);
+}
 
 BENCHMARK(KRStringHash, Manzini, 10, 100)
 {
     KR_string_hash(test_string);
 }
 
-BENCHMARK(KRStringHash, Mersenne4, 10, 100)
+BENCHMARK(KRStringHash, Mersenne, 10, 100)
 {
     Mersenne_KR_string_hash(test_string);
 }
+
+BENCHMARK(KR4, Manzini, 100, 1000)
+{
+    KR4(test_string);
+}
+
+BENCHMARK(KR4, Mersenne, 100, 1000)
+{
+    Mersenne_KR4(test_string);
+}
+
+BENCHMARK(KRStringHash4, Manzini, 10, 100)
+{
+    KR4_string_hash(test_string);
+}
+
+BENCHMARK(KRStringHash4, Mersenne, 10, 100)
+{
+    Mersenne_KR4_string_hash(test_string);
+}
+
 
 //------------------------------------------------------------------------------
 

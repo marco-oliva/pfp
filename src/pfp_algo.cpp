@@ -146,7 +146,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     spdlog::info("Parsing reference");
     
     // Karp Robin Hash Function for sliding window
-    KarpRabinHash kr_hash(this->params.w);
+    Mersenne_KarpRabinHash kr_hash(this->params.w);
     
     // Reference as first sample, just one dollar to be compatible with Giovanni's pscan.cpp
     phrase.append(1, DOLLAR);
@@ -162,7 +162,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
             std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-            hash_type ts_hash = KarpRabinHash::string_hash(ts);
+            hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
             if (to_ignore_ts_hash.contains(ts_hash)) { continue; }
             
             hash_type hash = this->dictionary.check_and_add(phrase);
@@ -218,7 +218,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     std::string phrase;
     
     // Karp Robin Hash Function for sliding window
-    KarpRabinHash kr_hash(this->params.w);
+    Mersenne_KarpRabinHash kr_hash(this->params.w);
     
     // Every sample starts with w-1 dollar prime and one dollar seq
     phrase.append(this->w - 1, DOLLAR_PRIME);
@@ -282,7 +282,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
             std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-            hash_type ts_hash = KarpRabinHash::string_hash(ts);
+            hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
             if (this->reference_parse->to_ignore_ts_hash.contains(ts_hash)) { continue; }
             
             hash_type hash = this->dictionary->check_and_add(phrase);
@@ -549,7 +549,7 @@ vcfbwt::pfp::ParserFasta::operator()()
     spdlog::info("Parsing sequence");
     
     // Karp Robin Hash Function for sliding window
-    KarpRabinHash kr_hash(this->params.w);
+    Mersenne_KarpRabinHash kr_hash(this->params.w);
     
     // First sequence start with one dollar
     phrase.append(1, DOLLAR);
@@ -592,7 +592,7 @@ vcfbwt::pfp::ParserFasta::operator()()
             if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
             {
                 std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-                hash_type ts_hash = KarpRabinHash::string_hash(ts);
+                hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
             
                 hash_type hash = this->dictionary.check_and_add(phrase);
     
@@ -761,7 +761,7 @@ vcfbwt::pfp::ParserText::operator()()
     spdlog::info("Parsing {}", in_file_path);
     
     // Karp Robin Hash Function for sliding window
-    KarpRabinHash kr_hash(this->params.w);
+    Mersenne_KarpRabinHash kr_hash(this->params.w);
     
     // First sequence start with one dollar
     phrase.append(1, DOLLAR);
@@ -776,7 +776,7 @@ vcfbwt::pfp::ParserText::operator()()
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
             std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-            hash_type ts_hash = KarpRabinHash::string_hash(ts);
+            hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
             
             hash_type hash = this->dictionary.check_and_add(phrase);
             
