@@ -35,8 +35,8 @@ int main(int argc, char **argv)
     
     // Unparse
     spdlog::info("Reading dictionary");
-    std::vector<std::string> dict;
-    vcfbwt::pfp::ParserUtils::read_dictionary(dict_file, dict);
+    std::vector<std::vector<char>> dict;
+    vcfbwt::pfp::ParserUtils<char>::read_dictionary(dict_file, dict);
     
     // If size only use occ file
     std::vector<std::size_t> occurrences(dict.size());

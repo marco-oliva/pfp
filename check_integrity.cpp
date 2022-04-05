@@ -32,8 +32,8 @@ int main(int argc, char **argv)
 
     // Unparse
     spdlog::info("Reading dictionary");
-    std::vector<std::string> dict;
-    vcfbwt::pfp::ParserUtils::read_dictionary(input_dict_path, dict);
+    std::vector<std::vector<char>> dict;
+    vcfbwt::pfp::ParserUtils<char>::read_dictionary(input_dict_path, dict);
 
     std::ifstream parse_stream(input_parse_path, std::ios::binary);
     vcfbwt::size_type curr_parse_element = 0, prev_parse_element = 0;
@@ -58,10 +58,10 @@ int main(int argc, char **argv)
         if (ts_prev != ts_curr)
         {
             spdlog::error("\n[{}, {}] {}\n[{}, {}] {}",
-                          prev_parse_element, vcfbwt::string_hash(dict[prev_parse_element - 1].c_str(), dict[prev_parse_element - 1].size()),
-                          dict[prev_parse_element - 1].substr(dict[prev_parse_element - 1].size() - (2 * window_size), (2 * window_size)),
-                          curr_parse_element, vcfbwt::string_hash(dict[curr_parse_element - 1].c_str(), dict[curr_parse_element - 1].size()),
-                          dict[curr_parse_element - 1].substr(0, (2 * window_size)));
+                          prev_parse_element, vcfbwt::string_hash(dict[prev_parse_element - 1].data(), dict[prev_parse_element - 1].size()),
+                          std::string(dict[prev_parse_element - 1].data() + dict[prev_parse_element - 1].size() - (2 * window_size), (2 * window_size)),
+                          curr_parse_element, vcfbwt::string_hash(dict[curr_parse_element - 1].data(), dict[curr_parse_element - 1].size()),
+                          std::string(dict[curr_parse_element - 1].data(), (2 * window_size)));
         }
 
         prev_parse_element = curr_parse_element;

@@ -197,6 +197,17 @@ public:
     static hash_type string_hash(const std::string_view& s);
 };
 
+// when p = 2^61-1, the 128 bit number has to be less than 2^122-1
+inline uint64_t
+mersenne_modulo(uint64_t lo, uint64_t hi, uint64_t prime, uint64_t p_pow)
+{
+    uint64_t h = 0;
+    lo = (lo & prime) + ((lo >> p_pow) + (hi << (64 - p_pow)));
+    lo = (lo & prime) + (lo >> p_pow);
+    h = lo == prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    return h;
+}
+
 class Mersenne_KarpRabinHash
 {
 public:
@@ -320,8 +331,8 @@ namespace DiskWrites
 //------------------------------------------------------------------------------
 
 bool ref_smaller(
-std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> a,
-std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> b);
+std::pair<std::reference_wrapper<std::vector<char>>, vcfbwt::hash_type> a,
+std::pair<std::reference_wrapper<std::vector<char>>, vcfbwt::hash_type> b);
 
 //------------------------------------------------------------------------------
 

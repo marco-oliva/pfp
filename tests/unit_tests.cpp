@@ -10,7 +10,6 @@
 #include <vcf.hpp>
 #include <utils.hpp>
 #include <pfp_algo.hpp>
-#include <au_pair_algo.hpp>
 
 //------------------------------------------------------------------------------
 
@@ -33,6 +32,7 @@ std::size_t p_global = 75;
 std::size_t w_global = 20;
 
 //------------------------------------------------------------------------------
+template <typename data_type>
 bool
 unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::size_t window_length, char DOLLAR, bool n = false)
 {
@@ -40,15 +40,15 @@ unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::s
     std::vector<vcfbwt::size_type> parse;
     std::string parse_ext = n ? vcfbwt::EXT::N_PARSE : vcfbwt::EXT::PARSE;
     std::string dictionary_ext = n ? vcfbwt::EXT::N_DICT : vcfbwt::EXT::DICT;
-    vcfbwt::pfp::ParserUtils::read_parse(in_prefix + parse_ext, parse);
-    std::vector<std::string> dictionary;
-    vcfbwt::pfp::ParserUtils::read_dictionary(in_prefix + dictionary_ext, dictionary);
+    vcfbwt::pfp::ParserUtils<data_type>::read_parse(in_prefix + parse_ext, parse);
+    std::vector<std::vector<data_type>> dictionary;
+    vcfbwt::pfp::ParserUtils<data_type>::read_dictionary(in_prefix + dictionary_ext, dictionary);
     
     std::string unparsed;
     for (auto& p : parse)
     {
         if (p > dictionary.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
-        std::string dict_string = dictionary[p - 1].substr(0, dictionary[p - 1].size() - window_length);
+        std::vector<data_type> dict_string(dictionary[p - 1].begin(), dictionary[p - 1].begin() + dictionary[p - 1].size() - window_length);
         unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
     }
     unparsed.append(window_length, DOLLAR);
@@ -425,6 +425,7 @@ TEST_CASE( "Reproducing bug", "[KR Window]" )
 }
 
 //------------------------------------------------------------------------------
+
 TEST_CASE( "Initialization KR Mersenne", "[KR Mersenne Window]" )
 {
     std::string test_string = "12345";
@@ -483,18 +484,20 @@ TEST_CASE( "Periodic string Mersenne", "[KR Mersenne Window]" )
 
 TEST_CASE( "Dictionary size", "[Dictionary]")
 {
-    vcfbwt::pfp::Dictionary dictionary;
+    vcfbwt::pfp::Dictionary<char> dictionary;
 
     vcfbwt::size_type elem, tot_elem = 100000;
     for (elem = 0; elem < tot_elem; elem++)
     {
-        dictionary.check_and_add(std::to_string(elem));
+        std::string elem_string = std::to_string(elem);
+        dictionary.check_and_add(std::vector<char>(elem_string.begin(), elem_string.end()));
     }
 
     bool all_elements_in_dict = true;
     for (elem = 0; elem < tot_elem; elem++)
     {
-        all_elements_in_dict + all_elements_in_dict and dictionary.contains(std::to_string(elem));
+        std::string elem_string = std::to_string(elem);
+        all_elements_in_dict + all_elements_in_dict and dictionary.contains(std::vector<char>(elem_string.begin(), elem_string.end()));
     }
     REQUIRE(all_elements_in_dict);
     REQUIRE(dictionary.size() == elem);
@@ -691,7 +694,7 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 }
 
@@ -744,7 +747,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 }
 
@@ -817,11 +820,11 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 }
 
@@ -854,209 +857,8 @@ TEST_CASE( "Sample: HG00096, text", "[PFP Algo]" )
     what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
-}
-
-TEST_CASE( "AuPair both removals", "[AuPair]" )
-{
-    std::string S = "!ACCACATAGGTGAACCTTGAAAATGTTACACTGTGTGAAAAAGTCAGATACAAGAGGCC####"
-                    "ACCACATAGGTGAACCTTGAAAATGTTACATTGTGTGAAAAAGTCAGATACAAGAGGCC!!!!";
-
-    std::vector<std::string> dictionary =
-    {
-    "!ACCACATAGGTG",
-    "####ACCACATAGGTG",
-    "AATGTTACACTGTGTGAAAAAGTCAG",
-    "AATGTTACATTGTGTGAAAAAGTCAG",
-    "CTTGAAAATG",
-    "GGTGAACCTTG",
-    "TCAGATACAAGAGGCC!!!!",
-    "TCAGATACAAGAGGCC####"
-    };
-
-    std::ofstream dict_file(testfiles_dir + "/au_pair_test_1" + vcfbwt::EXT::DICT);
-    for (auto& phrase : dictionary)
-    {
-        dict_file.write(phrase.c_str(), phrase.size());
-        dict_file.put(vcfbwt::pfp::ENDOFWORD);
-    }
-    dict_file.put(vcfbwt::pfp::ENDOFDICT);
-    dict_file.close();
-
-    std::vector<vcfbwt::size_type> parse = {1, 6, 5, 3, 8, 2, 6, 5, 4, 7};
-    std::ofstream parse_file(testfiles_dir + "/au_pair_test_1" + vcfbwt::EXT::PARSE);
-    parse_file.write((char*)&parse[0], parse.size() * sizeof(vcfbwt::size_type));
-    parse_file.close();
-
-    vcfbwt::pfp::AuPair au_pair_algo(testfiles_dir + "/au_pair_test_1", 4, false);
-
-    std::set<std::string_view> removed_trigger_strings;
-    std::size_t removed_bytes = au_pair_algo(removed_trigger_strings, 10);
-
-    au_pair_algo.close();
-
-    REQUIRE(!removed_trigger_strings.empty());
-    REQUIRE(removed_bytes > 0);
-
-    // Check
-    std::string out_prefix = testfiles_dir + "/au_pair_test_1";
-    bool check = unparse_and_check(out_prefix, S, 4, '!', true);
-    REQUIRE(check);
-}
-
-TEST_CASE( "AuPair Reference + Sample HG00096, No acceleration", "[AuPair]" )
-{
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
-
-    // Produce dictionary and parsing
-    vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global;
-    params.use_acceleration = false;
-    params.compute_occurrences = true;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-
-    std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
-
-    vcfbwt::pfp::ParserVCF worker;
-    std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
-    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-
-    worker.init(params, out_prefix, reference_parse, tag);
-    main_parser.register_worker(worker);
-
-    // Run
-    worker(vcf[0]);
-
-    // Close the main parser
-    main_parser.close();
-
-    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global, 1);
-
-    std::set<std::string_view> removed_trigger_strings;
-    std::size_t removed_bytes = au_pair_algo(removed_trigger_strings, 1000);
-    au_pair_algo.close();
-
-    REQUIRE(!removed_trigger_strings.empty());
-    REQUIRE(removed_bytes > 0);
-
-    // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
-    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
-
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-
-    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-
-    // Check
-    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR, true);
-    REQUIRE(check);
-}
-
-TEST_CASE( "AuPair Reference + Sample HG00096, WITH acceleration", "[AuPair]" )
-{
-    std::string vcf_file_name = testfiles_dir + "/ALL.chrY.phase3_integrated_v2a.20130502.genotypes.vcf.gz";
-    std::string ref_file_name = testfiles_dir + "/Y.fa.gz";
-    vcfbwt::VCF vcf(ref_file_name, vcf_file_name, "", 1);
-
-    // Produce dictionary and parsing
-    vcfbwt::pfp::Params params;
-    params.w = w_global; params.p = p_global;
-    params.use_acceleration = true;
-    params.compute_occurrences = true;
-    vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
-
-    std::string out_prefix = testfiles_dir + "/parser_out";
-    vcfbwt::pfp::ParserVCF main_parser(params, out_prefix, reference_parse);
-
-    vcfbwt::pfp::ParserVCF worker;
-    std::size_t tag = 0;
-    tag = tag | vcfbwt::pfp::ParserVCF::WORKER;
-    tag = tag | vcfbwt::pfp::ParserVCF::UNCOMPRESSED;
-
-    worker.init(params, out_prefix, reference_parse, tag);
-    main_parser.register_worker(worker);
-
-    // Run
-    worker(vcf[0]);
-
-    // Close the main parser
-    main_parser.close();
-
-    vcfbwt::pfp::AuPair au_pair_algo(out_prefix, w_global, false);
-
-    std::set<std::string_view> removed_trigger_strings;
-    std::size_t removed_bytes = au_pair_algo(removed_trigger_strings, 1000);
-    spdlog::info("Removed: {} bytes", removed_bytes);
-    au_pair_algo.close();
-
-    REQUIRE(!removed_trigger_strings.empty());
-    REQUIRE(removed_bytes > 0);
-
-    // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
-    what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
-
-    std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
-    std::ifstream in_stream(test_sample_path);
-    zstr::istream is(in_stream);
-    std::string line, from_fasta;
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
-
-    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
-
-    // Check
-    bool check = unparse_and_check(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR, true);
-    REQUIRE(check);
-}
-
-//------------------------------------------------------------------------------
-
-#include <indexed_pq/indexMaxPQ.h>
-TEST_CASE("understanding pq", "[PQ]")
-{
-    std::map<std::string, vcfbwt::size_type> ts_ids;
-    ts_ids["TEST1"] = 0;
-    ts_ids["TEST2"] = 1;
-    ts_ids["TEST3"] = 2;
-
-    indexMaxPQ pq; pq.init(ts_ids.size());
-    pq.push(ts_ids["TEST1"], 10);
-    pq.push(ts_ids["TEST2"], 20);
-    pq.push(ts_ids["TEST3"], 30);
-
-    std::pair<int, int> max = pq.get_max();
-    REQUIRE((max.first == 30 and max.second == 2));
-
-    pq.demote(ts_ids["TEST3"], 15);
-    max = pq.get_max();
-
-    REQUIRE((max.first == 20 and max.second == 1));
-
-    pq.promote(ts_ids["TEST1"], 40);
-    max = pq.get_max();
-
-    REQUIRE((max.first == 40 and max.second == 0));
 }
 
 //------------------------------------------------------------------------------

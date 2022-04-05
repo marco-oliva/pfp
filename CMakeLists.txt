@@ -147,12 +147,6 @@ add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS})
 
-# AuPair
-add_executable(AuPair au_pair.cpp)
-target_link_libraries(AuPair pfp ${VCF_LIB_DEPS})
-add_executable(AuPair64 au_pair.cpp)
-target_link_libraries(AuPair64 pfp64 ${VCF_LIB_DEPS})
-
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
 target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS})

@@ -152,9 +152,7 @@ vcfbwt::Mersenne_KarpRabinHash::initialize(const std::string_view& window)
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) window[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
-        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
-        lo = (lo & kr_prime) + (lo >> kr_p_pow);
-        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+        h = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
     }
     this->hash_value = h;
 }
@@ -168,17 +166,13 @@ vcfbwt::Mersenne_KarpRabinHash::update(const vcfbwt::char_type char_out, const v
 
     unsigned __int128 to_remove = (unsigned __int128) constant_to_n_minus_one_mod * char_out;
     hash_type lo = (hash_type)to_remove, hi = (hash_type)(to_remove >> 64);
-    lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
-    lo = (lo & kr_prime) + (lo >> kr_p_pow);
-    to_remove = lo == kr_prime ? 0 : lo;
+    to_remove = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
 
     hc = hc - to_remove; // take char_out out
     hc = hc * kr_base + char_in;
 
     lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
-    lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
-    lo = (lo & kr_prime) + (lo >> kr_p_pow);
-    hash_value = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    hash_value = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
 }
 
 vcfbwt::hash_type
@@ -189,9 +183,7 @@ vcfbwt::Mersenne_KarpRabinHash::string_hash(const std::string_view& s)
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) s[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
-        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
-        lo = (lo & kr_prime) + (lo >> kr_p_pow);
-        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+        h = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
     }
     return h;
 }
@@ -220,9 +212,7 @@ vcfbwt::Mersenne_KarpRabinHash4::initialize(const std::string_view& window)
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + string32[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
-        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
-        lo = (lo & kr_prime) + (lo >> kr_p_pow);
-        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+        h = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
     }
     this->hash_value = h;
 }
@@ -243,9 +233,7 @@ vcfbwt::Mersenne_KarpRabinHash4::update(const vcfbwt::char_type* chars_out, cons
     hc = hc * kr_base + *s32c_in;
 
     hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
-    lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
-    lo = (lo & kr_prime) + (lo >> kr_p_pow);
-    hash_value = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    hash_value = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
 }
 
 vcfbwt::hash_type
@@ -257,9 +245,7 @@ vcfbwt::Mersenne_KarpRabinHash4::string_hash(const std::string_view& s)
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + string32[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
-        lo = (lo & kr_prime) + ((lo >> kr_p_pow) + (hi << (64 - kr_p_pow)));
-        lo = (lo & kr_prime) + (lo >> kr_p_pow);
-        h = lo == kr_prime ? 0 : lo; //compilers usually make branchless code here with cmov
+        h = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
     }
     return h;
 }
@@ -428,8 +414,8 @@ void vcfbwt::DiskWrites::update(std::size_t num_of_bytes)
 
 bool
 vcfbwt::ref_smaller(
-std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> a,
-std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> b)
+std::pair<std::reference_wrapper<std::vector<char>>, vcfbwt::hash_type> a,
+std::pair<std::reference_wrapper<std::vector<char>>, vcfbwt::hash_type> b)
 {
     return (a.first.get() < b.first.get());
 }
