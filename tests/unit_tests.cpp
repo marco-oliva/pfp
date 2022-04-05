@@ -482,6 +482,67 @@ TEST_CASE( "Periodic string Mersenne", "[KR Mersenne Window]" )
 
 //------------------------------------------------------------------------------
 
+TEST_CASE( "Initialization KR Mersenne4", "[KR Mersenne4 Window]" )
+{
+    std::vector<int32_t> test_data = {1,2,3,4,5};
+
+    vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+
+    REQUIRE(kr_window.get_hash() == 207274774005008393);
+}
+
+TEST_CASE( "Update 1 charachter Mersenne4", "[KR Mersenne4 Window]" )
+{
+    std::vector<int32_t> test_data = {1,2,3,4,5};
+
+    vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+
+    int32_t out = 1, in = 6;
+    kr_window.update((const vcfbwt::char_type*) &out, (const vcfbwt::char_type*) &in);
+
+    REQUIRE(kr_window.get_hash() == 1431772385188328376);
+}
+
+TEST_CASE( "Update 2 charachters Mersenne4", "[KR Mersenne4 Window]" )
+{
+    std::vector<int32_t> test_data = {1,2,3,4,5};
+
+    vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+
+    int32_t out = 1, in = 6;
+    kr_window.update((const vcfbwt::char_type*) &out, (const vcfbwt::char_type*) &in);
+
+    out = 2, in = 7;
+    kr_window.update((const vcfbwt::char_type*) &out, (const vcfbwt::char_type*) &in);
+
+    REQUIRE(kr_window.get_hash() == 350426987157954408);
+}
+
+TEST_CASE( "Periodic string Mersenne4", "[KR Mersenne4 Window]" )
+{
+    std::vector<int32_t> test_data = {1,1,1,1,1};
+
+    vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+
+    int32_t out = 1, in = 1;
+    vcfbwt::hash_type before = kr_window.get_hash();
+    kr_window.update((const vcfbwt::char_type*) &out, (const vcfbwt::char_type*) &in);
+    vcfbwt::hash_type after = kr_window.get_hash();
+
+    REQUIRE(before == 1224497611183319983);
+    REQUIRE(after  == 1224497611183319983);
+}
+
+//------------------------------------------------------------------------------
+
 TEST_CASE( "Dictionary size", "[Dictionary]")
 {
     vcfbwt::pfp::Dictionary<char> dictionary;

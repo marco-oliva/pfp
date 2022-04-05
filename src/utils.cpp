@@ -91,7 +91,7 @@ vcfbwt::KarpRabinHash4::initialize(const std::string_view& window)
 {
     if (debug_) { debug_content_ = window; }
 
-    constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, prime);
+    constant_to_n_minus_one_mod = modular_pow(constant, window_length_32 - 1, prime);
 
     uint32_t* string32 = (uint32_t*) window.data();
     for (size_type i = 0; i < this->window_length_32; i++) // window always multiple of 4
@@ -169,7 +169,7 @@ vcfbwt::Mersenne_KarpRabinHash::update(const vcfbwt::char_type char_out, const v
     to_remove = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
 
     hc = hc - to_remove; // take char_out out
-    hc = hc * kr_base + char_in;
+    hc = (hc * kr_base) + char_in;
 
     lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
     hash_value = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
@@ -195,7 +195,7 @@ vcfbwt::Mersenne_KarpRabinHash4::Mersenne_KarpRabinHash4(size_type n, bool debug
     assert(this->window_length % 4 == 0 and this->window_length >= 4);
     this->window_length_32 = window_length / 4;
 
-    this->constant_to_n_minus_one_mod = modular_pow(kr_base, window_length - 1, kr_prime);
+    this->constant_to_n_minus_one_mod = modular_pow(kr_base, window_length_32 - 1, kr_prime);
 }
 
 void
@@ -227,12 +227,18 @@ vcfbwt::Mersenne_KarpRabinHash4::update(const vcfbwt::char_type* chars_out, cons
         debug_content_.append((char*) chars_in, 4);
     }
 
-    uint32_t *s32c_in = (uint32_t*) chars_in, *s32c_out = (uint32_t*) chars_out;
-    unsigned __int128 hc = (unsigned __int128) hash_value + kr_prime; // negative avoiders
-    hc = hc - (unsigned __int128) constant_to_n_minus_one_mod * (*(s32c_out)); // take chars_out out
-    hc = hc * kr_base + *s32c_in;
+    uint32_t s32c_in = (uint32_t) *chars_in, s32c_out = (uint32_t) *chars_out;
 
-    hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
+    unsigned __int128 hc = (unsigned __int128) hash_value + kr_prime; // negative avoiders
+
+    unsigned __int128 to_remove = (unsigned __int128) constant_to_n_minus_one_mod * s32c_out;
+    hash_type lo = (hash_type)to_remove, hi = (hash_type)(to_remove >> 64);
+    to_remove = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
+
+    hc = hc - to_remove; // take char_out out
+    hc = (hc * kr_base) + s32c_in;
+
+    lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
     hash_value = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
 }
 
