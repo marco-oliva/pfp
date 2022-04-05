@@ -449,7 +449,7 @@ TEST_CASE( "Update 1 charachter Mersenne", "[KR Mersenne Window]" )
     REQUIRE(kr_window.get_hash() == 255739482431644834);
 }
 
-TEST_CASE( "Update 2 charachters Mersenne", "[KR Window]" )
+TEST_CASE( "Update 2 charachters Mersenne", "[KR Mersenne Window]" )
 {
     std::string test_string = "12345";
 
@@ -461,6 +461,22 @@ TEST_CASE( "Update 2 charachters Mersenne", "[KR Window]" )
     kr_window.update('2', '7');
 
     REQUIRE(kr_window.get_hash() == 1480237093614964817);
+}
+
+TEST_CASE( "Periodic string Mersenne", "[KR Mersenne Window]" )
+{
+    std::string test_string = "11111";
+
+    vcfbwt::Mersenne_KarpRabinHash kr_window(5);
+    // base = 660162925935593667, prime = 2305843009213693951
+    kr_window.initialize(test_string);
+
+    vcfbwt::hash_type before = kr_window.get_hash();
+    kr_window.update('1', '1');
+    vcfbwt::hash_type after = kr_window.get_hash();
+
+    REQUIRE(before == 48464708426636441);
+    REQUIRE(after  == 48464708426636441);
 }
 
 //------------------------------------------------------------------------------
