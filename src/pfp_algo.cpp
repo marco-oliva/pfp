@@ -13,25 +13,10 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
 {
     if (params.ignore_ts_file.size() > 0)
     {
-        spdlog::info("Reading trigger string to be ignored from: {}", params.ignore_ts_file);
-        std::ifstream ts_file(params.ignore_ts_file);
-        if (not ts_file.is_open()) { spdlog::error("ERROR!"); std::exit(EXIT_FAILURE); }
-    
-        char c = '\5';
-        while (c != ENDOFDICT)
-        {
-            std::string ts = "";
-            while ((c = ts_file.get()) != ENDOFWORD and c != ENDOFDICT)
-            {
-                ts.push_back(c);
-            }
-            if (ts.size() != 0) { this->to_ignore_ts_hash.insert(KarpRabinHash::string_hash(ts)); }
-        }
-        ts_file.close();
-        spdlog::info("To be ingored trigger strings: {}", this->to_ignore_ts_hash.size());
+        spdlog::info("Not Impelmented!!!");
     }
     
-    std::vector<char> phrase;
+    std::vector<vcfbwt::char_type> phrase;
     spdlog::info("Parsing reference");
     
     // Karp Robin Hash Function for sliding window
@@ -45,15 +30,11 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         char c = reference[ref_it];
         
         phrase.push_back(c);
-        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view(phrase.data(), params.w)); }
+        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*)phrase.data(), params.w)); }
         else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
         
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
-            std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-            hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
-            if (to_ignore_ts_hash.contains(ts_hash)) { continue; }
-            
             hash_type hash = this->dictionary.check_and_add(phrase);
             
             this->parse.push_back(hash);
@@ -61,7 +42,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
             
-            kr_hash.reset(); kr_hash.initialize(std::string_view(phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
         }
     }
     
@@ -104,7 +85,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     Sample::iterator sample_iterator(sample, this->working_genotype);
     this->samples_processed.push_back(sample.id());
     
-    std::vector<char> phrase;
+    std::vector<vcfbwt::char_type> phrase;
     
     // Karp Robin Hash Function for sliding window
     Mersenne_KarpRabinHash kr_hash(this->params.w);
@@ -112,7 +93,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     // Every sample starts with w-1 dollar prime and one dollar seq
     for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
     phrase.emplace_back(DOLLAR_SEQUENCE);
-    kr_hash.initialize(std::string_view(phrase.data(), params.w));
+    kr_hash.initialize(std::string_view((char*)phrase.data(), params.w));
     
     // Shorthands
     std::vector<std::size_t>& tsp = reference_parse->trigger_strings_position;
@@ -153,10 +134,10 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                     phrase.clear();
                     for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}
                     
-                    kr_hash.reset(); kr_hash.initialize(string_view(phrase.data(), params.w));
+                    kr_hash.reset(); kr_hash.initialize(string_view((char*) phrase.data(), params.w));
                     
                     ++sample_iterator;
-                    spdlog::debug("New phrase [{}]: {}", phrase.size(), std::string(phrase.data(), phrase.size()));
+                    spdlog::debug("New phrase [{}]: {}", phrase.size(), std::string((char*) phrase.data(), phrase.size()));
                     spdlog::debug("------------------------------------------------------------");
                 }
             }
@@ -170,10 +151,6 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
-            std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-            hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
-            if (this->reference_parse->to_ignore_ts_hash.contains(ts_hash)) { continue; }
-            
             hash_type hash = this->dictionary->check_and_add(phrase);
         
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
@@ -181,13 +158,13 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             if (phrase[0] != DOLLAR_PRIME)
             {
                 spdlog::debug("------------------------------------------------------------");
-                spdlog::debug("Parsed phrase [{}] {}", phrase.size(), std::string(phrase.data(), phrase.size()));
+                spdlog::debug("Parsed phrase [{}] {}", phrase.size(), std::string((char*) phrase.data(), phrase.size()));
                 spdlog::debug("------------------------------------------------------------");
             }
             
             phrase.erase(phrase.begin(), phrase.end() - this->w); // Keep the last w chars
     
-            kr_hash.reset(); kr_hash.initialize(std::string_view(phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
         }
     }
     
@@ -252,7 +229,7 @@ vcfbwt::pfp::ParserVCF::close()
                 std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
                 occurrences[rank - 1] += 1;
     
-                const std::vector<char>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
+                const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
                 last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
     
                 if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
@@ -272,7 +249,7 @@ vcfbwt::pfp::ParserVCF::close()
                 this->reference_parse->parse[i] = rank;
                 occurrences[rank - 1] += 1;
     
-                const std::vector<char>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
+                const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
                 last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
     
                 if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
@@ -298,7 +275,7 @@ vcfbwt::pfp::ParserVCF::close()
                     std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
                     occurrences[rank - 1] += 1;
     
-                    const std::vector<char>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
+                    const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
                     last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
     
                     if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
@@ -361,7 +338,7 @@ vcfbwt::pfp::ParserVCF::close()
         
             for (size_type i = 0; i < this->dictionary->size(); i++)
             {
-                dict.write(this->dictionary->sorted_entry_at(i).data(), this->dictionary->sorted_entry_at(i).size());
+                dict.write((char*) this->dictionary->sorted_entry_at(i).data(), this->dictionary->sorted_entry_at(i).size());
                 dict.put(ENDOFWORD);
             }
         
@@ -381,7 +358,7 @@ vcfbwt::pfp::ParserVCF::close()
             {
                 std::size_t shift = 1; // skip dollar on first phrase
                 if (i != 0) { shift = this->w; }
-                dicz.write(this->dictionary->sorted_entry_at(i).data() + shift,
+                dicz.write((char*) this->dictionary->sorted_entry_at(i).data() + shift,
                            this->dictionary->sorted_entry_at(i).size() - shift);
                 int32_t len = this->dictionary->sorted_entry_at(i).size() - shift;
                 lengths.write((char*) &len, sizeof(int32_t));
@@ -436,7 +413,7 @@ vcfbwt::pfp::ParserFasta::operator()()
         exit(EXIT_FAILURE);
     }
     
-    std::vector<char> phrase;
+    std::vector<vcfbwt::char_type> phrase;
     spdlog::info("Parsing sequence");
     
     // Karp Robin Hash Function for sliding window
@@ -469,7 +446,7 @@ vcfbwt::pfp::ParserFasta::operator()()
             phrase.clear();
             for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
             phrase.emplace_back(DOLLAR_SEQUENCE);
-            kr_hash.reset(); kr_hash.initialize(std::string_view(phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
         }
         
         for (std::size_t seq_it = 0; seq_it < record->seq.l; seq_it++)
@@ -477,21 +454,18 @@ vcfbwt::pfp::ParserFasta::operator()()
             char c = record->seq.s[seq_it];
         
             phrase.push_back(c);
-            if (phrase.size() == params.w) { kr_hash.initialize(std::string_view(phrase.data(), params.w)); }
+            if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), params.w)); }
             else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
         
             if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
             {
-                std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-                hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
-            
                 hash_type hash = this->dictionary.check_and_add(phrase);
     
                 out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
                 
                 phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
                 
-                kr_hash.reset(); kr_hash.initialize(std::string_view(phrase.data(), params.w));
+                kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
             }
         }
     }
@@ -553,7 +527,7 @@ vcfbwt::pfp::ParserFasta::close()
             std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
     
-            const std::vector<char>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
+            const std::vector<vcfbwt::char_type>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
             last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
     
             if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
@@ -577,7 +551,7 @@ vcfbwt::pfp::ParserFasta::close()
     
     for (size_type i = 0; i < this->dictionary.size(); i++)
     {
-        dict.write(this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size());
+        dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size());
         dict.put(ENDOFWORD);
     }
     
@@ -596,7 +570,7 @@ vcfbwt::pfp::ParserFasta::close()
         {
             std::size_t shift = 1; // skip dollar on first phrase
             if (i != 0) { shift = this->w; }
-            dicz.write(this->dictionary.sorted_entry_at(i).data() + shift,
+            dicz.write((char*) this->dictionary.sorted_entry_at(i).data() + shift,
                        this->dictionary.sorted_entry_at(i).size() - shift);
             int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
             lengths.write((char*) &len, sizeof(int32_t));
@@ -644,13 +618,13 @@ vcfbwt::pfp::ParserText::operator()()
     // Open input file with kseq
     gzFile fp;
     fp = gzopen(this->in_file_path.c_str(), "r");
-    if (fp == 0)
+    if (fp == nullptr)
     {
         spdlog::error("Failed to open input file {}", in_file_path);
         exit(EXIT_FAILURE);
     }
     
-    std::vector<char> phrase;
+    std::vector<vcfbwt::char_type> phrase;
     spdlog::info("Parsing {}", in_file_path);
     
     // Karp Robin Hash Function for sliding window
@@ -663,21 +637,18 @@ vcfbwt::pfp::ParserText::operator()()
     while(gzread(fp, &c, 1) > 0)
     {
         phrase.push_back(c);
-        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view(phrase.data(), params.w)); }
+        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), params.w)); }
         else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
         
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
-            std::string_view ts(&(phrase[phrase.size() - params.w]), params.w);
-            hash_type ts_hash = Mersenne_KarpRabinHash::string_hash(ts);
-            
             hash_type hash = this->dictionary.check_and_add(phrase);
             
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
             
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
             
-            kr_hash.reset(); kr_hash.initialize(std::string_view(phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
         }
     }
     
@@ -733,7 +704,7 @@ vcfbwt::pfp::ParserText::close()
             std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
             
-            const std::vector<char>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
+            const std::vector<vcfbwt::char_type>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
             last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
     
             if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
@@ -757,7 +728,7 @@ vcfbwt::pfp::ParserText::close()
     
     for (size_type i = 0; i < this->dictionary.size(); i++)
     {
-        dict.write(this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size());
+        dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size());
         dict.put(ENDOFWORD);
     }
     
@@ -776,7 +747,7 @@ vcfbwt::pfp::ParserText::close()
         {
             std::size_t shift = 1; // skip dollar on first phrase
             if (i != 0) { shift = this->w; }
-            dicz.write(this->dictionary.sorted_entry_at(i).data() + shift,
+            dicz.write((char*) this->dictionary.sorted_entry_at(i).data() + shift,
                        this->dictionary.sorted_entry_at(i).size() - shift);
             int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
             lengths.write((char*) &len, sizeof(int32_t));
@@ -797,6 +768,187 @@ vcfbwt::pfp::ParserText::close()
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
         occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
         
+        vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
+        occ.close();
+    }
+
+    spdlog::info("Main parser: closed");
+}
+
+//------------------------------------------------------------------------------
+
+void
+vcfbwt::pfp::ParserIntegers::init(const Params& params, const std::string& prefix)
+{
+    this->params = params;
+    this->w = this->params.w;
+    this->p = this->params.p;
+    this->parse_size = 0;
+    this->out_file_prefix = prefix;
+    this->out_file_name = prefix + EXT::PARSE;
+    this->out_file.open(out_file_name);
+}
+
+void
+vcfbwt::pfp::ParserIntegers::operator()()
+{
+    // Open input file with kseq
+    gzFile fp;
+    fp = gzopen(this->in_file_path.c_str(), "r");
+    if (fp == nullptr)
+    {
+        spdlog::error("Failed to open input file {}", in_file_path);
+        exit(EXIT_FAILURE);
+    }
+
+    std::vector<int32_t> phrase;
+    spdlog::info("Parsing {}", in_file_path);
+
+    // Karp Robin Hash Function for sliding window
+    Mersenne_KarpRabinHash4 kr_hash(this->params.w * 4);
+
+    // First sequence start with one dollar
+    phrase.emplace_back(DOLLAR);
+
+    int32_t c;
+    while(gzread(fp, &c, 4) > 0)
+    {
+        phrase.push_back(c);
+        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(int32_t))); }
+        else if (phrase.size() > params.w)
+        {
+            kr_hash.update((const vcfbwt::char_type*)&(phrase[phrase.size() - params.w - 1]), (const vcfbwt::char_type*) &phrase[phrase.size() - 1]);
+        }
+
+        if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
+        {
+            hash_type hash = this->dictionary.check_and_add(phrase);
+
+            out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+
+            phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
+
+            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(int32_t)));
+        }
+    }
+
+    // Last phrase
+    if (phrase.size() > this->params.w)
+    {
+        // Append w dollar at the end
+        phrase.insert(phrase.end(), this->params.w, DOLLAR);
+
+        hash_type hash = this->dictionary.check_and_add(phrase);
+
+        out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+    }
+    else { spdlog::error("A sequence doesn't have w DOLLAR at the end!"); std::exit(EXIT_FAILURE); }
+
+    gzclose(fp);
+}
+
+
+void
+vcfbwt::pfp::ParserIntegers::close()
+{
+    if (closed) return; closed = true;
+
+    vcfbwt::DiskWrites::update(out_file.tellp()); // Disk Stats
+    this->out_file.close();
+
+    // Occurrences
+    std::vector<size_type> occurrences(this->dictionary.size(), 0);
+
+    spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
+
+    std::string last_file_name = out_file_prefix + EXT::LAST;
+    std::ofstream last_file(last_file_name);
+
+    std::string sai_file_name = out_file_prefix + EXT::SAI;
+    std::ofstream sai_file(sai_file_name);
+
+    std::size_t pos_for_sai = 0;
+
+    // mmap file and substitute
+    if (this->parse_size != 0)
+    {
+        std::error_code error;
+        mio::mmap_sink rw_mmap = mio::make_mmap_sink(out_file_name, 0, mio::map_entire_file, error);
+        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
+
+        for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+        {
+            hash_type hash;
+            std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+            size_type rank = this->dictionary.hash_to_rank(hash);
+            std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+            occurrences[rank - 1] += 1;
+
+            const std::vector<int32_t>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
+            last_file.write((char*) &(dict_string[(dict_string.size() - this->params.w) - 1]), sizeof(size_type));
+
+            if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+            else { pos_for_sai += dict_string.size() - this->params.w; }
+            sai_file.write((char*) &pos_for_sai, IBYTES);
+        }
+        rw_mmap.unmap();
+        truncate_file(out_file_name, this->parse_size * sizeof(size_type));
+    }
+
+    vcfbwt::DiskWrites::update(last_file.tellp());
+    last_file.close();
+
+    vcfbwt::DiskWrites::update(sai_file.tellp());
+    sai_file.close();
+
+    // Print dicitionary on disk
+    spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
+    std::string dict_file_name = out_file_prefix + EXT::DICT;
+    std::ofstream dict(dict_file_name);
+
+    for (size_type i = 0; i < this->dictionary.size(); i++)
+    {
+        dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size() * sizeof(int32_t));
+        int32_t eow = ENDOFWORD;
+        dict.write((char*) &eow, sizeof(int32_t));
+    }
+
+    dict.put(ENDOFDICT);
+
+    vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
+    dict.close();
+
+    if (this->params.compress_dictionary)
+    {
+        spdlog::info("Main parser: writing dictionary on disk COMPRESSED");
+        std::ofstream dicz(out_file_prefix + EXT::DICT_COMPRESSED);
+        std::ofstream lengths(out_file_prefix + EXT::DICT_COMPRESSED_LENGTHS);
+
+        for (size_type i = 0; i < this->dictionary.size(); i++)
+        {
+            std::size_t shift = 1; // skip dollar on first phrase
+            if (i != 0) { shift = this->w; }
+            dicz.write((char*) (this->dictionary.sorted_entry_at(i).data() + shift),
+                       (this->dictionary.sorted_entry_at(i).size() - shift) * sizeof(int32_t));
+            int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
+            lengths.write((char*) &len, sizeof(int32_t));
+        }
+
+        vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
+        dicz.close();
+
+        vcfbwt::DiskWrites::update(lengths.tellp()); // Disk Stats
+        lengths.close();
+    }
+
+    // Output Occurrencies
+    if(this->params.compute_occurrences)
+    {
+        spdlog::info("Main parser: writing occurrences to file");
+        std::string occ_file_name = out_file_prefix + EXT::OCC;
+        std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
+        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
+
         vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
         occ.close();
     }

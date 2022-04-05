@@ -34,7 +34,7 @@ std::size_t w_global = 20;
 //------------------------------------------------------------------------------
 template <typename data_type>
 bool
-unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::size_t window_length, char DOLLAR, bool n = false)
+unparse_and_check(std::string& in_prefix, std::vector<data_type>& what_it_should_be, std::size_t window_length, char DOLLAR, bool n = false)
 {
     // Unparse
     std::vector<vcfbwt::size_type> parse;
@@ -44,14 +44,14 @@ unparse_and_check(std::string& in_prefix, std::string& what_it_should_be, std::s
     std::vector<std::vector<data_type>> dictionary;
     vcfbwt::pfp::ParserUtils<data_type>::read_dictionary(in_prefix + dictionary_ext, dictionary);
     
-    std::string unparsed;
+    std::vector<data_type> unparsed;
     for (auto& p : parse)
     {
         if (p > dictionary.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
         std::vector<data_type> dict_string(dictionary[p - 1].begin(), dictionary[p - 1].begin() + dictionary[p - 1].size() - window_length);
         unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
     }
-    unparsed.append(window_length, DOLLAR);
+    unparsed.insert(unparsed.end(), window_length, DOLLAR);
     
     // Compare the two strings
     std::size_t i = 0;
@@ -545,20 +545,20 @@ TEST_CASE( "Periodic string Mersenne4", "[KR Mersenne4 Window]" )
 
 TEST_CASE( "Dictionary size", "[Dictionary]")
 {
-    vcfbwt::pfp::Dictionary<char> dictionary;
+    vcfbwt::pfp::Dictionary<vcfbwt::char_type> dictionary;
 
     vcfbwt::size_type elem, tot_elem = 100000;
     for (elem = 0; elem < tot_elem; elem++)
     {
         std::string elem_string = std::to_string(elem);
-        dictionary.check_and_add(std::vector<char>(elem_string.begin(), elem_string.end()));
+        dictionary.check_and_add(std::vector<vcfbwt::char_type>(elem_string.begin(), elem_string.end()));
     }
 
     bool all_elements_in_dict = true;
     for (elem = 0; elem < tot_elem; elem++)
     {
         std::string elem_string = std::to_string(elem);
-        all_elements_in_dict + all_elements_in_dict and dictionary.contains(std::vector<char>(elem_string.begin(), elem_string.end()));
+        all_elements_in_dict + all_elements_in_dict and dictionary.contains(std::vector<vcfbwt::char_type>(elem_string.begin(), elem_string.end()));
     }
     REQUIRE(all_elements_in_dict);
     REQUIRE(dictionary.size() == elem);
@@ -737,11 +737,11 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     main_parser.close();
 
     // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    std::vector<vcfbwt::char_type> what_it_should_be;
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR);
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::ifstream in_stream(test_sample_path);
@@ -750,12 +750,12 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
     //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+    what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<vcfbwt::char_type>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 }
 
@@ -790,11 +790,11 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     main_parser.close();
 
     // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    std::vector<vcfbwt::char_type> what_it_should_be;
+    what_it_should_be.insert(what_it_should_be.end(),1, vcfbwt::pfp::DOLLAR);
     what_it_should_be.insert(what_it_should_be.end(), vcf.get_reference().begin(), vcf.get_reference().end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::ifstream in_stream(test_sample_path);
@@ -803,12 +803,12 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
     //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+    what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<vcfbwt::char_type>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 }
 
@@ -871,8 +871,8 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
     main_parser.close();
 
     // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    std::vector<vcfbwt::char_type> what_it_should_be;
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR);
 
     std::ifstream in_stream(test_sample_path);
     zstr::istream is(in_stream);
@@ -880,12 +880,12 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
     while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
-    what_it_should_be.append(params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+    what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<vcfbwt::char_type>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 }
 
@@ -907,18 +907,55 @@ TEST_CASE( "Sample: HG00096, text", "[PFP Algo]" )
     main_parser.close();
 
     // Generate the desired outcome from the test files, reference first
-    std::string what_it_should_be;
-    what_it_should_be.append(1, vcfbwt::pfp::DOLLAR);
+    std::vector<vcfbwt::char_type> what_it_should_be;
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR);
 
     std::ifstream in_stream(test_sample_path);
     zstr::istream is(in_stream);
     std::string from_text_file((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
 
     what_it_should_be.insert(what_it_should_be.end(), from_text_file.begin(), from_text_file.end());
-    what_it_should_be.append(params.w, vcfbwt::pfp::DOLLAR);
+    what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
-    bool check = unparse_and_check<char>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    bool check = unparse_and_check<vcfbwt::char_type>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    REQUIRE(check);
+}
+
+TEST_CASE( "Sample: HG00096, integers", "[PFP Algo]" )
+{
+    // Produce dictionary and parsing
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    params.compute_occurrences = true;
+
+    // Test file
+    std::ofstream test_file(testfiles_dir + "/repetitive_int32_t.bin");
+    std::vector<int32_t> what_it_should_be;
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR);
+    for (std::size_t i = 0; i < 10; i++)
+    {
+        for (int32_t j = 10; j < 1000; j++)
+        {
+            test_file.write((char*) &j, sizeof(int32_t));
+            what_it_should_be.emplace_back(j);
+        }
+    }
+    test_file.close();
+    what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
+
+    std::string test_sample_path = testfiles_dir + "/repetitive_int32_t.bin";
+    std::string out_prefix = testfiles_dir + "/repetitive_int32_t_tpintegers";
+    vcfbwt::pfp::ParserIntegers main_parser(params, test_sample_path, out_prefix);
+
+    // Run
+    main_parser();
+
+    // Close the main parser
+    main_parser.close();
+
+    // Check
+    bool check = unparse_and_check<int32_t>(out_prefix, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
     REQUIRE(check);
 }
 

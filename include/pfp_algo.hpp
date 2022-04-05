@@ -67,7 +67,7 @@ public:
         {
             this->sorted_phrases.emplace_back(std::ref(entry.second.phrase), entry.first);
         }
-        std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller);
+        std::sort(sorted_phrases.begin(), sorted_phrases.end(), ref_smaller<data_type>);
 
         // insert in hashmap
         this->hash_to_ranks.clear();
@@ -110,7 +110,7 @@ public:
         std::lock_guard<std::mutex> guard(dictionary_mutex);
 
         // Check if present
-        hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
+        hash_type phrase_hash = string_hash((const char*) &(phrase[0]), phrase.size() * sizeof(data_type));
         const auto& ptr = hash_string_map.find(phrase_hash);
 
         if ((ptr != hash_string_map.end()) and (ptr->second.phrase != phrase))
@@ -141,7 +141,7 @@ public:
         // lock the dictionary
         std::lock_guard<std::mutex> guard(dictionary_mutex);
 
-        hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
+        hash_type phrase_hash = string_hash((const char*) &(phrase[0]), phrase.size() * sizeof(data_type));
         const auto& ptr = hash_string_map.find(phrase_hash);
 
         return ((ptr != hash_string_map.end()) and (ptr->second.phrase == phrase));
@@ -191,7 +191,7 @@ class ReferenceParse
 {
 
 public :
-    Dictionary<char> dictionary;
+    Dictionary<vcfbwt::char_type> dictionary;
     std::vector<hash_type> parse;
     std::vector<std::size_t> trigger_strings_position; // position of first char of each trigger string
     std::set<hash_type> to_ignore_ts_hash;
@@ -220,7 +220,7 @@ private:
     Statistics statistics;
     
     ReferenceParse* reference_parse = nullptr;
-    Dictionary<char>* dictionary = nullptr;
+    Dictionary<vcfbwt::char_type>* dictionary = nullptr;
 
     // Shorthands
     hash_type w, p;
@@ -306,7 +306,7 @@ private:
     Params params;
     Statistics statistics;
     
-    Dictionary<char> dictionary;
+    Dictionary<vcfbwt::char_type> dictionary;
     
     hash_type w, p;
     size_type parse_size = 0;
@@ -377,7 +377,7 @@ private:
     Params params;
     Statistics statistics;
     
-    Dictionary<char> dictionary;
+    Dictionary<vcfbwt::char_type> dictionary;
     
     hash_type w, p;
     size_type parse_size = 0;
@@ -449,7 +449,7 @@ private:
     Params params;
     Statistics statistics;
 
-    Dictionary<char> dictionary;
+    Dictionary<int32_t> dictionary;
 
     hash_type w, p;
     size_type parse_size = 0;
@@ -480,7 +480,7 @@ public:
         this->statistics.parse_length = this->parse_size;
         this->statistics.num_of_phrases_dictionary = this->dictionary.sorted_phrases.size();
         this->statistics.total_dictionary_length = total_length;
-        std::string name = "Parser Text";
+        std::string name = "Parser Integers";
         spdlog::info("{} -\tParse size: {}\tDic Size: {} Dic Total Length: {}", name ,parse_size, dictionary.size(), total_length);
 
         if (params.print_out_statistics_csv)

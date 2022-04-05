@@ -418,13 +418,4 @@ void vcfbwt::DiskWrites::update(std::size_t num_of_bytes)
     writes_counter.bytes_wrote += num_of_bytes;
 }
 
-bool
-vcfbwt::ref_smaller(
-std::pair<std::reference_wrapper<std::vector<char>>, vcfbwt::hash_type> a,
-std::pair<std::reference_wrapper<std::vector<char>>, vcfbwt::hash_type> b)
-{
-    return (a.first.get() < b.first.get());
-}
-
-
 //------------------------------------------------------------------------------
