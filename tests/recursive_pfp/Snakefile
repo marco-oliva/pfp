@@ -83,13 +83,15 @@ rule run_pfp_vcf:
         ref_19 = "/blue/boucher/marco.oliva/data/1kgp/reference/19.fa.gz",
         w = '10', p = '100'
 
+    threads: 64
 
     shell:
         """
         {input.pfp_exe} -v {params.vcf_17} {params.vcf_18} {params.vcf_19} \
         -r {params.ref_17} {params.ref_18} {params.ref_19} \
         -H12 -m {wildcards.dataset} -w {params.w} -p {params.p} \
-        -o work_dir/H12_{wildcards.dataset}/{wildcards.dataset}:from_vcf
+        -o work_dir/H12_{wildcards.dataset}/{wildcards.dataset}:from_vcf \
+        --use-acceleration --threads {threads}
         """
 
 rule run_pfp_recursive:

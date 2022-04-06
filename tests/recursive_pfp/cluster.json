@@ -14,8 +14,9 @@
         "err": "logs/%j.log"
     },
 
-    "input_bam_to_fastq":
+    "run_pfp_vcf":
     {
-        "cpus-per-task": "8"
+        "cpus-per-task": "64",
+        "mem": "256gb"
     }
 }
