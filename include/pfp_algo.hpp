@@ -178,6 +178,7 @@ struct Params
     bool compute_occurrences = true;
     bool auPair = false;
     std::string ignore_ts_file;
+    int32_t integers_shift = 10;
 };
 
 struct Statistics
@@ -270,13 +271,13 @@ public:
         if (params.print_out_statistics_csv and (tags & MAIN))
         {
             std::ofstream csv(out_file_prefix + ".csv");
-            csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
+            csv << "w,p,parse_lenght,dict_phrases,dict_tot_length\n";
             csv << params.w << ",";
             csv << params.p << ",";
             csv << statistics.parse_length << ",";
             csv << statistics.num_of_phrases_dictionary << ",";
-            csv << statistics.total_dictionary_length << ",";
-            csv << "\n";
+            csv << statistics.total_dictionary_length;
+            csv << std::endl;
             csv.close();
         }
     }
@@ -343,13 +344,13 @@ public:
         if (params.print_out_statistics_csv)
         {
             std::ofstream csv(out_file_prefix + ".csv");
-            csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
+            csv << "w,p,parse_lenght,dict_phrases,dict_tot_length\n";
             csv << params.w << ",";
             csv << params.p << ",";
             csv << statistics.parse_length << ",";
             csv << statistics.num_of_phrases_dictionary << ",";
-            csv << statistics.total_dictionary_length << ",";
-            csv << "\n";
+            csv << statistics.total_dictionary_length;
+            csv << std::endl;
             csv.close();
         }
     }
@@ -414,13 +415,13 @@ public:
         if (params.print_out_statistics_csv)
         {
             std::ofstream csv(out_file_prefix + ".csv");
-            csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
+            csv << "w,p,parse_lenght,dict_phrases,dict_tot_length\n";
             csv << params.w << ",";
             csv << params.p << ",";
             csv << statistics.parse_length << ",";
             csv << statistics.num_of_phrases_dictionary << ",";
-            csv << statistics.total_dictionary_length << ",";
-            csv << "\n";
+            csv << statistics.total_dictionary_length;
+            csv << std::endl;
             csv.close();
         }
     }
@@ -474,7 +475,7 @@ public:
     {
         close();
         size_type total_length = 0;
-        for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size(); }
+        for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size() * sizeof(int32_t); }
 
         // Fill out statistics
         this->statistics.parse_length = this->parse_size;
@@ -486,13 +487,13 @@ public:
         if (params.print_out_statistics_csv)
         {
             std::ofstream csv(out_file_prefix + ".csv");
-            csv << "w,p,f,parse_lenght,dict_phrases,dict_tot_length\n";
+            csv << "w,p,parse_lenght,dict_phrases,dict_tot_length\n";
             csv << params.w << ",";
             csv << params.p << ",";
             csv << statistics.parse_length << ",";
             csv << statistics.num_of_phrases_dictionary << ",";
-            csv << statistics.total_dictionary_length << ",";
-            csv << "\n";
+            csv << statistics.total_dictionary_length;
+            csv << std::endl;
             csv.close();
         }
     }

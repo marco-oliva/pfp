@@ -1,0 +1,21 @@
+{
+
+    "__default__": {
+        "account": "boucher",
+        "qos": "boucher",
+        "cpus-per-task": "1",
+        "Nodes": 1,
+        "mem": "64gb",
+        "runtime": "96:00:00",
+        "jobname": "pjob",
+        "mail": "marco.oliva@ufl.edu",
+        "mail_type": "NONE",
+        "out": "logs/%j.log",
+        "err": "logs/%j.log"
+    },
+
+    "input_bam_to_fastq":
+    {
+        "cpus-per-task": "8"
+    }
+}

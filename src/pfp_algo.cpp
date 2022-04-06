@@ -813,7 +813,7 @@ vcfbwt::pfp::ParserIntegers::operator()()
     int32_t c;
     while(gzread(fp, &c, 4) > 0)
     {
-        phrase.push_back(c);
+        phrase.push_back(c + this->params.integers_shift);
         if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(int32_t))); }
         else if (phrase.size() > params.w)
         {
