@@ -17,7 +17,7 @@ jobs:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
     container:
-      image: quay.io/biocontainers/htslib:1.15--h9753748_0
+      image: quay.io/biocontainers/htslib:1.14--h9753748_2
 
     steps:
     - uses: actions/checkout@v3
