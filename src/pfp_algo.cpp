@@ -913,7 +913,8 @@ vcfbwt::pfp::ParserIntegers::close()
         dict.write((char*) &eow, sizeof(int32_t));
     }
 
-    dict.put(ENDOFDICT);
+    int32_t eod = ENDOFDICT;
+    dict.write((char*) &eod, sizeof(int32_t));
 
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
     dict.close();
