@@ -1,4 +1,5 @@
 # Prefix Free ParserVCF #
+![example workflow](https://github.com/marco.oliva/pfp/actions/workflows/cmake.yml/badge.svg)
 
 Tool to build the parse and the dictionary for VCF files using the approach described in Prefix-Free Parsing for Building Big BWTs by Christina Boucher, Travis Gagie, Alan Kuhnle and Giovanni Manzini.
 It produces the same result as running `bigbwt` on the fasta file generated as follow:
