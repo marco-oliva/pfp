@@ -23,9 +23,9 @@ jobs:
     - name: Install htslib
       run: |
         sudo apt-get install -y autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev libncurses5-dev
-        wget https://github.com/samtools/samtools/releases/download/1.3.1/samtools-1.3.1.tar.bz2 -O samtools.tar.bz2
-        tar -xjvf samtools.tar.bz2
-        cd samtools-1.3.1
+        wget https://github.com/samtools/htslib/releases/download/1.3.2/htslib-1.3.2.tar.bz2 -O htslib.tar.bz2
+        tar -xjvf htslib.tar.bz2
+        cd htslib-1.3.2
         make
         sudo make install
 
