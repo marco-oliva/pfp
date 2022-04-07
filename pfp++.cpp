@@ -35,6 +35,7 @@ int main(int argc, char **argv)
     app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->configurable();
     app.add_option("-f,--fasta", fasta_file_path, "Fasta file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-i,--int32t", integers_file_path, "Integers file to parse.")->configurable()->check(CLI::ExistingFile);
+    app.add_option("--int-shift", params.integers_shift, "Each integer i in int32t input are interpreted as (i + ingers_shift).")->check(CLI::Range(0, 200))->configurable();
     app.add_option("-H,--haplotype", haplotype_string, "Haplotype. [1,2,12]")->configurable();
     app.add_option("-t,--text", text_file_path, "Text file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable();

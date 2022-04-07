@@ -928,6 +928,7 @@ TEST_CASE( "Sample: HG00096, integers", "[PFP Algo]" )
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
     params.compute_occurrences = true;
+    params.integers_shift = 0;
 
     // Test file
     std::ofstream test_file(testfiles_dir + "/repetitive_int32_t.bin");
