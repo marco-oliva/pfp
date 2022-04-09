@@ -298,7 +298,7 @@ vcfbwt::pfp::ParserVCF::close()
         std::ofstream merged(out_file_name, std::ios_base::binary);
         
         // Reference
-        size_type out_parse_size = 0;
+        std::size_t out_parse_size = 0;
         out_parse_size += this->reference_parse->parse.size();
         for (auto& e : this->reference_parse->parse)
         {

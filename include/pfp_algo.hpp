@@ -225,7 +225,8 @@ private:
 
     // Shorthands
     hash_type w, p;
-    size_type parse_size, tags;
+    std::size_t parse_size = 0;
+    size_type tags;
     
     bool closed = false;
     
@@ -310,7 +311,7 @@ private:
     Dictionary<vcfbwt::char_type> dictionary;
     
     hash_type w, p;
-    size_type parse_size = 0;
+    std::size_t parse_size = 0;
     
     bool closed = false;
     
@@ -381,7 +382,7 @@ private:
     Dictionary<vcfbwt::char_type> dictionary;
     
     hash_type w, p;
-    size_type parse_size = 0;
+    std::size_t parse_size = 0;
     
     bool closed = false;
 
@@ -453,7 +454,7 @@ private:
     Dictionary<int32_t> dictionary;
 
     hash_type w, p;
-    size_type parse_size = 0;
+    std::size_t parse_size = 0;
 
     bool closed = false;
 
