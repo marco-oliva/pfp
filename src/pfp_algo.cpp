@@ -471,7 +471,7 @@ vcfbwt::pfp::ParserFasta::operator()()
     }
     
     // Last phrase
-    if (phrase.size() > this->params.w)
+    if (phrase.size() >= this->params.w)
     {
         // Append w-1 dollar prime and a dollar seq
         phrase.insert(phrase.end(), this->params.w - 1, DOLLAR_PRIME);
@@ -653,7 +653,7 @@ vcfbwt::pfp::ParserText::operator()()
     }
     
     // Last phrase
-    if (phrase.size() > this->params.w)
+    if (phrase.size() >= this->params.w)
     {
         // Append w dollar at the end
        phrase.insert(phrase.end(), this->params.w, DOLLAR);
@@ -833,7 +833,7 @@ vcfbwt::pfp::ParserIntegers::operator()()
     }
 
     // Last phrase
-    if (phrase.size() > this->params.w)
+    if (phrase.size() >= this->params.w)
     {
         // Append w dollar at the end
         phrase.insert(phrase.end(), this->params.w, DOLLAR);
