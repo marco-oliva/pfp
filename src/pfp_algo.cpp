@@ -371,7 +371,7 @@ vcfbwt::pfp::ParserVCF::close()
             lengths.close();
         }
     
-        // Outoput Occurrencies
+        // Outoput Occurrences
         if(this->params.compute_occurrences)
         {
             spdlog::info("Main parser: writing occurrences to file");
@@ -583,7 +583,7 @@ vcfbwt::pfp::ParserFasta::close()
         lengths.close();
     }
     
-    // Outoput Occurrencies
+    // Outoput Occurrences
     if(this->params.compute_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
@@ -760,7 +760,7 @@ vcfbwt::pfp::ParserText::close()
         lengths.close();
     }
     
-    // Output Occurrencies
+    // Output Occurrences
     if(this->params.compute_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
@@ -942,7 +942,7 @@ vcfbwt::pfp::ParserIntegers::close()
         lengths.close();
     }
 
-    // Output Occurrencies
+    // Output Occurrences
     if(this->params.compute_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
