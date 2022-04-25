@@ -1,6 +1,11 @@
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.15)
 
 project(PFP++)
+SET(VERSION_MAJOR "0")
+SET(VERSION_MINOR "2")
+SET(VERSION_PATCH "2")
+SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+set(PROJECT_VERSION ${VERSION})
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -151,7 +156,36 @@ add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 
+################################################################################
+# Install
 
+install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa unparse unparse64 check check64 unit_tests)
+
+################################################################################
+# CPack
+
+set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
+set(CPACK_PACKAGE_VERSION "${VERSION}")
+
+include(InstallRequiredSystemLibraries)
+set(CPACK_GENERATOR "STGZ;TGZ;DEB")
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_PACKAGE_VENDOR "University of Florida")
+set(CPACK_PACKAGE_CONTACT "marco.oliva@ufl.edu")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "PFP++")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CMAKE_PROJECT_NAME}-sources")
+
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Marco Oliva")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
+set (CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEB_COMPONENT_INSTALL YES)
+include(CPack)
 
 
 
