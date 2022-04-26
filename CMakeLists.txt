@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 
 project(PFP++)
 SET(VERSION_MAJOR "0")
-SET(VERSION_MINOR "2")
-SET(VERSION_PATCH "2")
+SET(VERSION_MINOR "3")
+SET(VERSION_PATCH "0")
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(PROJECT_VERSION ${VERSION})
 
@@ -113,6 +113,7 @@ target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS})
 
 enable_testing()
 add_test(NAME unit_tests COMMAND unit_tests)
+add_test(NAME unit_tests64 COMMAND unit_tests64)
 ################################################################################
 # Tools
 
@@ -124,12 +125,6 @@ target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS})
 add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS})
-
-# AuPair
-add_executable(AuPair au_pair.cpp)
-target_link_libraries(AuPair pfp ${VCF_LIB_DEPS})
-add_executable(AuPair64 au_pair.cpp)
-target_link_libraries(AuPair64 pfp64 ${VCF_LIB_DEPS})
 
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
