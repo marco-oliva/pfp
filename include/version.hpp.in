@@ -14,9 +14,9 @@ struct Version
 {
     static constexpr char VCFBWT_GIT_BRANCH[] = "@GIT_BRANCH@";
     static constexpr char VCFBWT_GIT_COMMIT_HASH[] = "@GIT_COMMIT_HASH@";
-    static constexpr std::size_t VCFBWT_MAJOR = 0;
-    static constexpr std::size_t VCFBWT_MINOR = 2;
-    static constexpr std::size_t VCFBWT_PATCH = 1;
+    static constexpr std::size_t VCFBWT_MAJOR = @VERSION_MAJOR@;
+    static constexpr std::size_t VCFBWT_MINOR = @VERSION_MINOR@;
+    static constexpr std::size_t VCFBWT_PATCH = @VERSION_PATCH@;
     
     static void print()
     {
