@@ -202,7 +202,7 @@ vcfbwt::pfp::ParserVCF::close()
         for (auto worker : registered_workers) { worker.get().close(); }
         
         // Occurrences
-        std::vector<size_type> occurrences(this->dictionary->size(), 0);
+        std::vector<long_type> occurrences(this->dictionary->size(), 0);
         
         spdlog::info("Main parser: Replacing hash values with ranks in MAIN, WORKERS and reference, wirting .last ans .sai");
         
@@ -377,7 +377,7 @@ vcfbwt::pfp::ParserVCF::close()
             spdlog::info("Main parser: writing occurrences to file");
             std::string occ_file_name = out_file_prefix + EXT::OCC;
             std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
-            occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
+            occ.write((char*)&occurrences[0], occurrences.size() * sizeof(long_type));
             
             vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
             occ.close();
@@ -500,7 +500,7 @@ vcfbwt::pfp::ParserFasta::close()
     this->out_file.close();
     
     // Occurrences
-    std::vector<size_type> occurrences(this->dictionary.size(), 0);
+    std::vector<long_type> occurrences(this->dictionary.size(), 0);
     
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
     
@@ -589,7 +589,7 @@ vcfbwt::pfp::ParserFasta::close()
         spdlog::info("Main parser: writing occurrences to file");
         std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
-        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
+        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(long_type));
         
         vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
         occ.close();
@@ -677,8 +677,8 @@ vcfbwt::pfp::ParserText::close()
     this->out_file.close();
     
     // Occurrences
-    std::vector<size_type> occurrences(this->dictionary.size(), 0);
-    
+    std::vector<long_type> occurrences(this->dictionary.size(), 0);
+
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
   
     std::string last_file_name = out_file_prefix + EXT::LAST;
@@ -766,7 +766,7 @@ vcfbwt::pfp::ParserText::close()
         spdlog::info("Main parser: writing occurrences to file");
         std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
-        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
+        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(long_type));
         
         vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
         occ.close();
@@ -857,7 +857,7 @@ vcfbwt::pfp::ParserIntegers::close()
     this->out_file.close();
 
     // Occurrences
-    std::vector<size_type> occurrences(this->dictionary.size(), 0);
+    std::vector<long_type> occurrences(this->dictionary.size(), 0);
 
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
 
@@ -948,7 +948,7 @@ vcfbwt::pfp::ParserIntegers::close()
         spdlog::info("Main parser: writing occurrences to file");
         std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
-        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(size_type));
+        occ.write((char*)&occurrences[0], occurrences.size() * sizeof(long_type));
 
         vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
         occ.close();
