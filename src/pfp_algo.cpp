@@ -378,11 +378,19 @@ vcfbwt::pfp::ParserVCF::close()
             std::string occ_file_name = out_file_prefix + EXT::OCC;
             std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
 
-            std::size_t bytes_for_occ = 0;
-            if (this->parse_size < std::numeric_limits<short_type>::max()) { bytes_for_occ = sizeof(short_type); }
-            else { bytes_for_occ = sizeof(long_type); }
-
-            occ.write((char*)&occurrences[0], occurrences.size() * bytes_for_occ);
+            for (std::size_t i = 0; i < occurrences.size(); i++)
+            {
+                if (this->parse_size < std::numeric_limits<short_type>::max())
+                {
+                    short_type to_write = occurrences[i];
+                    occ.write((char*)&to_write, sizeof(short_type));
+                }
+                else
+                {
+                    long_type to_write = occurrences[i];
+                    occ.write((char*)&to_write, sizeof(long_type));
+                }
+            }
             
             vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
             occ.close();
@@ -595,11 +603,19 @@ vcfbwt::pfp::ParserFasta::close()
         std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
 
-        std::size_t bytes_for_occ = 0;
-        if (this->parse_size < std::numeric_limits<short_type>::max()) { bytes_for_occ = sizeof(short_type); }
-        else { bytes_for_occ = sizeof(long_type); }
-
-        occ.write((char*)&occurrences[0], occurrences.size() * bytes_for_occ);
+        for (std::size_t i = 0; i < occurrences.size(); i++)
+        {
+            if (this->parse_size < std::numeric_limits<short_type>::max())
+            {
+                short_type to_write = occurrences[i];
+                occ.write((char*)&to_write, sizeof(short_type));
+            }
+            else
+            {
+                long_type to_write = occurrences[i];
+                occ.write((char*)&to_write, sizeof(long_type));
+            }
+        }
         
         vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
         occ.close();
@@ -777,11 +793,19 @@ vcfbwt::pfp::ParserText::close()
         std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
 
-        std::size_t bytes_for_occ = 0;
-        if (this->parse_size < std::numeric_limits<short_type>::max()) { bytes_for_occ = sizeof(short_type); }
-        else { bytes_for_occ = sizeof(long_type); }
-
-        occ.write((char*)&occurrences[0], occurrences.size() * bytes_for_occ);
+        for (std::size_t i = 0; i < occurrences.size(); i++)
+        {
+            if (this->parse_size < std::numeric_limits<short_type>::max())
+            {
+                short_type to_write = occurrences[i];
+                occ.write((char*)&to_write, sizeof(short_type));
+            }
+            else
+            {
+                long_type to_write = occurrences[i];
+                occ.write((char*)&to_write, sizeof(long_type));
+            }
+        }
         
         vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
         occ.close();
@@ -964,11 +988,20 @@ vcfbwt::pfp::ParserIntegers::close()
         std::string occ_file_name = out_file_prefix + EXT::OCC;
         std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
 
-        std::size_t bytes_for_occ = 0;
-        if (this->parse_size < std::numeric_limits<short_type>::max()) { bytes_for_occ = sizeof(short_type); }
-        else { bytes_for_occ = sizeof(long_type); }
+        for (std::size_t i = 0; i < occurrences.size(); i++)
+        {
+            if (this->parse_size < std::numeric_limits<short_type>::max())
+            {
+                short_type to_write = occurrences[i];
+                occ.write((char*)&to_write, sizeof(short_type));
+            }
+            else
+            {
+                long_type to_write = occurrences[i];
+                occ.write((char*)&to_write, sizeof(long_type));
+            }
+        }
 
-        occ.write((char*)&occurrences[0], occurrences.size() * bytes_for_occ);
 
         vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
         occ.close();
