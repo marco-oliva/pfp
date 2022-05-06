@@ -13,7 +13,7 @@ vcfbwt::size_type deleted_element = 0; // parse elements start at 1
 
 
 template <typename data_type>
-void check(const std::string& input_dict_path, const std::string& input_parse_path, std::size_t window_size)
+void check(const std::string& input_dict_path, const std::string& input_parse_path, const std::string& input_occurrences_path, std::size_t window_size)
 {
     spdlog::info("Reading dictionary");
     std::vector<std::vector<data_type>> dict;
@@ -49,40 +49,43 @@ void check(const std::string& input_dict_path, const std::string& input_parse_pa
     }
     spdlog::info("Reached end of parse. {} errors found.", errors);
 
-    spdlog::info("Check occurrences");
-    std::vector<vcfbwt::long_type> occ_computed(dict.size(), 0);
-    for (auto& p : parse) { occ_computed[p - 1] += 1; }
-
-    // Check the occ file
-    bool occ_good = true;
-    std::ifstream occ_stream(input_dict_path.substr(input_dict_path.find(vcfbwt::EXT::DICT), 5) + vcfbwt::EXT::OCC);
-    if (parse.size() < std::numeric_limits<vcfbwt::short_type>::max())
+    if (not input_occurrences_path.empty())
     {
-        spdlog::info("Occurrences type: vcfbwt::short_type");
-        std::vector<vcfbwt::short_type> occ(dict.size(), 0);
-        occ_stream.read((char*) occ.data(), sizeof(vcfbwt::short_type) * occ.size());
+        spdlog::info("Check occurrences");
+        std::vector<vcfbwt::long_type> occ_computed(dict.size(), 0);
+        for (auto& p : parse) { occ_computed[p - 1] += 1; }
 
-        for (std::size_t i = 0; i < occ.size(); i++)
+        // Check the occ file
+        bool occ_good = true;
+
+        std::ifstream occ_stream(input_occurrences_path);
+        if (parse.size() < std::numeric_limits<vcfbwt::short_type>::max())
         {
-            if (occ[i] != occ_computed[i]) { spdlog::error("OccM[{}] = {}\tOccD[{}] = {}", i, occ_computed[i], i, occ[i]); }
-            occ_good = occ_good and (occ[i] == occ_computed[i]);
-        }
-    }
-    else
-    {
-        spdlog::info("Occurrences type: vcfbwt::long_type");
-        std::vector<vcfbwt::long_type> occ(dict.size(), 0);
-        occ_stream.read((char*) occ.data(), sizeof(vcfbwt::long_type) * occ.size());
+            spdlog::info("Occurrences type: vcfbwt::short_type");
+            std::vector<vcfbwt::short_type> occ(dict.size(), 0);
+            occ_stream.read((char*) occ.data(), sizeof(vcfbwt::short_type) * occ.size());
 
-        for (std::size_t i = 0; i < occ.size(); i++)
+            for (std::size_t i = 0; i < occ.size(); i++)
+            {
+                if (occ[i] != occ_computed[i]) { spdlog::error("OccM[{}] = {}\tOccD[{}] = {}", i, occ_computed[i], i, occ[i]); }
+                occ_good = occ_good and (occ[i] == occ_computed[i]);
+            }
+        }
+        else
         {
-            if (occ[i] != occ_computed[i]) { spdlog::error("OccM[{}] = {}\tOccD[{}] = {}", i, occ_computed[i], i, occ[i]); }
-            occ_good = occ_good and (occ[i] == occ_computed[i]);
-        }
-    }
-    if (occ_good) { spdlog::info("Occurrences file ok"); }
-    else { spdlog::error("Error in occurrences file"); }
+            spdlog::info("Occurrences type: vcfbwt::long_type");
+            std::vector<vcfbwt::long_type> occ(dict.size(), 0);
+            occ_stream.read((char*) occ.data(), sizeof(vcfbwt::long_type) * occ.size());
 
+            for (std::size_t i = 0; i < occ.size(); i++)
+            {
+                if (occ[i] != occ_computed[i]) { spdlog::error("OccM[{}] = {}\tOccD[{}] = {}", i, occ_computed[i], i, occ[i]); }
+                occ_good = occ_good and (occ[i] == occ_computed[i]);
+            }
+        }
+        if (occ_good) { spdlog::info("Occurrences file ok"); }
+        else { spdlog::error("Error in occurrences file"); }
+    }
 }
 
 
@@ -92,11 +95,13 @@ int main(int argc, char **argv)
 
     std::string input_dict_path;
     std::string input_parse_path;
+    std::string input_occurrences_path;
     std::size_t window_size;
     bool integers_pfp = false;
 
     app.add_option("-d,--dictionary", input_dict_path, "Dictionary")->required();
     app.add_option("-p,--parse", input_parse_path, "Parse")->required();
+    app.add_option("-o,--occurences", input_occurrences_path, "Occurrences");
     app.add_flag("--integers", integers_pfp, "Integer (uint32_t) PFP");
     app.add_option("-w, --window", window_size, "Window size")->required();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version");
@@ -110,10 +115,10 @@ int main(int argc, char **argv)
     // Unparse
     if (not integers_pfp)
     {
-        check<vcfbwt::char_type>(input_dict_path, input_parse_path, window_size);
+        check<vcfbwt::char_type>(input_dict_path, input_parse_path, input_occurrences_path, window_size);
     }
     else
     {
-        check<uint32_t>(input_dict_path, input_parse_path, window_size);
+        check<uint32_t>(input_dict_path, input_parse_path, input_occurrences_path, window_size);
     }
 }
