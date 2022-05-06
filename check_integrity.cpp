@@ -70,7 +70,11 @@ void check(const std::string& input_dict_path, const std::string& input_parse_pa
         std::vector<vcfbwt::long_type> occ(dict.size(), 0);
         occ_stream.read((char*) occ.data(), sizeof(vcfbwt::long_type) * occ.size());
 
-        for (std::size_t i = 0; i < occ.size(); i++) { occ_good = occ_good and (occ[i] == occ_computed[i]); }
+        for (std::size_t i = 0; i < occ.size(); i++)
+        {
+            if (occ[i] != occ_computed[i]) { spdlog::error("OccM[{}] = {}\tOccD[{}] = {}", i, occ_computed[i], i, occ[i]); }
+            occ_good = occ_good and (occ[i] == occ_computed[i]);
+        }
     }
     if (occ_good) { spdlog::info("Occurrences file ok"); }
     else { spdlog::error("Error in occurrences file"); }
