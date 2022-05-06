@@ -91,7 +91,7 @@ void check(const std::string& input_dict_path, const std::string& input_parse_pa
 
 int main(int argc, char **argv)
 {
-    CLI::App app("AuPair");
+    CLI::App app("Check Integrity of PFP");
 
     std::string input_dict_path;
     std::string input_parse_path;
