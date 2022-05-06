@@ -45,20 +45,44 @@ unparse_and_check(std::string& in_prefix, std::vector<data_type>& what_it_should
     vcfbwt::pfp::ParserUtils<data_type>::read_dictionary(in_prefix + dictionary_ext, dictionary);
     
     std::vector<data_type> unparsed;
+    std::vector<vcfbwt::long_type> occ_computed(dictionary.size(), 0);
     for (auto& p : parse)
     {
+        occ_computed[p - 1] += 1;
+
         if (p > dictionary.size()) { spdlog::error("Something wrong in the parse"); exit(EXIT_FAILURE); }
         std::vector<data_type> dict_string(dictionary[p - 1].begin(), dictionary[p - 1].begin() + dictionary[p - 1].size() - window_length);
         unparsed.insert(unparsed.end(), dict_string.begin(), dict_string.end());
     }
     unparsed.insert(unparsed.end(), window_length, DOLLAR);
-    
+
+
+    // Check the occ file
+    bool occ_good = true;
+    std::string occ_ext = n ? vcfbwt::EXT::N_OCC : vcfbwt::EXT::OCC;
+    std::ifstream occ_stream(in_prefix + occ_ext);
+    if (parse.size() < std::numeric_limits<vcfbwt::short_type>::max())
+    {
+        std::vector<vcfbwt::short_type> occ(dictionary.size(), 0);
+        occ_stream.read((char*) occ.data(), sizeof(vcfbwt::short_type) * occ.size());
+
+        for (std::size_t i = 0; i < occ.size(); i++) { occ_good = occ_good and (occ[i] == occ_computed[i]); }
+    }
+    else
+    {
+        std::vector<vcfbwt::long_type> occ(dictionary.size(), 0);
+        occ_stream.read((char*) occ.data(), sizeof(vcfbwt::long_type) * occ.size());
+
+        for (std::size_t i = 0; i < occ.size(); i++) { occ_good = occ_good and (occ[i] == occ_computed[i]); }
+    }
+
+
     // Compare the two strings
     std::size_t i = 0;
     while ( ((i < unparsed.size()) and (i < what_it_should_be.size()))
     and (unparsed[i] == what_it_should_be[i])) { i++; }
     spdlog::info("First missmatch: {}", i);
-    return ((i == (unparsed.size())) and (i == (what_it_should_be.size())));
+    return (occ_good and ((i == (unparsed.size())) and (i == (what_it_should_be.size()))));
 }
 
 //------------------------------------------------------------------------------

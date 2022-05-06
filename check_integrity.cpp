@@ -18,14 +18,16 @@ void check(const std::string& input_dict_path, const std::string& input_parse_pa
     spdlog::info("Reading dictionary");
     std::vector<std::vector<data_type>> dict;
     vcfbwt::pfp::ParserUtils<data_type>::read_dictionary(input_dict_path, dict);
+    spdlog::info("Dictionary phrases: {}", dict.size());
 
     spdlog::info("Reading parse");
     std::vector<vcfbwt::size_type> parse;
     vcfbwt::pfp::ParserUtils<data_type>::read_parse(input_parse_path, parse);
+    spdlog::info("Parse length: {}", parse.size());
 
     if (parse[0] != data_type(1)) { spdlog::error("parse[0] != 1"); exit(EXIT_FAILURE); }
 
-    spdlog::info("Checking");
+    spdlog::info("Checking PFP");
     std::size_t errors = 0;
     for (std::size_t i = 1; i < parse.size(); i++)
     {
@@ -46,6 +48,33 @@ void check(const std::string& input_dict_path, const std::string& input_parse_pa
         }
     }
     spdlog::info("Reached end of parse. {} errors found.", errors);
+
+    spdlog::info("Check occurrences");
+    std::vector<vcfbwt::long_type> occ_computed(dict.size(), 0);
+    for (auto& p : parse) { occ_computed[p - 1] += 1; }
+
+    // Check the occ file
+    bool occ_good = true;
+    std::ifstream occ_stream(input_dict_path.substr(input_dict_path.find(vcfbwt::EXT::DICT), 5) + vcfbwt::EXT::OCC);
+    if (parse.size() < std::numeric_limits<vcfbwt::short_type>::max())
+    {
+        spdlog::info("Occurrences type: vcfbwt::short_type");
+        std::vector<vcfbwt::short_type> occ(dict.size(), 0);
+        occ_stream.read((char*) occ.data(), sizeof(vcfbwt::short_type) * occ.size());
+
+        for (std::size_t i = 0; i < occ.size(); i++) { occ_good = occ_good and (occ[i] == occ_computed[i]); }
+    }
+    else
+    {
+        spdlog::info("Occurrences type: vcfbwt::long_type");
+        std::vector<vcfbwt::long_type> occ(dict.size(), 0);
+        occ_stream.read((char*) occ.data(), sizeof(vcfbwt::long_type) * occ.size());
+
+        for (std::size_t i = 0; i < occ.size(); i++) { occ_good = occ_good and (occ[i] == occ_computed[i]); }
+    }
+    if (occ_good) { spdlog::info("Occurrences file ok"); }
+    else { spdlog::error("Error in occurrences file"); }
+
 }
 
 
