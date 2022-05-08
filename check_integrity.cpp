@@ -64,6 +64,9 @@ void check(const std::string& input_dict_path, const std::string& input_parse_pa
             spdlog::info("Occurrences type: vcfbwt::short_type");
             std::vector<vcfbwt::short_type> occ(dict.size(), 0);
             occ_stream.read((char*) occ.data(), sizeof(vcfbwt::short_type) * occ.size());
+            int should_be_eof = occ_stream.get(); occ_good = occ_good and occ_stream.eof();
+            if (not occ_good) { spdlog::error(".occ file contains more than |D| entries.");  }
+
 
             for (std::size_t i = 0; i < occ.size(); i++)
             {

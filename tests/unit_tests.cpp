@@ -65,6 +65,7 @@ unparse_and_check(std::string& in_prefix, std::vector<data_type>& what_it_should
     {
         std::vector<vcfbwt::short_type> occ(dictionary.size(), 0);
         occ_stream.read((char*) occ.data(), sizeof(vcfbwt::short_type) * occ.size());
+        int should_be_eof = occ_stream.get(); occ_good = occ_good and occ_stream.eof();
 
         for (std::size_t i = 0; i < occ.size(); i++) { occ_good = occ_good and (occ[i] == occ_computed[i]); }
     }
@@ -72,6 +73,7 @@ unparse_and_check(std::string& in_prefix, std::vector<data_type>& what_it_should
     {
         std::vector<vcfbwt::long_type> occ(dictionary.size(), 0);
         occ_stream.read((char*) occ.data(), sizeof(vcfbwt::long_type) * occ.size());
+        int should_be_eof = occ_stream.get(); occ_good = occ_good and occ_stream.eof();
 
         for (std::size_t i = 0; i < occ.size(); i++) { occ_good = occ_good and (occ[i] == occ_computed[i]); }
     }
