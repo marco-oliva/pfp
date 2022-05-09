@@ -179,7 +179,7 @@ target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 ################################################################################
 # Install
 
-install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa unparse unparse64 check check64 unit_tests)
+install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa unparse unparse64 check check64)
 
 ################################################################################
 # CPack
