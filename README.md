@@ -36,6 +36,9 @@ Options:
   -v,--vcf TEXT ...           List of vcf files. Assuming in genome order!
   -r,--ref TEXT ...           List of reference files. Assuming in genome order!
   -f,--fasta TEXT:FILE        Fasta file to parse.
+  -i,--int32t TEXT:FILE       Integers file to parse.
+  --int-shift INT:INT in [0 - 200]
+                              Each integer i in int32t input are interpreted as (i + ingers_shift).
   -H,--haplotype TEXT         Haplotype. [1,2,12]
   -t,--text TEXT:FILE         Text file to parse.
   -o,--out-prefix TEXT        Output prefix
