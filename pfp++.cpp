@@ -18,6 +18,7 @@ int main(int argc, char **argv)
     std::vector<std::string> refs_file_names;
     std::string fasta_file_path;
     std::string text_file_path;
+    std::string integers_file_path;
     std::string out_prefix;
     std::string tmp_dir;
     std::size_t max_samples = 0;
@@ -33,6 +34,8 @@ int main(int argc, char **argv)
     app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->configurable();
     app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->configurable();
     app.add_option("-f,--fasta", fasta_file_path, "Fasta file to parse.")->configurable()->check(CLI::ExistingFile);
+    app.add_option("-i,--int32t", integers_file_path, "Integers file to parse.")->configurable()->check(CLI::ExistingFile);
+    app.add_option("--int-shift", params.integers_shift, "Each integer i in int32t input are interpreted as (i + ingers_shift).")->check(CLI::Range(0, 200))->configurable();
     app.add_option("-H,--haplotype", haplotype_string, "Haplotype. [1,2,12]")->configurable();
     app.add_option("-t,--text", text_file_path, "Text file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable();
@@ -82,6 +85,23 @@ int main(int argc, char **argv)
         // Run
         main_parser();
     
+        // Close the main parser
+        main_parser.close();
+    }
+    else if (not integers_file_path.empty())
+    {
+        /**
+         * If the input is a parse it will contain values that are reserved for the implementation. For the moment
+         * we add params.integers_shift to each input int32_t.
+         */
+        params.integers_shift = 10;
+
+        if (out_prefix.empty()) { out_prefix = integers_file_path; }
+        vcfbwt::pfp::ParserIntegers main_parser(params, integers_file_path, out_prefix);
+
+        // Run
+        main_parser();
+
         // Close the main parser
         main_parser.close();
     }

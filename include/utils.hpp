@@ -141,7 +141,7 @@ class KarpRabinHash
 public:
     KarpRabinHash(size_type n, bool debug = false);
     
-    void initialize(const std::string& window);
+    void initialize(const std::string_view& window);
     void update(char_type char_out, char_type char_in);
     void reset();
     
@@ -166,6 +166,103 @@ public:
     static hash_type string_hash(const std::string_view& s);
 };
 
+class KarpRabinHash4
+{
+public:
+    KarpRabinHash4(size_type n, bool debug = false);
+
+    void initialize(const std::string_view& window);
+    void update(const char_type* chars_out, const char_type* chars_in);
+    void reset();
+
+    const hash_type& get_hash() const { return this->hash_value; }
+    void set_constant(const hash_type& c) { this->constant = c; }
+    void set_prime(const hash_type& p) { this->prime = p; }
+
+
+private:
+    hash_type constant;
+    hash_type prime;
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    size_type window_length_32;
+    hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
+
+public:
+    constexpr static hash_type kr_prime    = 1999999973;
+    constexpr static hash_type kr_constant = 256;
+
+    static hash_type string_hash(const std::string_view& s);
+};
+
+// when p = 2^61-1, the 128 bit number has to be less than 2^122-1
+inline uint64_t
+mersenne_modulo(uint64_t lo, uint64_t hi, uint64_t prime, uint64_t p_pow)
+{
+    uint64_t h = 0;
+    lo = (lo & prime) + ((lo >> p_pow) + (hi << (64 - p_pow)));
+    lo = (lo & prime) + (lo >> p_pow);
+    h = lo == prime ? 0 : lo; //compilers usually make branchless code here with cmov
+    return h;
+}
+
+class Mersenne_KarpRabinHash
+{
+public:
+    Mersenne_KarpRabinHash(size_type n, bool debug = false);
+
+    void initialize(const std::string_view& window);
+    void update(const char_type char_out, const char_type char_in);
+    void reset();
+
+    const hash_type& get_hash() const { return this->hash_value; }
+
+private:
+
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    size_type window_length_32;
+    hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
+
+public:
+    constexpr static hash_type kr_p_pow = 61;                     //
+    constexpr static hash_type kr_prime = (1ull << kr_p_pow) - 1; // 9th Mersenne Prime
+    constexpr static hash_type kr_base  = 660162925935593667;     // random number in range (1, kr_prime - 1)
+
+    static hash_type string_hash(const std::string_view& s);
+};
+
+class Mersenne_KarpRabinHash4
+{
+public:
+    Mersenne_KarpRabinHash4(size_type n, bool debug = false);
+
+    void initialize(const std::string_view& window);
+    void update(const char_type* chars_out, const char_type* chars_in);
+    void reset();
+
+    const hash_type& get_hash() const { return this->hash_value; }
+
+private:
+
+    hash_type constant_to_n_minus_one_mod;
+    size_type window_length;
+    size_type window_length_32;
+    hash_type hash_value = 0;
+    bool debug_ = false;
+    std::string debug_content_;
+
+public:
+    constexpr static hash_type kr_p_pow = 61;                     //
+    constexpr static hash_type kr_prime = (1ull << kr_p_pow) - 1; // 9th Mersenne Prime
+    constexpr static hash_type kr_base  = 660162925935593667;     // random number in range (1, kr_prime - 1)
+
+    static hash_type string_hash(const std::string_view& s);
+};
 
 //------------------------------------------------------------------------------
 
@@ -205,9 +302,13 @@ namespace DiskWrites
 
 //------------------------------------------------------------------------------
 
+template <typename data_type>
 bool ref_smaller(
-std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> a,
-std::pair<std::reference_wrapper<std::string>, vcfbwt::hash_type> b);
+std::pair<std::reference_wrapper<std::vector<data_type>>, vcfbwt::hash_type> a,
+std::pair<std::reference_wrapper<std::vector<data_type>>, vcfbwt::hash_type> b)
+{
+    return (a.first.get() < b.first.get());
+}
 
 //------------------------------------------------------------------------------
 
