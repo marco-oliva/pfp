@@ -5,7 +5,7 @@ FROM ubuntu:22.04
 RUN apt-get -y update && apt-get upgrade -y
 
 # Install GCC and dependencies
-RUN apt-get install -y autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev libncurses5-dev
+RUN apt-get install -y wget autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev libncurses5-dev
 WORKDIR /usr/src/
 RUN wget https://github.com/samtools/htslib/releases/download/1.15.1/htslib-1.15.1.tar.bz2 -O htslib.tar.bz2 \
     && tar -xjvf htslib.tar.bz2 \
