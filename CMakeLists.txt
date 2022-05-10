@@ -124,7 +124,7 @@ add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread ssl crypto m)
+set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread ssl crypto)
 
 ################################################################################
 # Tests

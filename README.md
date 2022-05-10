@@ -8,6 +8,20 @@ cat reference.fa | bcftools consensus calls.vcf.gz -H 1 > consensus.fa
 ```
 Symbolic alleles are currently not supported, e.g. `<CN1>`. 
 
+### Docker ###
+PFP is available on docker:
+
+```bash
+docker pull moliva3/pfp:latest
+docker run moliva3/pfp:latest pfp++ --help
+```
+
+If using singularity:
+```bash
+singularity pull pfp_sif docker://moliva3/pfp:latest
+./pfp_sif pfp++ --help
+```
+
 ### Build ###
 
 #### Dependencies ####
