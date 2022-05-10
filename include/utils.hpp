@@ -31,7 +31,6 @@
 #include <mio/mmap.hpp>
 #include <omp.h>
 
-#include <malloc_count/malloc_count.h>
 #include <murmur/MurmurHash3.h>
 
 #include <indexed_pq/indexMaxPQ.h>

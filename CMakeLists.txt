@@ -116,7 +116,12 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_BINARY_DIR}/generated)
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
-file(GLOB MALLOC_COUNT_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/malloc_count/*.c)
+if (ENABLE_MALLOC_COUNT)
+    message(STATUS "Using malloc_count.h")
+    file(GLOB MALLOC_COUNT_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/malloc_count/*.c)
+else()
+    set(MALLOC_COUNT_SOURCES "")
+endif()
 file(GLOB MURMUR_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/murmur/*.cpp)
 
 # 32 and 64 bits parse
