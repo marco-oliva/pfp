@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(PFP++)
 SET(VERSION_MAJOR "0")
 SET(VERSION_MINOR "3")
-SET(VERSION_PATCH "3")
+SET(VERSION_PATCH "4")
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(PROJECT_VERSION ${VERSION})
 
@@ -129,7 +129,13 @@ add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread ssl crypto)
+# Set libraries
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread ssl crypto)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread)
+endif()
+
 
 ################################################################################
 # Tests
