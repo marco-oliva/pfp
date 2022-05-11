@@ -140,16 +140,19 @@ endif()
 ################################################################################
 # Tests
 
-add_executable(unit_tests tests/unit_tests.cpp)
-target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS})
+if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    message(STATUS "Building unit tests")
+    add_executable(unit_tests tests/unit_tests.cpp)
+    target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS})
 
-add_executable(unit_tests64 tests/unit_tests.cpp)
-target_compile_options(unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS})
+    add_executable(unit_tests64 tests/unit_tests.cpp)
+    target_compile_options(unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
+    target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS})
 
-enable_testing()
-add_test(NAME unit_tests COMMAND unit_tests)
-add_test(NAME unit_tests64 COMMAND unit_tests64)
+    enable_testing()
+    add_test(NAME unit_tests COMMAND unit_tests)
+    add_test(NAME unit_tests64 COMMAND unit_tests64)
+endif()
 ################################################################################
 # Tools
 

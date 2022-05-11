@@ -4,7 +4,7 @@
 //  Copyright 2020 Marco Oliva. All rights reserved.
 //
 
-#include <CLI/CLI.hpp>
+#include <CLI/CLI11.hpp>
 #include <version.hpp>
 #include <utils.hpp>
 #include <pfp_algo.hpp>

@@ -4,7 +4,7 @@
 //  Copyright 2020 Marco Oliva. All rights reserved.
 //
 
-#include <CLI/CLI.hpp>
+#include <CLI/CLI11.hpp>
 #include <version.hpp>
 #include <utils.hpp>
 #include <vcf.hpp>
@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv)
 {
-    CLI::App app("PFP++");
+    CLI::App app("VCF to Fasta");
     
     std::vector<std::string> vcfs_file_names;
     std::vector<std::string> refs_file_names;
