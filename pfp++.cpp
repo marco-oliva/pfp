@@ -31,8 +31,8 @@ int main(int argc, char **argv)
     
     vcfbwt::pfp::Params params;
     
-    app.add_option("-v,--vcf", vcfs_file_names, "List of vcf files. Assuming in genome order!")->allow_extra_args(true)->configurable();
-    app.add_option("-r,--ref", refs_file_names, "List of reference files. Assuming in genome order!")->allow_extra_args(true)->configurable();
+    app.add_option("-v,--vcf", vcfs_file_names, "List of comma ',' separated vcf files. Assuming in genome order!")->allow_extra_args(true)->configurable()->delimiter(',');
+    app.add_option("-r,--ref", refs_file_names, "List of comma ',' separated reference files. Assuming in genome order!")->allow_extra_args(true)->configurable()->delimiter(',');
     app.add_option("-f,--fasta", fasta_file_path, "Fasta file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-i,--int32t", integers_file_path, "Integers file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("--int-shift", params.integers_shift, "Each integer i in int32t input are interpreted as (i + ingers_shift).")->check(CLI::Range(0, 200))->configurable();
