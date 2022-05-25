@@ -1,4 +1,4 @@
-# Prefix Free ParserVCF #
+# Prefix-Free Parsing #
 [![CMake](https://github.com/marco-oliva/pfp/actions/workflows/cmake.yml/badge.svg?branch=master)](https://github.com/marco-oliva/pfp/actions/workflows/cmake.yml)
 [![Conda](https://anaconda.org/bioconda/pfp/badges/installer/conda.svg)](https://anaconda.org/bioconda/pfp)
 
