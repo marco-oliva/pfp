@@ -134,7 +134,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                     phrase.clear();
                     for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}
                     
-                    kr_hash.reset(); kr_hash.initialize(string_view((char*) phrase.data(), params.w));
+                    kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
                     
                     ++sample_iterator;
                     spdlog::debug("New phrase [{}]: {}", phrase.size(), std::string((char*) phrase.data(), phrase.size()));

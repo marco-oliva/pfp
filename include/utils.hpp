@@ -28,12 +28,10 @@
 #include <math.h>
 
 #include <spdlog/spdlog.h>
-#include <mio/mmap.hpp>
+#include <mio/mio.hpp>
 #include <omp.h>
 
 #include <murmur/MurmurHash3.h>
-
-#include <indexed_pq/indexMaxPQ.h>
 
 #include <zlib.h>
 #include <kseq.h>

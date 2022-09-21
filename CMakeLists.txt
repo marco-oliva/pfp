@@ -77,6 +77,14 @@ FetchContent_Declare(
 FetchContent_Populate(Hayai)
 include_directories(${hayai_SOURCE_DIR}/src)
 
+# mio mmap
+FetchContent_Declare(
+        Mio
+        GIT_REPOSITORY https://github.com/mandreyel/mio.git
+)
+FetchContent_Populate(Mio)
+include_directories(${mio_SOURCE_DIR}/single_include)
+
 
 find_package(OpenMP)
 if(OPENMP_FOUND)
