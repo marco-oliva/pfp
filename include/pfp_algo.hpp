@@ -302,6 +302,7 @@ private:
     std::ofstream out_file;
     std::string out_file_prefix;
     std::string out_file_name;
+    std::string tmp_out_file_name;
     std::string in_file_path;
     std::vector<std::string> sequences_processed;
     
@@ -373,6 +374,7 @@ private:
     std::ofstream out_file;
     std::string out_file_prefix;
     std::string out_file_name;
+    std::string tmp_out_file_name;
     std::string in_file_path;
     std::vector<std::string> sequences_processed;
     
@@ -445,6 +447,7 @@ private:
     std::ofstream out_file;
     std::string out_file_prefix;
     std::string out_file_name;
+    std::string tmp_out_file_name;
     std::string in_file_path;
     std::vector<std::string> sequences_processed;
 

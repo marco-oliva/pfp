@@ -214,19 +214,22 @@ vcfbwt::pfp::ParserVCF::close()
         
         std::size_t pos_for_sai = 0;
     
-        // MAIN mmap file and substitute
+        // MAIN read hash values and substitute with ranks
         if (this->parse_size != 0)
         {
-            std::error_code error;
-            mio::mmap_sink rw_mmap = mio::make_mmap_sink(tmp_out_file_name, 0, mio::map_entire_file, error);
-            if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
+            std::ofstream out_ranks(tmp_out_file_name + ".ranks");
+            if (not out_ranks.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name + ".ranks"); std::exit(EXIT_FAILURE); }
+            
+            std::ifstream in_hash(tmp_out_file_name);
+            if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
     
-            for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+            for (size_type i = 0; i < this->parse_size; i++)
             {
                 hash_type hash;
-                std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+                in_hash.read((char*) &hash, sizeof(hash_type));
                 size_type rank = this->dictionary->hash_to_rank(hash);
-                std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+                out_ranks.write((char*) &rank, sizeof(size_type));
+                
                 occurrences[rank - 1] += 1;
     
                 const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
@@ -236,8 +239,9 @@ vcfbwt::pfp::ParserVCF::close()
                 else { pos_for_sai += dict_string.size() - this->params.w; }
                 sai_file.write((char*) &pos_for_sai, IBYTES);
             }
-            rw_mmap.unmap();
-            truncate_file(tmp_out_file_name, this->parse_size * sizeof(size_type));
+            in_hash.close();
+            vcfbwt::DiskWrites::update(out_ranks.tellp());
+            out_ranks.close();
         }
         
         // repeat for reference
@@ -263,16 +267,18 @@ vcfbwt::pfp::ParserVCF::close()
         {
             if (worker.get().parse_size != 0)
             {
-                std::error_code error;
-                mio::mmap_sink rw_mmap = mio::make_mmap_sink(worker.get().tmp_out_file_name, 0, mio::map_entire_file, error);
-                if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
+                std::ofstream out_ranks(worker.get().tmp_out_file_name + ".ranks");
+                if (not out_ranks.is_open()) { spdlog::error("Can't open {}", worker.get().tmp_out_file_name + ".ranks"); std::exit(EXIT_FAILURE); }
     
-                for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+                std::ifstream in_hash(worker.get().tmp_out_file_name);
+                if (not in_hash.is_open()) { spdlog::error("Can't open {}", worker.get().tmp_out_file_name); std::exit(EXIT_FAILURE); }
+    
+                for (size_type i = 0; i < worker.get().parse_size; i++)
                 {
                     hash_type hash;
-                    std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+                    in_hash.read((char*) &hash, sizeof(hash_type));
                     size_type rank = this->dictionary->hash_to_rank(hash);
-                    std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+                    out_ranks.write((char*) &rank, sizeof(size_type));
                     occurrences[rank - 1] += 1;
     
                     const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
@@ -282,8 +288,9 @@ vcfbwt::pfp::ParserVCF::close()
                     else { pos_for_sai += dict_string.size() - this->params.w; }
                     sai_file.write((char*) &pos_for_sai, IBYTES);
                 }
-                rw_mmap.unmap();
-                truncate_file(worker.get().tmp_out_file_name, worker.get().parse_size * sizeof(size_type));
+                in_hash.close();
+                vcfbwt::DiskWrites::update(out_ranks.tellp());
+                out_ranks.close();
             }
         }
     
@@ -309,7 +316,7 @@ vcfbwt::pfp::ParserVCF::close()
         // Main
         if ((this->parse_size) != 0)
         {
-            std::ifstream main_parse(this->tmp_out_file_name);
+            std::ifstream main_parse(this->tmp_out_file_name + ".ranks");
             merged << main_parse.rdbuf();
             out_parse_size += this->parse_size;
         }
@@ -320,7 +327,7 @@ vcfbwt::pfp::ParserVCF::close()
             if (worker.get().parse_size != 0)
             {
                 out_parse_size += worker.get().parse_size;
-                std::ifstream worker_parse(worker.get().tmp_out_file_name);
+                std::ifstream worker_parse(worker.get().tmp_out_file_name + ".ranks");
                 merged << worker_parse.rdbuf();
             }
         }
@@ -341,7 +348,6 @@ vcfbwt::pfp::ParserVCF::close()
                 dict.write((char*) this->dictionary->sorted_entry_at(i).data(), this->dictionary->sorted_entry_at(i).size());
                 dict.put(ENDOFWORD);
             }
-        
             dict.put(ENDOFDICT);
             
             vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
@@ -411,7 +417,8 @@ vcfbwt::pfp::ParserFasta::init(const Params& params, const std::string& prefix)
     this->parse_size = 0;
     this->out_file_prefix = prefix;
     this->out_file_name = prefix + EXT::PARSE;
-    this->out_file.open(out_file_name);
+    this->tmp_out_file_name = TempFile::getName("parse");
+    this->out_file.open(tmp_out_file_name, std::ios::binary);
 }
 
 void
@@ -528,16 +535,18 @@ vcfbwt::pfp::ParserFasta::close()
     // mmap file and substitute
     if (this->parse_size != 0)
     {
-        std::error_code error;
-        mio::mmap_sink rw_mmap = mio::make_mmap_sink(out_file_name, 0, mio::map_entire_file, error);
-        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
+        std::ofstream out_ranks(this->out_file_name);
+        if (not out_ranks.is_open()) { spdlog::error("Can't open {}", this->out_file_name); std::exit(EXIT_FAILURE); }
+    
+        std::ifstream in_hash(tmp_out_file_name);
+        if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
         
-        for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+        for (size_type i = 0; i < this->parse_size; i++)
         {
             hash_type hash;
-            std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+            in_hash.read((char*) &hash, sizeof(hash_type));
             size_type rank = this->dictionary.hash_to_rank(hash);
-            std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+            out_ranks.write((char*) &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
     
             const std::vector<vcfbwt::char_type>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
@@ -547,8 +556,9 @@ vcfbwt::pfp::ParserFasta::close()
             else { pos_for_sai += dict_string.size() - this->params.w; }
             sai_file.write((char*) &pos_for_sai, IBYTES);
         }
-        rw_mmap.unmap();
-        truncate_file(out_file_name, this->parse_size * sizeof(size_type));
+        in_hash.close();
+        vcfbwt::DiskWrites::update(out_ranks.tellp());
+        out_ranks.close();
     }
     
     vcfbwt::DiskWrites::update(last_file.tellp());
@@ -635,7 +645,8 @@ vcfbwt::pfp::ParserText::init(const Params& params, const std::string& prefix)
     this->parse_size = 0;
     this->out_file_prefix = prefix;
     this->out_file_name = prefix + EXT::PARSE;
-    this->out_file.open(out_file_name);
+    this->tmp_out_file_name = TempFile::getName("parse");
+    this->out_file.open(tmp_out_file_name, std::ios::binary);
 }
 
 void
@@ -718,16 +729,18 @@ vcfbwt::pfp::ParserText::close()
     // mmap file and substitute
     if (this->parse_size != 0)
     {
-        std::error_code error;
-        mio::mmap_sink rw_mmap = mio::make_mmap_sink(out_file_name, 0, mio::map_entire_file, error);
-        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
-        
-        for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+        std::ofstream out_ranks(this->out_file_name);
+        if (not out_ranks.is_open()) { spdlog::error("Can't open {}", this->out_file_name); std::exit(EXIT_FAILURE); }
+    
+        std::ifstream in_hash(tmp_out_file_name);
+        if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
+    
+        for (size_type i = 0; i < this->parse_size; i++)
         {
             hash_type hash;
-            std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+            in_hash.read((char*) &hash, sizeof(hash_type));
             size_type rank = this->dictionary.hash_to_rank(hash);
-            std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+            out_ranks.write((char*) &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
             
             const std::vector<vcfbwt::char_type>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
@@ -737,8 +750,9 @@ vcfbwt::pfp::ParserText::close()
             else { pos_for_sai += dict_string.size() - this->params.w; }
             sai_file.write((char*) &pos_for_sai, IBYTES);
         }
-        rw_mmap.unmap();
-        truncate_file(out_file_name, this->parse_size * sizeof(size_type));
+        in_hash.close();
+        vcfbwt::DiskWrites::update(out_ranks.tellp());
+        out_ranks.close();
     }
     
     vcfbwt::DiskWrites::update(last_file.tellp());
@@ -825,7 +839,8 @@ vcfbwt::pfp::ParserIntegers::init(const Params& params, const std::string& prefi
     this->parse_size = 0;
     this->out_file_prefix = prefix;
     this->out_file_name = prefix + EXT::PARSE;
-    this->out_file.open(out_file_name);
+    this->tmp_out_file_name = TempFile::getName("parse");
+    this->out_file.open(tmp_out_file_name, std::ios::binary);
 }
 
 void
@@ -862,7 +877,7 @@ vcfbwt::pfp::ParserIntegers::operator()()
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
         {
             hash_type hash = this->dictionary.check_and_add(phrase);
-
+            
             out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
 
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
@@ -911,16 +926,18 @@ vcfbwt::pfp::ParserIntegers::close()
     // mmap file and substitute
     if (this->parse_size != 0)
     {
-        std::error_code error;
-        mio::mmap_sink rw_mmap = mio::make_mmap_sink(out_file_name, 0, mio::map_entire_file, error);
-        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
-
-        for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+        std::ofstream out_ranks(this->out_file_name);
+        if (not out_ranks.is_open()) { spdlog::error("Can't open {}", this->out_file_name); std::exit(EXIT_FAILURE); }
+    
+        std::ifstream in_hash(tmp_out_file_name);
+        if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
+    
+        for (size_type i = 0; i < this->parse_size; i++)
         {
             hash_type hash;
-            std::memcpy(&hash, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+            in_hash.read((char*) &hash, sizeof(hash_type));
             size_type rank = this->dictionary.hash_to_rank(hash);
-            std::memcpy(rw_mmap.data() + (i * sizeof(size_type)), &rank, sizeof(size_type));
+            out_ranks.write((char*) &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
 
             const std::vector<int32_t>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
@@ -930,8 +947,9 @@ vcfbwt::pfp::ParserIntegers::close()
             else { pos_for_sai += dict_string.size() - this->params.w; }
             sai_file.write((char*) &pos_for_sai, IBYTES);
         }
-        rw_mmap.unmap();
-        truncate_file(out_file_name, this->parse_size * sizeof(size_type));
+        in_hash.close();
+        vcfbwt::DiskWrites::update(out_ranks.tellp());
+        out_ranks.close();
     }
 
     vcfbwt::DiskWrites::update(last_file.tellp());
