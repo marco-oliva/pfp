@@ -94,6 +94,15 @@ FetchContent_Populate(SMHasher)
 include_directories(${smhasher_SOURCE_DIR}/src)
 set(MURMUR_SOURCES ${smhasher_SOURCE_DIR}/src/MurmurHash3.cpp)
 
+# CLI11
+FetchContent_Declare(
+        cli11
+        URL https://github.com/CLIUtils/CLI11/releases/download/v2.2.0/CLI11.hpp
+        DOWNLOAD_NO_EXTRACT True
+)
+FetchContent_Populate(cli11)
+include_directories(${cli11_SOURCE_DIR})
+
 
 find_package(OpenMP)
 if(OPENMP_FOUND)
