@@ -85,6 +85,15 @@ FetchContent_Declare(
 FetchContent_Populate(Mio)
 include_directories(${mio_SOURCE_DIR}/single_include)
 
+# Murmur Hash
+FetchContent_Declare(
+        SMHasher
+        GIT_REPOSITORY https://github.com/aappleby/smhasher.git
+)
+FetchContent_Populate(SMHasher)
+include_directories(${smhasher_SOURCE_DIR}/src)
+set(MURMUR_SOURCES ${smhasher_SOURCE_DIR}/src/MurmurHash3.cpp)
+
 
 find_package(OpenMP)
 if(OPENMP_FOUND)
@@ -150,7 +159,6 @@ if (ENABLE_MALLOC_COUNT)
 else()
     set(MALLOC_COUNT_SOURCES "")
 endif()
-file(GLOB MURMUR_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/murmur/*.cpp)
 
 # 32 and 64 bits parse
 add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})

@@ -129,7 +129,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                     out_file.write((char*) &(this->reference_parse->parse[start_window]), sizeof(hash_type) * (end_window - start_window + 1));
                     this->parse_size += end_window - start_window + 1;
             
-                    // move iterators and re initialize phrase
+                    // move iterators and re-initialize phrase
                     sample_iterator.go_to(tsp[end_window]);
                     phrase.clear();
                     for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}

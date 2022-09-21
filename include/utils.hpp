@@ -31,7 +31,7 @@
 #include <mio/mio.hpp>
 #include <omp.h>
 
-#include <murmur/MurmurHash3.h>
+#include <MurmurHash3.h>
 
 #include <zlib.h>
 #include <kseq.h>
