@@ -5,7 +5,7 @@
 //
 
 #define CATCH_CONFIG_RUNNER
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <vcf.hpp>
 #include <utils.hpp>
@@ -13,10 +13,10 @@
 
 //------------------------------------------------------------------------------
 
-struct listener : Catch::TestEventListenerBase
+struct listener : Catch::EventListenerBase
 {
-    using TestEventListenerBase::TestEventListenerBase;
-    
+    using EventListenerBase::EventListenerBase;
+
     virtual void testCaseStarting(Catch::TestCaseInfo const& testInfo) override
     {
         std::cout << testInfo.tagsAsString() << " " << testInfo.name << std::endl;
@@ -992,7 +992,7 @@ int main( int argc, char* argv[] )
 {
     Catch::Session session;
 
-    using namespace Catch::clara;
+    using namespace Catch::Clara;
 
     auto cli = session.cli() |
     Opt( testfiles_dir, "dir" ) ["--test-dir"] ("specify the directory containing the test dna sequences files") |

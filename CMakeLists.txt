@@ -60,13 +60,23 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BUILD_TYPE_FLAGS}")
 
 Include(FetchContent)
 
+# Catch
 FetchContent_Declare(
         Catch2
         GIT_REPOSITORY https://github.com/catchorg/Catch2.git
         GIT_TAG        v3.0.1
 )
-
 FetchContent_MakeAvailable(Catch2)
+
+# Hayai Benchmarks
+FetchContent_Declare(
+        Hayai
+        GIT_REPOSITORY https://github.com/nickbruun/hayai.git
+        GIT_TAG        v1.0.2
+)
+FetchContent_Populate(Hayai)
+include_directories(${hayai_SOURCE_DIR}/src)
+
 
 find_package(OpenMP)
 if(OPENMP_FOUND)
@@ -162,6 +172,11 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     enable_testing()
     add_test(NAME unit_tests COMMAND unit_tests)
     add_test(NAME unit_tests64 COMMAND unit_tests64)
+
+    message(STATUS "Building benchmarks")
+    add_executable(benchmarks benchmarks/kr_hash.cpp)
+    target_link_libraries(benchmarks pfp ${VCF_LIB_DEPS})
+
 endif()
 ################################################################################
 # Tools

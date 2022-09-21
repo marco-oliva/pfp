@@ -2,7 +2,7 @@
 // Created by marco on 1/24/22.
 //
 
-#include <hayai/hayai.hpp>
+#include <hayai.hpp>
 #include <utils.hpp>
 
 //------------------------------------------------------------------------------

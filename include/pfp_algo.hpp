@@ -91,7 +91,7 @@ public:
         hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
         if (hash_string_map.contains(phrase_hash))
         {
-            spdlog::error("Hash collision! Hash already in the dictionary");
+            spdlog::error("Dictionary::addHash collision! Hash already in the dictionary");
             std::exit(EXIT_FAILURE);
         }
 
@@ -99,7 +99,7 @@ public:
         hash_string_map.insert(std::make_pair(phrase_hash, entry));
 
         if (this->size() >= (std::numeric_limits<size_type>::max() - insertions_safe_guard))
-        { spdlog::error("Dictionary too big for type {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
+        { spdlog::error("Dictionary::add Dictionary too big for type {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
 
         return phrase_hash;
     }
@@ -115,7 +115,7 @@ public:
 
         if ((ptr != hash_string_map.end()) and (ptr->second.phrase != phrase))
         {
-            spdlog::error("Hash collision! Hash already in the dictionary for a different phrase");
+            spdlog::error("Dictionary::check_and_add Hash collision! Hash already in the dictionary for a different phrase");
             std::exit(EXIT_FAILURE);
         }
         else if (ptr != hash_string_map.end()) { return phrase_hash; }
@@ -126,7 +126,7 @@ public:
         hash_string_map.insert(std::make_pair(phrase_hash, entry));
 
         if (this->size() >= (std::numeric_limits<size_type>::max() - insertions_safe_guard))
-        { spdlog::error("Dictionary too big for type {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
+        { spdlog::error("Dictionary::check_and_add Dictionary too big for type {}", typeid(size_type).name()); std::exit(EXIT_FAILURE); }
 
         return phrase_hash;
     }
@@ -152,7 +152,7 @@ public:
         if (not this->sorted) { sort(); }
         auto it = hash_to_ranks.find(hash);
         if (it != hash_to_ranks.end()) { return it->second; }
-        else { spdlog::error("Something went wrong"); std::exit(EXIT_FAILURE); }
+        else { spdlog::error("Dictionary::hash_to_rank hash requested not in the dictionary. hash: {}", hash); std::exit(EXIT_FAILURE); }
     }
     
     size_type size() const { return hash_string_map.size(); }
