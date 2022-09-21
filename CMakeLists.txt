@@ -112,6 +112,15 @@ FetchContent_Declare(
 FetchContent_Populate(spdlog)
 include_directories(${spdlog_SOURCE_DIR}/include)
 
+# Zstr
+FetchContent_Declare(
+        zstr
+        GIT_REPOSITORY https://github.com/mateidavid/zstr.git
+        GIT_TAG        v1.0.6
+)
+FetchContent_Populate(zstr)
+include_directories(${zstr_SOURCE_DIR}/src)
+
 find_package(OpenMP)
 if(OPENMP_FOUND)
     include_directories(${OpenMP_CXX_INCLUDE_DIRS})

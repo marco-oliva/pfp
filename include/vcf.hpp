@@ -19,7 +19,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <zstr/zstr.hpp>
+#include <zstr.hpp>
 
 #include <hts.h>
 #include <vcf.h>
