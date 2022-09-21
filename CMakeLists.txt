@@ -58,6 +58,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BUILD_TYPE_FLAGS}")
 ################################################################################
 # Check dependencies
 
+Include(FetchContent)
+
+FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG        v3.0.1
+)
+
+FetchContent_MakeAvailable(Catch2)
+
 find_package(OpenMP)
 if(OPENMP_FOUND)
     include_directories(${OpenMP_CXX_INCLUDE_DIRS})
@@ -143,11 +153,11 @@ endif()
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building unit tests")
     add_executable(unit_tests tests/unit_tests.cpp)
-    target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS})
+    target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS} Catch2::Catch2)
 
     add_executable(unit_tests64 tests/unit_tests.cpp)
     target_compile_options(unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
-    target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS})
+    target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS} Catch2::Catch2)
 
     enable_testing()
     add_test(NAME unit_tests COMMAND unit_tests)
