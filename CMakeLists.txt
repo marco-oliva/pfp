@@ -103,6 +103,14 @@ FetchContent_Declare(
 FetchContent_Populate(cli11)
 include_directories(${cli11_SOURCE_DIR})
 
+# SPDLOG
+FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG        v1.10.0
+)
+FetchContent_Populate(spdlog)
+include_directories(${spdlog_SOURCE_DIR}/include)
 
 find_package(OpenMP)
 if(OPENMP_FOUND)
