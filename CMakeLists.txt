@@ -129,6 +129,15 @@ FetchContent_Declare(
 )
 FetchContent_Populate(mcount)
 
+# kseq
+FetchContent_Declare(
+        kseq
+        GIT_REPOSITORY https://github.com/lh3/seqtk.git
+        GIT_TAG        v1.3
+)
+FetchContent_Populate(kseq)
+include_directories(${kseq_SOURCE_DIR})
+
 find_package(OpenMP)
 if(OPENMP_FOUND)
     include_directories(${OpenMP_CXX_INCLUDE_DIRS})
