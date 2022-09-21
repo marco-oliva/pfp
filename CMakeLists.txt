@@ -66,7 +66,7 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/catchorg/Catch2.git
         GIT_TAG        v3.0.1
 )
-FetchContent_MakeAvailable(Catch2)
+# Making available only if building tests
 
 # Hayai Benchmarks
 FetchContent_Declare(
@@ -220,6 +220,8 @@ endif()
 # Tests
 
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    FetchContent_MakeAvailable(Catch2)
+
     message(STATUS "Building unit tests")
     add_executable(unit_tests tests/unit_tests.cpp)
     target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS} Catch2::Catch2)
