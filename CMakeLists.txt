@@ -121,6 +121,14 @@ FetchContent_Declare(
 FetchContent_Populate(zstr)
 include_directories(${zstr_SOURCE_DIR}/src)
 
+# malloc count
+FetchContent_Declare(
+        mcount
+        GIT_REPOSITORY https://github.com/bingmann/malloc_count.git
+        GIT_TAG        v0.7.1
+)
+FetchContent_Populate(mcount)
+
 find_package(OpenMP)
 if(OPENMP_FOUND)
     include_directories(${OpenMP_CXX_INCLUDE_DIRS})
@@ -181,7 +189,7 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 if (ENABLE_MALLOC_COUNT)
     message(STATUS "Using malloc_count.h")
-    file(GLOB MALLOC_COUNT_SOURCES ${CMAKE_SOURCE_DIR}/thirdparty/malloc_count/*.c)
+    file(GLOB MALLOC_COUNT_SOURCES$ ${mcount_SOURCE_DIR}/*.c)
 else()
     set(MALLOC_COUNT_SOURCES "")
 endif()
