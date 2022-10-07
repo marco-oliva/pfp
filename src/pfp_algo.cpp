@@ -207,10 +207,12 @@ vcfbwt::pfp::ParserVCF::close()
         spdlog::info("Main parser: Replacing hash values with ranks in MAIN, WORKERS and reference, wirting .last ans .sai");
         
         std::string last_file_name = out_file_prefix + EXT::LAST;
-        std::ofstream last_file(last_file_name);
+        std::ofstream last_file;
+        if (params.output_last) { last_file.open(last_file_name); }
     
         std::string sai_file_name = out_file_prefix + EXT::SAI;
-        std::ofstream sai_file(sai_file_name);
+        std::ofstream sai_file;
+        if (params.output_sai) { last_file.open(sai_file_name); }
         
         std::size_t pos_for_sai = 0;
     
@@ -233,11 +235,18 @@ vcfbwt::pfp::ParserVCF::close()
                 occurrences[rank - 1] += 1;
     
                 const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
-                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
-    
-                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-                else { pos_for_sai += dict_string.size() - this->params.w; }
-                sai_file.write((char*) &pos_for_sai, IBYTES);
+                if (params.output_last)
+                {
+                    last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+                }
+                
+                if (params.output_sai)
+                {
+                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                    else { pos_for_sai += dict_string.size() - this->params.w; }
+                    sai_file.write((char*) &pos_for_sai, IBYTES);
+                }
+                
             }
             in_hash.close();
             vcfbwt::DiskWrites::update(out_ranks.tellp());
@@ -254,11 +263,17 @@ vcfbwt::pfp::ParserVCF::close()
                 occurrences[rank - 1] += 1;
     
                 const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
-                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+                if (params.output_last)
+                {
+                    last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+                }
     
-                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-                else { pos_for_sai += dict_string.size() - this->params.w; }
-                sai_file.write((char*) &pos_for_sai, IBYTES);
+                if (params.output_sai)
+                {
+                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                    else { pos_for_sai += dict_string.size() - this->params.w; }
+                    sai_file.write((char*) &pos_for_sai, IBYTES);
+                }
             }
         }
         
@@ -282,11 +297,17 @@ vcfbwt::pfp::ParserVCF::close()
                     occurrences[rank - 1] += 1;
     
                     const std::vector<vcfbwt::char_type>& dict_string = this->dictionary->sorted_entry_at(rank - 1);
-                    last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+                    if (params.output_last)
+                    {
+                        last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+                    }
     
-                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-                    else { pos_for_sai += dict_string.size() - this->params.w; }
-                    sai_file.write((char*) &pos_for_sai, IBYTES);
+                    if (params.output_sai)
+                    {
+                        if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                        else { pos_for_sai += dict_string.size() - this->params.w; }
+                        sai_file.write((char*) &pos_for_sai, IBYTES);
+                    }
                 }
                 in_hash.close();
                 vcfbwt::DiskWrites::update(out_ranks.tellp());
@@ -294,11 +315,17 @@ vcfbwt::pfp::ParserVCF::close()
             }
         }
     
-        vcfbwt::DiskWrites::update(last_file.tellp());
-        last_file.close();
+        if (params.output_last)
+        {
+            vcfbwt::DiskWrites::update(last_file.tellp());
+            last_file.close();
+        }
     
-        vcfbwt::DiskWrites::update(sai_file.tellp());
-        sai_file.close();
+        if (params.output_sai)
+        {
+            vcfbwt::DiskWrites::update(sai_file.tellp());
+            sai_file.close();
+        }
         
         // Merging files together
         spdlog::info("Main parser: concatenating parsings from workers and reference, reference as first");
@@ -366,8 +393,8 @@ vcfbwt::pfp::ParserVCF::close()
                 if (i != 0) { shift = this->w; }
                 dicz.write((char*) this->dictionary->sorted_entry_at(i).data() + shift,
                            this->dictionary->sorted_entry_at(i).size() - shift);
-                int32_t len = this->dictionary->sorted_entry_at(i).size() - shift;
-                lengths.write((char*) &len, sizeof(int32_t));
+                uint32_t len = this->dictionary->sorted_entry_at(i).size() - shift;
+                lengths.write((char*) &len, sizeof(uint32_t));
             }
     
             vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
@@ -378,7 +405,7 @@ vcfbwt::pfp::ParserVCF::close()
         }
     
         // Outoput Occurrences
-        if(this->params.compute_occurrences)
+        if(this->params.output_occurrences)
         {
             spdlog::info("Main parser: writing occurrences to file");
             std::string occ_file_name = out_file_prefix + EXT::OCC;
@@ -525,10 +552,12 @@ vcfbwt::pfp::ParserFasta::close()
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
     
     std::string last_file_name = out_file_prefix + EXT::LAST;
-    std::ofstream last_file(last_file_name);
+    std::ofstream last_file;
+    if (params.output_last) { last_file.open(last_file_name); }
     
     std::string sai_file_name = out_file_prefix + EXT::SAI;
-    std::ofstream sai_file(sai_file_name);
+    std::ofstream sai_file;
+    if (params.output_sai) { last_file.open(sai_file_name); }
     
     std::size_t pos_for_sai = 0;
     
@@ -550,22 +579,34 @@ vcfbwt::pfp::ParserFasta::close()
             occurrences[rank - 1] += 1;
     
             const std::vector<vcfbwt::char_type>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
-            last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+            if (params.output_last)
+            {
+                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+            }
     
-            if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-            else { pos_for_sai += dict_string.size() - this->params.w; }
-            sai_file.write((char*) &pos_for_sai, IBYTES);
+            if (params.output_sai)
+            {
+                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                else { pos_for_sai += dict_string.size() - this->params.w; }
+                sai_file.write((char*) &pos_for_sai, IBYTES);
+            }
         }
         in_hash.close();
         vcfbwt::DiskWrites::update(out_ranks.tellp());
         out_ranks.close();
     }
     
-    vcfbwt::DiskWrites::update(last_file.tellp());
-    last_file.close();
+    if (params.output_last)
+    {
+        vcfbwt::DiskWrites::update(last_file.tellp());
+        last_file.close();
+    }
     
-    vcfbwt::DiskWrites::update(sai_file.tellp());
-    sai_file.close();
+    if (params.output_sai)
+    {
+        vcfbwt::DiskWrites::update(sai_file.tellp());
+        sai_file.close();
+    }
     
     // Print dicitionary on disk
     spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
@@ -595,8 +636,8 @@ vcfbwt::pfp::ParserFasta::close()
             if (i != 0) { shift = this->w; }
             dicz.write((char*) this->dictionary.sorted_entry_at(i).data() + shift,
                        this->dictionary.sorted_entry_at(i).size() - shift);
-            int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
-            lengths.write((char*) &len, sizeof(int32_t));
+            uint32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
+            lengths.write((char*) &len, sizeof(uint32_t));
         }
         
         vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
@@ -607,7 +648,7 @@ vcfbwt::pfp::ParserFasta::close()
     }
     
     // Outoput Occurrences
-    if(this->params.compute_occurrences)
+    if(this->params.output_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
         std::string occ_file_name = out_file_prefix + EXT::OCC;
@@ -717,12 +758,14 @@ vcfbwt::pfp::ParserText::close()
     std::vector<long_type> occurrences(this->dictionary.size(), 0);
 
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
-  
+    
     std::string last_file_name = out_file_prefix + EXT::LAST;
-    std::ofstream last_file(last_file_name);
+    std::ofstream last_file;
+    if (params.output_last) { last_file.open(last_file_name); }
     
     std::string sai_file_name = out_file_prefix + EXT::SAI;
-    std::ofstream sai_file(sai_file_name);
+    std::ofstream sai_file;
+    if (params.output_sai) { last_file.open(sai_file_name); }
     
     std::size_t pos_for_sai = 0;
     
@@ -742,24 +785,36 @@ vcfbwt::pfp::ParserText::close()
             size_type rank = this->dictionary.hash_to_rank(hash);
             out_ranks.write((char*) &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
-            
-            const std::vector<vcfbwt::char_type>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
-            last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
     
-            if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-            else { pos_for_sai += dict_string.size() - this->params.w; }
-            sai_file.write((char*) &pos_for_sai, IBYTES);
+            const std::vector<vcfbwt::char_type>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
+            if (params.output_last)
+            {
+                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+            }
+    
+            if (params.output_sai)
+            {
+                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                else { pos_for_sai += dict_string.size() - this->params.w; }
+                sai_file.write((char*) &pos_for_sai, IBYTES);
+            }
         }
         in_hash.close();
         vcfbwt::DiskWrites::update(out_ranks.tellp());
         out_ranks.close();
     }
     
-    vcfbwt::DiskWrites::update(last_file.tellp());
-    last_file.close();
+    if (params.output_last)
+    {
+        vcfbwt::DiskWrites::update(last_file.tellp());
+        last_file.close();
+    }
     
-    vcfbwt::DiskWrites::update(sai_file.tellp());
-    sai_file.close();
+    if (params.output_sai)
+    {
+        vcfbwt::DiskWrites::update(sai_file.tellp());
+        sai_file.close();
+    }
     
     // Print dicitionary on disk
     spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
@@ -789,8 +844,8 @@ vcfbwt::pfp::ParserText::close()
             if (i != 0) { shift = this->w; }
             dicz.write((char*) this->dictionary.sorted_entry_at(i).data() + shift,
                        this->dictionary.sorted_entry_at(i).size() - shift);
-            int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
-            lengths.write((char*) &len, sizeof(int32_t));
+            uint32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
+            lengths.write((char*) &len, sizeof(uint32_t));
         }
         
         vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
@@ -801,7 +856,7 @@ vcfbwt::pfp::ParserText::close()
     }
     
     // Output Occurrences
-    if(this->params.compute_occurrences)
+    if(this->params.output_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
         std::string occ_file_name = out_file_prefix + EXT::OCC;
@@ -855,7 +910,7 @@ vcfbwt::pfp::ParserIntegers::operator()()
         exit(EXIT_FAILURE);
     }
 
-    std::vector<int32_t> phrase;
+    std::vector<uint32_t> phrase;
     spdlog::info("Parsing {}", in_file_path);
 
     // Karp Robin Hash Function for sliding window
@@ -864,11 +919,11 @@ vcfbwt::pfp::ParserIntegers::operator()()
     // First sequence start with one dollar
     phrase.emplace_back(DOLLAR);
 
-    int32_t c;
+    uint32_t c;
     while(gzread(fp, &c, 4) > 0)
     {
         phrase.push_back(c + this->params.integers_shift);
-        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(int32_t))); }
+        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(uint32_t))); }
         else if (phrase.size() > params.w)
         {
             kr_hash.update((const vcfbwt::char_type*)&(phrase[phrase.size() - params.w - 1]), (const vcfbwt::char_type*) &phrase[phrase.size() - 1]);
@@ -882,7 +937,7 @@ vcfbwt::pfp::ParserIntegers::operator()()
 
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
 
-            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(int32_t)));
+            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(uint32_t)));
         }
     }
 
@@ -914,12 +969,14 @@ vcfbwt::pfp::ParserIntegers::close()
     std::vector<long_type> occurrences(this->dictionary.size(), 0);
 
     spdlog::info("Main parser: Replacing hash values with ranks, writing .last and .sai");
-
+    
     std::string last_file_name = out_file_prefix + EXT::LAST;
-    std::ofstream last_file(last_file_name);
-
+    std::ofstream last_file;
+    if (params.output_last) { last_file.open(last_file_name); }
+    
     std::string sai_file_name = out_file_prefix + EXT::SAI;
-    std::ofstream sai_file(sai_file_name);
+    std::ofstream sai_file;
+    if (params.output_sai) { last_file.open(sai_file_name); }
 
     std::size_t pos_for_sai = 0;
 
@@ -939,24 +996,36 @@ vcfbwt::pfp::ParserIntegers::close()
             size_type rank = this->dictionary.hash_to_rank(hash);
             out_ranks.write((char*) &rank, sizeof(size_type));
             occurrences[rank - 1] += 1;
-
-            const std::vector<int32_t>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
-            last_file.write((char*) &(dict_string[(dict_string.size() - this->params.w) - 1]), sizeof(size_type));
-
-            if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-            else { pos_for_sai += dict_string.size() - this->params.w; }
-            sai_file.write((char*) &pos_for_sai, IBYTES);
+    
+            const std::vector<uint32_t>& dict_string = this->dictionary.sorted_entry_at(rank - 1);
+            if (params.output_last)
+            {
+                last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
+            }
+    
+            if (params.output_sai)
+            {
+                if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                else { pos_for_sai += dict_string.size() - this->params.w; }
+                sai_file.write((char*) &pos_for_sai, IBYTES);
+            }
         }
         in_hash.close();
         vcfbwt::DiskWrites::update(out_ranks.tellp());
         out_ranks.close();
     }
-
-    vcfbwt::DiskWrites::update(last_file.tellp());
-    last_file.close();
-
-    vcfbwt::DiskWrites::update(sai_file.tellp());
-    sai_file.close();
+    
+    if (params.output_last)
+    {
+        vcfbwt::DiskWrites::update(last_file.tellp());
+        last_file.close();
+    }
+    
+    if (params.output_sai)
+    {
+        vcfbwt::DiskWrites::update(sai_file.tellp());
+        sai_file.close();
+    }
 
     // Print dicitionary on disk
     spdlog::info("Main parser: writing dictionary on disk NOT COMPRESSED");
@@ -965,13 +1034,13 @@ vcfbwt::pfp::ParserIntegers::close()
 
     for (size_type i = 0; i < this->dictionary.size(); i++)
     {
-        dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size() * sizeof(int32_t));
-        int32_t eow = ENDOFWORD;
-        dict.write((char*) &eow, sizeof(int32_t));
+        dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size() * sizeof(uint32_t));
+        uint32_t eow = ENDOFWORD;
+        dict.write((char*) &eow, sizeof(uint32_t));
     }
 
-    int32_t eod = ENDOFDICT;
-    dict.write((char*) &eod, sizeof(int32_t));
+    uint32_t eod = ENDOFDICT;
+    dict.write((char*) &eod, sizeof(uint32_t));
 
     vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
     dict.close();
@@ -987,9 +1056,9 @@ vcfbwt::pfp::ParserIntegers::close()
             std::size_t shift = 1; // skip dollar on first phrase
             if (i != 0) { shift = this->w; }
             dicz.write((char*) (this->dictionary.sorted_entry_at(i).data() + shift),
-                       (this->dictionary.sorted_entry_at(i).size() - shift) * sizeof(int32_t));
-            int32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
-            lengths.write((char*) &len, sizeof(int32_t));
+                       (this->dictionary.sorted_entry_at(i).size() - shift) * sizeof(uint32_t));
+            uint32_t len = this->dictionary.sorted_entry_at(i).size() - shift;
+            lengths.write((char*) &len, sizeof(uint32_t));
         }
 
         vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
@@ -1000,7 +1069,7 @@ vcfbwt::pfp::ParserIntegers::close()
     }
 
     // Output Occurrences
-    if(this->params.compute_occurrences)
+    if(this->params.output_occurrences)
     {
         spdlog::info("Main parser: writing occurrences to file");
         std::string occ_file_name = out_file_prefix + EXT::OCC;

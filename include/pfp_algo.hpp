@@ -175,10 +175,11 @@ struct Params
     bool compress_dictionary = false;
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
-    bool compute_occurrences = true;
-    bool auPair = false;
+    bool output_occurrences = true;
+    bool output_sai = false;
+    bool output_last = false;
     std::string ignore_ts_file;
-    int32_t integers_shift = 10;
+    uint32_t integers_shift = 10;
 };
 
 struct Statistics
@@ -454,7 +455,7 @@ private:
     Params params;
     Statistics statistics;
 
-    Dictionary<int32_t> dictionary;
+    Dictionary<uint32_t> dictionary;
 
     hash_type w, p;
     std::size_t parse_size = 0;
