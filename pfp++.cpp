@@ -36,18 +36,21 @@ int main(int argc, char **argv)
     app.add_option("-f,--fasta", fasta_file_path, "Fasta file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-i,--int32t", integers_file_path, "Integers file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("--int-shift", params.integers_shift, "Each integer i in int32t input is interpreted as (i + int-shift).")->check(CLI::Range(0, 200))->configurable();
-    app.add_option("-H,--haplotype", haplotype_string, "Haplotype. [1,2,12]")->configurable();
+    app.add_option("-H,--haplotype", haplotype_string, "Haplotype: [1,2,12].")->configurable();
     app.add_option("-t,--text", text_file_path, "Text file to parse.")->configurable()->check(CLI::ExistingFile);
     app.add_option("-o,--out-prefix", out_prefix, "Output prefix.")->configurable();
     app.add_option("-m, --max", max_samples, "Max number of samples to analyze.")->configurable();
     app.add_option("-S, --samples", samples_file_name, "File containing the list of samples to parse.")->configurable();
     app.add_option("-w, --window-size", params.w, "Sliding window size.")->check(CLI::Range(3, 200))->configurable();
-    app.add_option("-p, --modulo", params.p, "Modulo used during parisng.")->check(CLI::Range(5, 20000))->configurable();
+    app.add_option("-p, --modulo", params.p, "Modulo used during parsing.")->check(CLI::Range(5, 20000))->configurable();
     app.add_option("-j, --threads", threads, "Number of threads.")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Temporary files directory.")->check(CLI::ExistingDirectory)->configurable();
     app.add_flag("-c, --compression", params.compress_dictionary, "Also output compressed the dictionary.")->configurable();
     app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing.")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats.")->configurable();
+    app.add_flag("--output-occurrences", params.output_occurrences, "Output count for each dictionary phrase.")->configurable();
+    app.add_flag("--output-sai", params.output_sai, "Output sai array.")->configurable();
+    app.add_flag("--output-last", params.output_last, "Output last array.")->configurable();
     app.add_flag("--verbose", verbose, "Verbose output.")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version number.");
     app.set_config("--configure");
@@ -94,7 +97,6 @@ int main(int argc, char **argv)
          * If the input is a parse it will contain values that are reserved for the implementation. For the moment
          * we add params.integers_shift to each input int32_t.
          */
-        params.integers_shift = 10;
 
         if (out_prefix.empty()) { out_prefix = integers_file_path; }
         vcfbwt::pfp::ParserIntegers main_parser(params, integers_file_path, out_prefix);

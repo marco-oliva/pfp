@@ -742,7 +742,7 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
     params.use_acceleration = false;
-    params.compute_occurrences = true;
+    params.output_occurrences = true;
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -795,7 +795,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
     params.use_acceleration = true;
-    params.compute_occurrences = true;
+    params.output_occurrences = true;
     vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
 
     std::string out_prefix = testfiles_dir + "/parser_out";
@@ -884,7 +884,7 @@ TEST_CASE( "Sample: HG00096, fasta", "[PFP Algo]" )
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
-    params.compute_occurrences = true;
+    params.output_occurrences = true;
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::string out_prefix = testfiles_dir + "/HG00096_chrY_H1_tpfa";
@@ -920,7 +920,7 @@ TEST_CASE( "Sample: HG00096, text", "[PFP Algo]" )
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
-    params.compute_occurrences = true;
+    params.output_occurrences = true;
 
     std::string test_sample_path = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
     std::string out_prefix = testfiles_dir + "/HG00096_chrY_H1_tptxt";
@@ -953,7 +953,7 @@ TEST_CASE( "Sample: HG00096, integers", "[PFP Algo]" )
     // Produce dictionary and parsing
     vcfbwt::pfp::Params params;
     params.w = w_global; params.p = p_global;
-    params.compute_occurrences = true;
+    params.output_occurrences = true;
     params.integers_shift = 0;
 
     // Test file
