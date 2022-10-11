@@ -68,6 +68,9 @@ int main(int argc, char **argv)
     
     // Print out configurations
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
+
+    // Set tmp file dir
+    if (not tmp_dir.empty()) { vcfbwt::TempFile::setDirectory(tmp_dir); }
     
     if (not fasta_file_path.empty())
     {
@@ -109,9 +112,6 @@ int main(int argc, char **argv)
     }
     else
     {
-        // Set tmp file dir
-        if (tmp_dir != "") { vcfbwt::TempFile::setDirectory(tmp_dir); }
-
         int last_genotype = 0;
         if (haplotype_string == "2" or haplotype_string == "12")
             last_genotype = 1;
