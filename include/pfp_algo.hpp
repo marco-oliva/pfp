@@ -575,7 +575,7 @@ public:
         }
         rw_mmap.unmap(); left_dictionary.resize(0);
 
-        // Read right parse, changing first phrase;
+        // Read right parse, changing first phrase
         rw_mmap = mio::make_mmap_sink(left_prefix + EXT::PARSE, 0, mio::map_entire_file, error);
         if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
 
