@@ -568,14 +568,19 @@ public:
         if (not left_parse.is_open()) { spdlog::error("Failed to open {}", left_prefix + EXT::PARSE); std::exit(EXIT_FAILURE); }
 
         size_type pel = 0;
+        hash_type last_phrase_hash;
         while(left_parse.read((char*) &pel, sizeof(size_type)))
         {
             std::vector<data_type>& phrase = left_dictionary[pel - 1];
             hash_type hash = dictionary.check_and_add(phrase);
+            last_phrase_hash = hash;
 
             tmp_out_parse.write((char*) (&hash), sizeof(hash_type));
             parse_size += 1;
         }
+        std:vector<data_type>& last_phrase = dictionary.hash_string_map.at(last_phrase_hash);
+        for (std::size_t i = last_phrase.size() - w; )
+
         left_parse.close();
         left_dictionary.resize(0);
 
