@@ -573,10 +573,10 @@ public:
         {
             std::vector<data_type>& phrase = left_dictionary[pel - 1];
             
-            if (phrase.back() == DOLLAR)
+            if (phrase[phrase.size() - 1] == DOLLAR)
             {
-                for (std::size_t i = phrase.size() - params.w; i < phrase.size() - 1; i++) { phrase[i] = DOLLAR_PRIME; }
-                phrase.back() = DOLLAR_SEQUENCE;
+                // get rid of the dollars, it already has DOLLAR_PRIME and DOLLAR_SEQUENCE
+                phrase.resize(phrase.size() - params.w);
             }
             
             hash_type hash = dictionary.check_and_add(phrase);
@@ -642,8 +642,9 @@ public:
                 in_hash.read((char*) &hash, sizeof(hash_type));
                 size_type rank = dictionary.hash_to_rank(hash);
                 out_ranks.write((char*) &rank, sizeof(size_type));
+                occurrences[rank - 1] += 1;
 
-                const std::vector<vcfbwt::char_type>& dict_string = dictionary.sorted_entry_at(rank - 1);
+                const std::vector<data_type>& dict_string = dictionary.sorted_entry_at(rank - 1);
                 if (params.output_last)
                 {
                     last_file.put(dict_string[(dict_string.size() - params.w) - 1]);
