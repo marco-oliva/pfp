@@ -550,114 +550,193 @@ public:
         // Merged Dictionary and Parse
         Dictionary<data_type> dictionary;
 
+        // Out parse, tmp
+        std::string tmp_out_file_name = TempFile::getName("parse");
+        std::ofstream tmp_out_parse(tmp_out_file_name);
+        std::size_t parse_size = 0;
+
         // Read Left and Right Dictionary
         spdlog::info("Loading dictionaries from disk");
-        std::vector<std::vector<data_type>> left_dictionary;   read_dictionary(left_prefix + EXT::DICT, left_dictionary);
-        std::vector<std::vector<data_type>> right_dictionary; read_dictionary(right_prefix + EXT::DICT, left_dictionary);
+        std::vector<std::vector<data_type>> left_dictionary;
+        read_dictionary(left_prefix + EXT::DICT, left_dictionary);
+        std::vector<std::vector<data_type>> right_dictionary;
+        read_dictionary(right_prefix + EXT::DICT, right_dictionary);
 
         // Read Left parse and substitute ranks with hash again storing in the merged dictionary
-        spdlog::info("Adjusting ranks");
-        std::error_code error;
-        mio::mmap_sink rw_mmap = mio::make_mmap_sink(left_prefix + EXT::PARSE, 0, mio::map_entire_file, error);
-        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
-
-        for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+        spdlog::info("Iterating over left parse");
+        std::ifstream left_parse(left_prefix + EXT::PARSE);
+        if (not left_parse.is_open()) { spdlog::error("Failed to open {}", left_prefix + EXT::PARSE); std::exit(EXIT_FAILURE); }
+        
+        size_type pel = 0;
+        hash_type last_phrase_hash;
+        while(left_parse.read((char*) &pel, sizeof(size_type)))
         {
-            hash_type rank;
-            std::memcpy(&rank, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+            std::vector<data_type>& phrase = left_dictionary[pel - 1];
+            
+            if (phrase[phrase.size() - 1] == DOLLAR)
+            {
+                // get rid of the dollars, it already has DOLLAR_PRIME and DOLLAR_SEQUENCE
+                phrase.resize(phrase.size() - params.w);
+            }
+            
+            hash_type hash = dictionary.check_and_add(phrase);
+            last_phrase_hash = hash;
 
-            std::vector<data_type>& phrase = left_dictionary[rank];
-            hash_type hash = 0;
-            if (dictionary.contains(phrase))    { hash = dictionary.get(phrase); }
-            else                                { hash = dictionary.add(phrase); }
-
-            std::memcpy(rw_mmap.data() + (i * sizeof(hash_type)), &hash, sizeof(hash_type));
+            tmp_out_parse.write((char*) (&hash), sizeof(hash_type));
+            parse_size += 1;
         }
-        rw_mmap.unmap(); left_dictionary.resize(0);
+        left_parse.close();
+        left_dictionary.resize(0);
 
-        // Read right parse, changing first phrase;
-        rw_mmap = mio::make_mmap_sink(left_prefix + EXT::PARSE, 0, mio::map_entire_file, error);
-        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
+        // Read right parse, changing first phrase
+        spdlog::info("Iterating over right parse");
+        std::ifstream right_parse(right_prefix + EXT::PARSE);
+        if (not right_parse.is_open()) { spdlog::error("Failed to open {}", right_prefix + EXT::PARSE); std::exit(EXIT_FAILURE); }
 
-        for (size_type i = 0; i < (rw_mmap.size() / sizeof(hash_type)); i++)
+        size_type per = 0;
+        while(right_parse.read((char*) &per, sizeof(size_type)))
         {
-            hash_type rank;
-            std::memcpy(&rank, rw_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
+            std::vector<data_type>& phrase = right_dictionary[per - 1];
+            if (per == 1)
+            {
+                phrase[0] = DOLLAR_SEQUENCE;
+                phrase.insert(phrase.begin(), params.w - 1, DOLLAR_PRIME);
+            }
+            hash_type hash = dictionary.check_and_add(phrase);
 
-            std::vector<data_type>& phrase = right_dictionary[rank];
-
-            if (rank == 1) { phrase[0] = DOLLAR_PRIME; phrase.insert(phrase.begin(), params.w - 1, DOLLAR_PRIME); }
-
-            hash_type hash = 0;
-            if (dictionary.contains(phrase))    { hash = dictionary.get(phrase); }
-            else                                { hash = dictionary.add(phrase); }
-
-            std::memcpy(rw_mmap.data() + (i * sizeof(hash_type)), &hash, sizeof(hash_type));
+            tmp_out_parse.write((char*) (&hash), sizeof(hash_type));
+            parse_size += 1;
         }
-        rw_mmap.unmap(); right_dictionary.resize(0);
+        right_parse.close();
+        right_dictionary.resize(0);
 
-        // Sort the Dictionary
-        spdlog::info("Sorting merged dictionary");
-        std::vector<std::pair<std::vector<data_type>, hash_type>> entries;
-        for (auto& entry : dictionary.hash_string_map)
+        vcfbwt::DiskWrites::update(tmp_out_parse.tellp());
+        tmp_out_parse.close();
+
+        // Occurrences
+        std::vector<long_type> occurrences(dictionary.size(), 0);
+
+        spdlog::info("Merge: Replacing hash values with ranks, writing .last and .sai");
+
+        std::string last_file_name = out_prefix + EXT::LAST;
+        std::ofstream last_file;
+        if (params.output_last) { last_file.open(last_file_name); }
+
+        std::string sai_file_name = out_prefix + EXT::SAI;
+        std::ofstream sai_file;
+        if (params.output_sai) { last_file.open(sai_file_name); }
+
+        std::size_t pos_for_sai = 0;
+
+        if (parse_size != 0)
         {
-            entries.push_back(std::make_pair(entry.second.phrase, entry.first));
+            std::ofstream out_ranks(out_prefix + EXT::PARSE);
+            if (not out_ranks.is_open()) { spdlog::error("Can't open {}", out_prefix + EXT::PARSE); std::exit(EXIT_FAILURE); }
+
+            std::ifstream in_hash(tmp_out_file_name);
+            if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
+
+            for (size_type i = 0; i < parse_size; i++)
+            {
+                hash_type hash;
+                in_hash.read((char*) &hash, sizeof(hash_type));
+                size_type rank = dictionary.hash_to_rank(hash);
+                out_ranks.write((char*) &rank, sizeof(size_type));
+                occurrences[rank - 1] += 1;
+
+                const std::vector<data_type>& dict_string = dictionary.sorted_entry_at(rank - 1);
+                if (params.output_last)
+                {
+                    last_file.put(dict_string[(dict_string.size() - params.w) - 1]);
+                }
+
+                if (params.output_sai)
+                {
+                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                    else { pos_for_sai += dict_string.size() - params.w; }
+                    sai_file.write((char*) &pos_for_sai, IBYTES);
+                }
+            }
+            in_hash.close();
+            vcfbwt::DiskWrites::update(out_ranks.tellp());
+            out_ranks.close();
+
+            if (params.output_last)
+            {
+                vcfbwt::DiskWrites::update(last_file.tellp());
+                last_file.close();
+            }
+
+            if (params.output_sai)
+            {
+                vcfbwt::DiskWrites::update(sai_file.tellp());
+                sai_file.close();
+            }
+
+            // Print dicitionary on disk
+            spdlog::info("Merge: writing dictionary on disk NOT COMPRESSED");
+            std::string dict_file_name = out_prefix + EXT::DICT;
+            std::ofstream dict(dict_file_name);
+
+            for (size_type i = 0; i < dictionary.size(); i++)
+            {
+                dict.write((char*) dictionary.sorted_entry_at(i).data(), dictionary.sorted_entry_at(i).size());
+                dict.put(ENDOFWORD);
+            }
+
+            dict.put(ENDOFDICT);
+
+            vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
+            dict.close();
+
+            if (params.compress_dictionary)
+            {
+                spdlog::info("Merge: writing dictionary on disk COMPRESSED");
+                std::ofstream dicz(out_prefix + EXT::DICT_COMPRESSED);
+                std::ofstream lengths(out_prefix + EXT::DICT_COMPRESSED_LENGTHS);
+
+                for (size_type i = 0; i < dictionary.size(); i++)
+                {
+                    std::size_t shift = 1; // skip dollar on first phrase
+                    if (i != 0) { shift = params.w; }
+                    dicz.write((char*) dictionary.sorted_entry_at(i).data() + shift,
+                               dictionary.sorted_entry_at(i).size() - shift);
+                    uint32_t len = dictionary.sorted_entry_at(i).size() - shift;
+                    lengths.write((char*) &len, sizeof(uint32_t));
+                }
+
+                vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
+                dicz.close();
+
+                vcfbwt::DiskWrites::update(lengths.tellp()); // Disk Stats
+                lengths.close();
+            }
+
+            // Outoput Occurrences
+            if(params.output_occurrences)
+            {
+                spdlog::info("Merge: writing occurrences to file");
+                std::string occ_file_name = out_prefix + EXT::OCC;
+                std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
+
+                for (std::size_t i = 0; i < occurrences.size(); i++)
+                {
+                    if (parse_size < std::numeric_limits<short_type>::max())
+                    {
+                        short_type to_write = occurrences[i];
+                        occ.write((char*)&to_write, sizeof(short_type));
+                    }
+                    else
+                    {
+                        long_type to_write = occurrences[i];
+                        occ.write((char*)&to_write, sizeof(long_type));
+                    }
+                }
+
+                vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
+                occ.close();
+            }
         }
-        std::sort(entries.begin(), entries.end());
-
-        // Insert in hashmap
-        std::unordered_map<hash_type, hash_type> hash_to_ranks;
-        for (hash_type i = 0; i < entries.size(); i++)
-        {
-            hash_to_ranks.insert(std::make_pair(entries[i].second, i + 1)); // 1 based
-        }
-
-        // Merge parsings
-        spdlog::info("Creating output parse");
-        std::ofstream out_parse(out_prefix + EXT::PARSE, std::ios::binary);
-
-        // Left
-        mio::mmap_source rl_mmap; rl_mmap.map(left_prefix + EXT::PARSE, error);
-        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
-        for (size_type i = 0; i < (rl_mmap.size() / sizeof(hash_type)); i++)
-        {
-            hash_type hash;
-            std::memcpy(&hash, rl_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
-
-            auto it = hash_to_ranks.find(hash);
-            if (it != hash_to_ranks.end()) { out_parse.write((char*) &(it->second), sizeof(hash_type)); }
-            else { spdlog::error("Something wrong happend"); std::exit(EXIT_FAILURE); }
-        }
-        rl_mmap.unmap();
-
-        // Right
-        mio::mmap_source rr_mmap; rr_mmap.map(left_prefix + EXT::PARSE, error);
-        if (error) { spdlog::error(error.message()); std::exit(EXIT_FAILURE); }
-        for (size_type i = 0; i < (rr_mmap.size() / sizeof(hash_type)); i++)
-        {
-            hash_type hash;
-            std::memcpy(&hash, rr_mmap.data() + (i * sizeof(hash_type)), sizeof(hash_type));
-
-            auto it = hash_to_ranks.find(hash);
-            if (it != hash_to_ranks.end()) { out_parse.write((char*) &(it->second), sizeof(hash_type)); }
-            else { spdlog::error("Something wrong happend"); std::exit(EXIT_FAILURE); }
-        }
-        rr_mmap.unmap();
-        out_parse.close();
-
-        // Print dicitionary on disk
-        spdlog::info("Writing dictionary to disk NOT COMPRESSED");
-        std::string dict_file_name = out_prefix + EXT::DICT;
-        std::ofstream dict(dict_file_name);
-
-        for (auto& entry : entries)
-        {
-            dict.write(entry.first.data(), entry.first.size());
-            dict.write((char*) ENDOFWORD, sizeof(data_type));
-        }
-
-        dict.write((char*) ENDOFDICT, sizeof(data_type));
-        dict.close();
     }
 };
 

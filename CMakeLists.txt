@@ -97,11 +97,11 @@ set(MURMUR_SOURCES ${smhasher_SOURCE_DIR}/src/MurmurHash3.cpp)
 # CLI11
 FetchContent_Declare(
         cli11
-        URL https://github.com/CLIUtils/CLI11/releases/download/v2.2.0/CLI11.hpp
-        DOWNLOAD_NO_EXTRACT True
+        GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+        GIT_TAG        v2.3.0
 )
 FetchContent_Populate(cli11)
-include_directories(${cli11_SOURCE_DIR})
+include_directories(${cli11_SOURCE_DIR}/include)
 
 # SPDLOG
 FetchContent_Declare(
@@ -262,13 +262,6 @@ target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS})
 add_executable(vcf_to_fa vcf_to_fa.cpp)
 target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS})
 
-# Unparse
-add_executable(unparse unparse.cpp)
-target_link_libraries(unparse pfp ${VCF_LIB_DEPS})
-add_executable(unparse64 unparse.cpp)
-target_compile_options(unparse64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(unparse64 pfp64 ${VCF_LIB_DEPS})
-
 # Integrity Check
 add_executable(check check_integrity.cpp)
 target_link_libraries(check pfp ${VCF_LIB_DEPS})
@@ -279,7 +272,7 @@ target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
 ################################################################################
 # Install
 
-install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa unparse unparse64 check check64)
+install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64)
 
 ################################################################################
 # CPack

@@ -4,7 +4,7 @@
 //  Copyright 2020 Marco Oliva. All rights reserved.
 //
 
-#include <CLI11.hpp>
+#include <CLI/CLI.hpp>
 #include <version.hpp>
 #include <utils.hpp>
 #include <vcf.hpp>

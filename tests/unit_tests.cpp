@@ -986,6 +986,64 @@ TEST_CASE( "Sample: HG00096, integers", "[PFP Algo]" )
     REQUIRE(check);
 }
 
+TEST_CASE( "Reference + Sample HG00096, merging", "[PFP algorithm]" )
+{
+    // Produce dictionary and parsing from reference
+    vcfbwt::pfp::Params params;
+    params.w = w_global; params.p = p_global;
+    params.output_occurrences = true;
+    
+    std::string test_sample_path_ref = testfiles_dir + "/Y.fa.gz";
+    std::string out_prefix_ref = testfiles_dir + "/merging_ref_tpfa";
+    vcfbwt::pfp::ParserFasta main_parser_ref(params, test_sample_path_ref, out_prefix_ref);
+    
+    // Run and close
+    main_parser_ref();
+    main_parser_ref.close();
+    
+    std::string test_sample_path_96 = testfiles_dir + "/HG00096_chrY_H1.fa.gz";
+    std::string out_prefix_96 = testfiles_dir + "/merging_96_tpfa";
+    vcfbwt::pfp::ParserFasta main_parser_96(params, test_sample_path_96, out_prefix_96);
+    
+    // Run and close
+    main_parser_96();
+    main_parser_96.close();
+    
+    // Merge the two pfps
+    std::string out_prefix_merged = testfiles_dir + "/merging_ref_and_96_tpfa";
+    vcfbwt::pfp::ParserUtils<vcfbwt::char_type>::merge(out_prefix_ref, out_prefix_96, out_prefix_merged, params);
+    
+    
+    // Generate the desired outcome from the test files, reference first
+    std::vector<vcfbwt::char_type> what_it_should_be;
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR);
+
+    std::string line, from_fasta;
+
+    std::ifstream in_stream_ref(test_sample_path_ref);
+    zstr::istream is_ref(in_stream_ref);
+    while (getline(is_ref, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+    
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+
+    line.clear(); from_fasta.clear();
+    std::ifstream in_stream_96(test_sample_path_96);
+    zstr::istream is_96(in_stream_96);
+    while (getline(is_96, line)) { if ( not (line.empty() or line[0] == '>') ) { from_fasta.append(line); } }
+
+    what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
+    what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
+    what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+
+    what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
+    
+    // Check
+    bool check = unparse_and_check<vcfbwt::char_type>(out_prefix_merged, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
+    REQUIRE(check);
+}
+
 //------------------------------------------------------------------------------
 
 int main( int argc, char* argv[] )
