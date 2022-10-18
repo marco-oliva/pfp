@@ -567,8 +567,6 @@ public:
         std::ifstream left_parse(left_prefix + EXT::PARSE);
         if (not left_parse.is_open()) { spdlog::error("Failed to open {}", left_prefix + EXT::PARSE); std::exit(EXIT_FAILURE); }
         
-        bool use_dollar_sequence = false;
-        
         size_type pel = 0;
         hash_type last_phrase_hash;
         while(left_parse.read((char*) &pel, sizeof(size_type)))
