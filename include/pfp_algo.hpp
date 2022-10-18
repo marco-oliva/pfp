@@ -566,21 +566,27 @@ public:
         spdlog::info("Iterating over left parse");
         std::ifstream left_parse(left_prefix + EXT::PARSE);
         if (not left_parse.is_open()) { spdlog::error("Failed to open {}", left_prefix + EXT::PARSE); std::exit(EXIT_FAILURE); }
-
+        
+        bool use_dollar_sequence = false;
+        
         size_type pel = 0;
         hash_type last_phrase_hash;
         while(left_parse.read((char*) &pel, sizeof(size_type)))
         {
             std::vector<data_type>& phrase = left_dictionary[pel - 1];
+            
+            if (phrase.back() == DOLLAR)
+            {
+                for (std::size_t i = phrase.size() - params.w; i < phrase.size() - 1; i++) { phrase[i] = DOLLAR_PRIME; }
+                phrase.back() = DOLLAR_SEQUENCE;
+            }
+            
             hash_type hash = dictionary.check_and_add(phrase);
             last_phrase_hash = hash;
 
             tmp_out_parse.write((char*) (&hash), sizeof(hash_type));
             parse_size += 1;
         }
-        std:vector<data_type>& last_phrase = dictionary.hash_string_map.at(last_phrase_hash);
-        for (std::size_t i = last_phrase.size() - w; )
-
         left_parse.close();
         left_dictionary.resize(0);
 
@@ -593,7 +599,11 @@ public:
         while(right_parse.read((char*) &per, sizeof(size_type)))
         {
             std::vector<data_type>& phrase = right_dictionary[per - 1];
-            if (per == 1) { phrase[0] = DOLLAR_SEQUENCE; phrase.insert(phrase.begin(), params.w - 1, DOLLAR_PRIME); }
+            if (per == 1)
+            {
+                phrase[0] = DOLLAR_SEQUENCE;
+                phrase.insert(phrase.begin(), params.w - 1, DOLLAR_PRIME);
+            }
             hash_type hash = dictionary.check_and_add(phrase);
 
             tmp_out_parse.write((char*) (&hash), sizeof(hash_type));
