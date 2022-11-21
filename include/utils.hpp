@@ -29,7 +29,6 @@
 
 #include <spdlog/spdlog.h>
 #include <mio/mio.hpp>
-#include <omp.h>
 
 #include <MurmurHash3.h>
 

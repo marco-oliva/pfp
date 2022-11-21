@@ -10,6 +10,8 @@
 #include <vcf.hpp>
 #include <pfp_algo.hpp>
 
+#include <omp.h>
+
 int main(int argc, char **argv)
 {
     CLI::App app("PFP++");
