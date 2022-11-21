@@ -52,10 +52,10 @@ jobs:
       - name: Install OpenMP
         run: |
           git clone https://github.com/llvm/llvm-project.git
-          cd llvm-project/openmp
-          cmake -S llvm -B build
+          cd llvm-project
+          cmake -S llvm -B build -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS="clang;openmp"
           cmake --build build
-          sudo make install
+          cmake --install
 
       - name: Configure CMake
         run: cmake -DBUILD_TESTS=ON -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
