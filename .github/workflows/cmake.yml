@@ -53,9 +53,8 @@ jobs:
         run: |
           git clone https://github.com/llvm/llvm-project.git
           cd llvm-project/openmp
-          mkdir build
-          cd build
-          make
+          cmake -S llvm -B build -G Unix Makefiles
+          cmake --build build
           sudo make install
 
       - name: Configure CMake
