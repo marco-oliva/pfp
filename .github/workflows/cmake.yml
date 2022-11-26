@@ -47,15 +47,7 @@ jobs:
       - name: Install htslib
         run: |
           NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          brew install make cmake htslib
-
-      - name: Install OpenMP
-        run: |
-          git clone https://github.com/llvm/llvm-project.git
-          cd llvm-project
-          cmake -S llvm -B build -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS="clang;openmp"
-          cmake --build build
-          cmake --install
+          brew install make cmake htslib openmp
 
       - name: Configure CMake
         run: cmake -DBUILD_TESTS=ON -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
