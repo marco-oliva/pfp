@@ -271,14 +271,14 @@ endif()
 
 # 32 and 64 bits parse
 add_executable(pfp++ pfp++.cpp)
-target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS})
+target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
-target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 add_executable(mpfp++64 merge.cpp)
 target_compile_options(mpfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
@@ -289,7 +289,7 @@ target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 # Integrity Check
 add_executable(check check_integrity.cpp)
-target_link_libraries(check pfp ${VCF_LIB_DEPS})
+target_link_libraries(check pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
