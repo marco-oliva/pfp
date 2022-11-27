@@ -32,6 +32,8 @@
 
 #include <MurmurHash3.h>
 
+#include <omp.h>
+
 #include <zlib.h>
 #include <kseq.h>
 KSEQ_INIT(gzFile, gzread)

@@ -281,18 +281,18 @@ add_executable(mpfp++ merge.cpp)
 target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS})
 add_executable(mpfp++64 merge.cpp)
 target_compile_options(mpfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 # VCT to Fasta
 add_executable(vcf_to_fa vcf_to_fa.cpp)
-target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS})
+target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 # Integrity Check
 add_executable(check check_integrity.cpp)
 target_link_libraries(check pfp ${VCF_LIB_DEPS})
 add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 ################################################################################
 # Install
