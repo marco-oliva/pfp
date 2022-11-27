@@ -697,8 +697,6 @@ public:
             lengths.close();
         }
         
-        
-        
         std::string last_file_name = this->pfp_prefix + EXT::LAST;
         std::ofstream last_file;
         if (params.output_last) { last_file.open(last_file_name); }
@@ -710,7 +708,7 @@ public:
         std::vector<long_type> occurrences(dictionary.size(), 0);
         std::string occ_file_name = this->pfp_prefix + EXT::OCC;
         std::ofstream occ_file;
-        if (params.output_occurrences) { occ_file.open(last_file_name); }
+        if (params.output_occurrences) { occ_file.open(occ_file_name); }
         
         // read in parse and output .occ, .last and .sai if needed
         spdlog::info("Read in parse and output properties");
