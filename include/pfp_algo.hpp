@@ -175,7 +175,7 @@ struct Params
     bool compress_dictionary = false;
     bool use_acceleration = false;
     bool print_out_statistics_csv = false;
-    bool output_occurrences = true;
+    bool output_occurrences = false;
     bool output_sai = false;
     bool output_last = false;
     std::string ignore_ts_file;
