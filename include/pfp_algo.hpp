@@ -613,21 +613,8 @@ public:
         vcfbwt::DiskWrites::update(tmp_out_parse.tellp());
         tmp_out_parse.close();
 
-        // Occurrences
-        std::vector<long_type> occurrences(dictionary.size(), 0);
-
-        spdlog::info("Merge: Replacing hash values with ranks, writing .last and .sai");
-
-        std::string last_file_name = out_prefix + EXT::LAST;
-        std::ofstream last_file;
-        if (params.output_last) { last_file.open(last_file_name); }
-
-        std::string sai_file_name = out_prefix + EXT::SAI;
-        std::ofstream sai_file;
-        if (params.output_sai) { last_file.open(sai_file_name); }
-
-        std::size_t pos_for_sai = 0;
-
+        spdlog::info("Merge: Replacing hash values with ranks.");
+        
         if (parse_size != 0)
         {
             std::ofstream out_ranks(out_prefix + EXT::PARSE);
@@ -642,100 +629,150 @@ public:
                 in_hash.read((char*) &hash, sizeof(hash_type));
                 size_type rank = dictionary.hash_to_rank(hash);
                 out_ranks.write((char*) &rank, sizeof(size_type));
-                occurrences[rank - 1] += 1;
-
-                const std::vector<data_type>& dict_string = dictionary.sorted_entry_at(rank - 1);
-                if (params.output_last)
-                {
-                    last_file.put(dict_string[(dict_string.size() - params.w) - 1]);
-                }
-
-                if (params.output_sai)
-                {
-                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
-                    else { pos_for_sai += dict_string.size() - params.w; }
-                    sai_file.write((char*) &pos_for_sai, IBYTES);
-                }
             }
             in_hash.close();
             vcfbwt::DiskWrites::update(out_ranks.tellp());
             out_ranks.close();
+        
+        }
+        // Print dicitionary on disk
+        spdlog::info("Merge: writing dictionary on disk NOT COMPRESSED");
+        std::string dict_file_name = out_prefix + EXT::DICT;
+        std::ofstream dict(dict_file_name);
 
-            if (params.output_last)
-            {
-                vcfbwt::DiskWrites::update(last_file.tellp());
-                last_file.close();
-            }
+        for (size_type i = 0; i < dictionary.size(); i++)
+        {
+            dict.write((char*) dictionary.sorted_entry_at(i).data(), dictionary.sorted_entry_at(i).size());
+            dict.put(ENDOFWORD);
+        }
+        dict.put(ENDOFDICT);
 
-            if (params.output_sai)
-            {
-                vcfbwt::DiskWrites::update(sai_file.tellp());
-                sai_file.close();
-            }
+        vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
+        dict.close();
+    }
+};
 
-            // Print dicitionary on disk
-            spdlog::info("Merge: writing dictionary on disk NOT COMPRESSED");
-            std::string dict_file_name = out_prefix + EXT::DICT;
-            std::ofstream dict(dict_file_name);
 
+template <typename data_type>
+class PropertiesWriter
+{
+private:
+    const Params& params;
+    std::string pfp_prefix;
+
+public:
+    PropertiesWriter(const std::string& prefix, const Params& pms) : pfp_prefix(prefix), params(pms) { }
+    
+    void write()
+    {
+        std::string parse_path = this->pfp_prefix + EXT::PARSE;
+        std::string dict_path = this->pfp_prefix + EXT::DICT;
+        
+        // read in dictionary
+        spdlog::info("Loading dictionary from disk.");
+        std::vector<std::vector<data_type>> dictionary;
+        ParserUtils<data_type>::read_dictionary(dict_path, dictionary);
+        
+        // output compressed dictionary if needed
+        if (params.compress_dictionary)
+        {
+            spdlog::info("Writing dictionary on disk COMPRESSED");
+            std::ofstream dicz(this->pfp_prefix + EXT::DICT_COMPRESSED);
+            std::ofstream lengths(this->pfp_prefix + EXT::DICT_COMPRESSED_LENGTHS);
+            
             for (size_type i = 0; i < dictionary.size(); i++)
             {
-                dict.write((char*) dictionary.sorted_entry_at(i).data(), dictionary.sorted_entry_at(i).size());
-                dict.put(ENDOFWORD);
+                std::size_t shift = 1; // skip dollar on first phrase
+                if (i != 0) { shift = this->params.w; }
+                dicz.write((char*) (dictionary[i].data() + shift),
+                           (dictionary[i].size() - shift) * sizeof(data_type));
+                uint32_t len = dictionary[i].size() - shift;
+                lengths.write((char*) &len, sizeof(uint32_t));
             }
-
-            dict.put(ENDOFDICT);
-
-            vcfbwt::DiskWrites::update(dict.tellp()); // Disk Stats
-            dict.close();
-
-            if (params.compress_dictionary)
+            
+            vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
+            dicz.close();
+            
+            vcfbwt::DiskWrites::update(lengths.tellp()); // Disk Stats
+            lengths.close();
+        }
+        
+        
+        
+        std::string last_file_name = this->pfp_prefix + EXT::LAST;
+        std::ofstream last_file;
+        if (params.output_last) { last_file.open(last_file_name); }
+        
+        std::string sai_file_name = this->pfp_prefix + EXT::SAI;
+        std::ofstream sai_file;
+        if (params.output_sai) { sai_file.open(sai_file_name); }
+        
+        std::vector<long_type> occurrences(dictionary.size(), 0);
+        std::string occ_file_name = this->pfp_prefix + EXT::OCC;
+        std::ofstream occ_file;
+        if (params.output_occurrences) { occ_file.open(last_file_name); }
+        
+        // read in parse and output .occ, .last and .sai if needed
+        spdlog::info("Read in parse and output properties");
+        std::vector<size_type> parse;
+        ParserUtils<data_type>::read_parse(parse_path, parse);
+    
+        std::size_t pos_for_sai = 0;
+        if (parse.size() != 0)
+        {
+            for (size_type i = 0; i < parse.size(); i++)
             {
-                spdlog::info("Merge: writing dictionary on disk COMPRESSED");
-                std::ofstream dicz(out_prefix + EXT::DICT_COMPRESSED);
-                std::ofstream lengths(out_prefix + EXT::DICT_COMPRESSED_LENGTHS);
-
-                for (size_type i = 0; i < dictionary.size(); i++)
+                size_type rank = parse[i];
+                occurrences[rank - 1] += 1;
+            
+                const std::vector<data_type>& dict_string = dictionary[rank - 1];
+                if (params.output_last)
                 {
-                    std::size_t shift = 1; // skip dollar on first phrase
-                    if (i != 0) { shift = params.w; }
-                    dicz.write((char*) dictionary.sorted_entry_at(i).data() + shift,
-                               dictionary.sorted_entry_at(i).size() - shift);
-                    uint32_t len = dictionary.sorted_entry_at(i).size() - shift;
-                    lengths.write((char*) &len, sizeof(uint32_t));
+                    last_file.put(dict_string[(dict_string.size() - this->params.w) - 1]);
                 }
-
-                vcfbwt::DiskWrites::update(dicz.tellp()); // Disk Stats
-                dicz.close();
-
-                vcfbwt::DiskWrites::update(lengths.tellp()); // Disk Stats
-                lengths.close();
+            
+                if (params.output_sai)
+                {
+                    if (pos_for_sai == 0) { pos_for_sai = dict_string.size() - 1; } // -1 is for the initial $ of the first word
+                    else { pos_for_sai += dict_string.size() - this->params.w; }
+                    sai_file.write((char*) &pos_for_sai, IBYTES);
+                }
             }
-
-            // Outoput Occurrences
-            if(params.output_occurrences)
+        }
+    
+        if (params.output_last)
+        {
+            vcfbwt::DiskWrites::update(last_file.tellp());
+            last_file.close();
+        }
+    
+        if (params.output_sai)
+        {
+            vcfbwt::DiskWrites::update(sai_file.tellp());
+            sai_file.close();
+        }
+    
+        if(params.output_occurrences)
+        {
+            spdlog::info("Writing occurrences to file");
+        
+            for (std::size_t i = 0; i < occurrences.size(); i++)
             {
-                spdlog::info("Merge: writing occurrences to file");
-                std::string occ_file_name = out_prefix + EXT::OCC;
-                std::ofstream occ(occ_file_name, std::ios::out | std::ios::binary);
-
-                for (std::size_t i = 0; i < occurrences.size(); i++)
+                if (parse.size() < std::numeric_limits<short_type>::max())
                 {
-                    if (parse_size < std::numeric_limits<short_type>::max())
-                    {
-                        short_type to_write = occurrences[i];
-                        occ.write((char*)&to_write, sizeof(short_type));
-                    }
-                    else
-                    {
-                        long_type to_write = occurrences[i];
-                        occ.write((char*)&to_write, sizeof(long_type));
-                    }
+                    short_type to_write = occurrences[i];
+                    occ_file.write((char*)&to_write, sizeof(short_type));
                 }
-
-                vcfbwt::DiskWrites::update(occ.tellp()); // Disk Stats
-                occ.close();
+                else
+                {
+                    long_type to_write = occurrences[i];
+                    occ_file.write((char*)&to_write, sizeof(long_type));
+                }
             }
+        
+        
+            vcfbwt::DiskWrites::update(occ_file.tellp()); // Disk Stats
+            occ_file.close();
         }
     }
 };

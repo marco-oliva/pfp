@@ -47,7 +47,6 @@ jobs:
       - name: Install htslib
         run: |
           brew install make cmake htslib libomp
-          brew info libomp
 
       - name: Configure CMake
         run: cmake -DBUILD_TESTS=ON -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}

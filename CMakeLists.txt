@@ -294,6 +294,13 @@ add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
 target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
+# Extract properties from precomputed pfp
+add_executable(exprop exprop.cpp)
+target_link_libraries(exprop pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+add_executable(exprop64 exprop.cpp)
+target_compile_options(exprop64 PRIVATE "-DPFP_LONG_TYPE=ON")
+target_link_libraries(exprop64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+
 ################################################################################
 # Install
 
