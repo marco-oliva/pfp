@@ -1,7 +1,7 @@
 //
-//  merge.cpp
+//  exprop.cpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
+//  Copyright 2022 Marco Oliva. All rights reserved.
 //
 
 #include <CLI/CLI.hpp>
@@ -11,18 +11,14 @@
 
 int main(int argc, char **argv)
 {
-    CLI::App app("Merge PFPs");
+    CLI::App app("Extract properties from PFPs");
     
-    std::string left_file;
-    std::string right_file;
-    std::string out_prefix;
+    std::string pfp_prefix;
     bool integers_pfp = false;
     
     vcfbwt::pfp::Params params;
     
-    app.add_option("-l,--left-prefix", left_file, "Left Prefix")->configurable()->required();
-    app.add_option("-r,--right-prefix", right_file, "Right Prefix")->configurable()->required();
-    app.add_option("-o,--out-prefix", out_prefix, "Output prefix")->configurable()->required();
+    app.add_option("--pfp-prefix", pfp_prefix, "PFP Prefix")->configurable()->required();
     app.add_option("-w, --window-size", params.w, "Sliding window size")->check(CLI::Range(0, 100))->configurable();
     app.add_option("-p, --module", params.p, "Module used during parisng")->check(CLI::Range(0, 1000))->configurable();
     app.add_flag("--output-occurrences", params.output_occurrences, "Output count for each dictionary phrase.")->configurable();
@@ -39,21 +35,18 @@ int main(int argc, char **argv)
     // Print out configurations
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
     
-    // Merge parsings
     if (not integers_pfp)
     {
-        vcfbwt::pfp::ParserUtils<vcfbwt::char_type>::merge(left_file, right_file, out_prefix, params);
-    
-        vcfbwt::pfp::PropertiesWriter<vcfbwt::char_type> properties_out(out_prefix, params);
+        vcfbwt::pfp::PropertiesWriter<vcfbwt::char_type> properties_out(pfp_prefix, params);
         properties_out.write();
     }
     else
     {
-        vcfbwt::pfp::ParserUtils<uint32_t>::merge(left_file, right_file, out_prefix, params);
-    
-        vcfbwt::pfp::PropertiesWriter<uint32_t> properties_out(out_prefix, params);
+        vcfbwt::pfp::PropertiesWriter<uint32_t> properties_out(pfp_prefix, params);
         properties_out.write();
     }
+    
+    return 0;
     
     return 0;
 }
