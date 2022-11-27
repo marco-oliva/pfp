@@ -304,7 +304,7 @@ target_link_libraries(exprop64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 ################################################################################
 # Install
 
-install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64)
+install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64)
 
 ################################################################################
 # CPack
