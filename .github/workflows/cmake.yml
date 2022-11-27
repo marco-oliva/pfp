@@ -39,13 +39,15 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE}}
 
   build-macos:
-    runs-on: macos-11
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v3
 
       - name: Install htslib
-        run: brew install make cmake htslib libomp
+        run: |
+          brew install make cmake htslib libomp
+          brew info libomp
 
       - name: Configure CMake
         run: cmake -DBUILD_TESTS=ON -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
