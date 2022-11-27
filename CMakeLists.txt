@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(PFP++)
 SET(VERSION_MAJOR "0")
 SET(VERSION_MINOR "3")
-SET(VERSION_PATCH "5")
+SET(VERSION_PATCH "6")
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(PROJECT_VERSION ${VERSION})
 
@@ -304,7 +304,7 @@ target_link_libraries(exprop64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 ################################################################################
 # Install
 
-install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64)
+install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64)
 
 ################################################################################
 # CPack
