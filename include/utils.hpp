@@ -29,9 +29,10 @@
 
 #include <spdlog/spdlog.h>
 #include <mio/mio.hpp>
-#include <omp.h>
 
 #include <MurmurHash3.h>
+
+#include <omp.h>
 
 #include <zlib.h>
 #include <kseq.h>

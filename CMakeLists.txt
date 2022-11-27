@@ -138,22 +138,47 @@ FetchContent_Declare(
 FetchContent_Populate(kseq)
 include_directories(${kseq_SOURCE_DIR})
 
+# Openmp
 find_package(OpenMP)
-if(OPENMP_FOUND)
-    include_directories(${OpenMP_CXX_INCLUDE_DIRS})
-    link_libraries(${OpenMP_CXX_LIBRARIES})
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        # assumes clang build
-        # we can't reliably detect when we're using clang, so for the time being we assume
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -Xpreprocessor -fopenmp")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -Xpreprocessor -fopenmp")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    endif()
+if(OpenMP_FOUND OR OPENMP_FOUND)
+    message(STATUS "HAVE_OPENMP: OpenMP")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(OMP_LIBRARIES "${OpenMP_CXX_LIBRARIES}")
+elseif(APPLE AND EXISTS "/opt/local/lib/libomp")
+    # official Apple compiler with macports' libomp
+    message(STATUS "HAVE_OPENMP: OpenMP[MacPorts]")
+    set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp -I/opt/local/include/libomp")
+    set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/opt/local/include/libomp")
+    set(OMP_LIBRARIES "-L/opt/local/lib/libomp -lomp")
+elseif(APPLE AND EXISTS "/usr/local/opt/libomp")
+    # official Apple compiler with homebrew's kegg libomp
+    message(STATUS "HAVE_OPENMP: OpenMP[Homebrew kegg]")
+    set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
+    set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
+    set(OMP_LIBRARIES "-L/usr/local/opt/libomp/lib -lomp")
+elseif(APPLE AND EXISTS "/usr/local/lib/libomp.dylib")
+    # official Apple compiler with homebrew's libomp
+    message(STATUS "HAVE_OPENMP: OpenMP[Homebrew]")
+    set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp")
+    set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp")
+    set(OMP_LIBRARIES "-L/usr/local/lib -lomp")
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND EXISTS "/usr/local/lib64/libgomp.a")
+    # custom static openmp for official linux builds
+    message(STATUS "HAVE_OPENMP: OpenMP[static]")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp")
+    set(OMP_LIBRARIES "/usr/local/lib64/libgomp.a")
+else()
+    message(STATUS "HAVE_OPENMP: NOT FOUND")
 endif()
+
 
 # HTS
 if(HTSlib_HIPERGATOR)
@@ -224,11 +249,11 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
     message(STATUS "Building unit tests")
     add_executable(unit_tests tests/unit_tests.cpp)
-    target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS} Catch2::Catch2)
+    target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS} Catch2::Catch2 ${OMP_LIBRARIES})
 
     add_executable(unit_tests64 tests/unit_tests.cpp)
     target_compile_options(unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
-    target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS} Catch2::Catch2)
+    target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS} Catch2::Catch2 ${OMP_LIBRARIES})
 
     enable_testing()
     add_test(NAME unit_tests COMMAND unit_tests)
@@ -246,28 +271,28 @@ endif()
 
 # 32 and 64 bits parse
 add_executable(pfp++ pfp++.cpp)
-target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS})
+target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
-target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 add_executable(mpfp++64 merge.cpp)
 target_compile_options(mpfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 # VCT to Fasta
 add_executable(vcf_to_fa vcf_to_fa.cpp)
-target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS})
+target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 # Integrity Check
 add_executable(check check_integrity.cpp)
-target_link_libraries(check pfp ${VCF_LIB_DEPS})
+target_link_libraries(check pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS})
+target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
 
 ################################################################################
 # Install
