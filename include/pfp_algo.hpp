@@ -716,9 +716,9 @@ public:
         ParserUtils<data_type>::read_parse(parse_path, parse);
     
         std::size_t pos_for_sai = 0;
-        if (parse.size() != 0)
+        if (not parse.empty())
         {
-            for (size_type i = 0; i < parse.size(); i++)
+            for (std::size_t i = 0; i < parse.size(); i++)
             {
                 size_type rank = parse[i];
                 occurrences[rank - 1] += 1;
