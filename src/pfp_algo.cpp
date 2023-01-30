@@ -206,7 +206,7 @@ vcfbwt::pfp::ParserVCF::close()
         // repeat for reference
         if (not this->reference_parse->parse.empty())
         {
-            for (size_type i = 0; i < this->reference_parse->parse.size(); i++)
+            for (std::size_t i = 0; i < this->reference_parse->parse.size(); i++)
             {
                 hash_type rank = this->dictionary->hash_to_rank(this->reference_parse->parse[i]);
                 this->reference_parse->parse[i] = rank;
@@ -222,7 +222,7 @@ vcfbwt::pfp::ParserVCF::close()
             std::ifstream in_hash(tmp_out_file_name);
             if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
         
-            for (size_type i = 0; i < this->parse_size; i++)
+            for (std::size_t i = 0; i < this->parse_size; i++)
             {
                 hash_type hash;
                 in_hash.read((char*) &hash, sizeof(hash_type));
@@ -245,7 +245,7 @@ vcfbwt::pfp::ParserVCF::close()
                 std::ifstream in_hash(worker.get().tmp_out_file_name);
                 if (not in_hash.is_open()) { spdlog::error("Can't open {}", worker.get().tmp_out_file_name); std::exit(EXIT_FAILURE); }
     
-                for (size_type i = 0; i < worker.get().parse_size; i++)
+                for (std::size_t i = 0; i < worker.get().parse_size; i++)
                 {
                     hash_type hash;
                     in_hash.read((char*) &hash, sizeof(hash_type));
@@ -440,7 +440,7 @@ vcfbwt::pfp::ParserFasta::close()
         std::ifstream in_hash(tmp_out_file_name);
         if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
         
-        for (size_type i = 0; i < this->parse_size; i++)
+        for (std::size_t i = 0; i < this->parse_size; i++)
         {
             hash_type hash;
             in_hash.read((char*) &hash, sizeof(hash_type));
@@ -564,7 +564,7 @@ vcfbwt::pfp::ParserText::close()
         std::ifstream in_hash(tmp_out_file_name);
         if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
     
-        for (size_type i = 0; i < this->parse_size; i++)
+        for (std::size_t i = 0; i < this->parse_size; i++)
         {
             hash_type hash;
             in_hash.read((char*) &hash, sizeof(hash_type));
@@ -691,7 +691,7 @@ vcfbwt::pfp::ParserIntegers::close()
         std::ifstream in_hash(tmp_out_file_name);
         if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
     
-        for (size_type i = 0; i < this->parse_size; i++)
+        for (std::size_t i = 0; i < this->parse_size; i++)
         {
             hash_type hash;
             in_hash.read((char*) &hash, sizeof(hash_type));
