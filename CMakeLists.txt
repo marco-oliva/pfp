@@ -347,7 +347,7 @@ target_link_libraries(exprop64 pfp64 ${PFP_LIBS})
 # Install
 
 install(TARGETS )
-install(TARGETS pfp pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64
+install(TARGETS pfp pfp64 pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib/static
