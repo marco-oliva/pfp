@@ -265,14 +265,10 @@ set(PFP_PUBLIC_HEADERS
         ${PROJECT_SOURCE_DIR}/include/utils.hpp
         ${PROJECT_SOURCE_DIR}/include/vcf.hpp
         ${PROJECT_BINARY_DIR}/generated/version.hpp
-        ${HTSlib_INCLUDE_DIRS}/hts.h
-        )
-set_target_properties(pfp PROPERTIES PUBLIC_HEADER ${PFP_PUBLIC_HEADERS})
-set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER ${PFP_PUBLIC_HEADERS})
+        ${HTSlib_INCLUDE_DIRS}/hts.h)
 
-
-
-set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER "internals.hpp;pfp_algo.hpp;utils.hpp;vcf.hpp;version.hpp;hts.h")
+set_target_properties(pfp PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
+set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
 
 # Set libraries
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
