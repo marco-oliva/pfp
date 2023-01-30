@@ -258,6 +258,9 @@ add_library(pfp ${SOURCES} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
+set_target_properties(pfp PROPERTIES PUBLIC_HEADER "internals.hpp;pfp_algo.hpp;utils.hpp;vcf.hpp;version.hpp;hts.h")
+set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER "internals.hpp;pfp_algo.hpp;utils.hpp;vcf.hpp;version.hpp;hts.h")
+
 # Set libraries
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread ssl crypto)
@@ -334,8 +337,12 @@ target_link_libraries(exprop64 pfp64 ${PFP_LIBS})
 ################################################################################
 # Install
 
-install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64)
-
+install(TARGETS )
+install(TARGETS pfp pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib/static
+        PUBLIC_HEADER DESTINATION lib/static/include)
 ################################################################################
 # CPack
 
