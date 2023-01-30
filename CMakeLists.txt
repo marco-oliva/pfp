@@ -22,13 +22,13 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 # Version number
 execute_process(
         COMMAND git rev-parse --abbrev-ref HEAD
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         OUTPUT_VARIABLE GIT_BRANCH
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process(
         COMMAND git log -1 --format=%h
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         OUTPUT_VARIABLE GIT_COMMIT_HASH
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
@@ -37,10 +37,10 @@ message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
 
 message(STATUS "Generating version.hpp")
 configure_file(
-        ${CMAKE_SOURCE_DIR}/include/version.hpp.in
-        ${CMAKE_BINARY_DIR}/generated/version.hpp)
+        ${PROJECT_SOURCE_DIR}/include/version.hpp.in
+        ${PROJECT_BINARY_DIR}/generated/version.hpp)
 
-include_directories(${CMAKE_BINARY_DIR}/generated)
+include_directories(${PROJECT_BINARY_DIR}/generated)
 
 ################################################################################
 # Compiler and linker flags
@@ -247,18 +247,31 @@ set(PFP_INCLUDES
         ${kseq_SOURCE_DIR}
         ${hayai_SOURCE_DIR}/src)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_BINARY_DIR}/generated)
+include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_BINARY_DIR}/generated)
 include_directories(${PFP_INCLUDES})
 
-file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
+file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 # 32 and 64 bits parse
 add_library(pfp ${SOURCES} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-set_target_properties(pfp PROPERTIES PUBLIC_HEADER "internals.hpp;pfp_algo.hpp;utils.hpp;vcf.hpp;version.hpp;hts.h")
+
+set(PFP_PUBLIC_HEADERS
+        ${PROJECT_SOURCE_DIR}/include/internals.hpp
+        ${PROJECT_SOURCE_DIR}/include/pfp_algo.hpp
+        ${PROJECT_SOURCE_DIR}/include/utils.hpp
+        ${PROJECT_SOURCE_DIR}/include/vcf.hpp
+        ${PROJECT_BINARY_DIR}/generated/version.hpp
+        ${HTSlib_INCLUDE_DIRS}/hts.h
+        )
+set_target_properties(pfp PROPERTIES PUBLIC_HEADER ${PFP_PUBLIC_HEADERS})
+set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER ${PFP_PUBLIC_HEADERS})
+
+
+
 set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER "internals.hpp;pfp_algo.hpp;utils.hpp;vcf.hpp;version.hpp;hts.h")
 
 # Set libraries
