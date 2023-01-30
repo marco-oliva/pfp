@@ -276,8 +276,6 @@ endif()
 # Tests
 
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    FetchContent_MakeAvailable(Catch2)
-
     message(STATUS "Building unit tests")
     add_executable(pfp_unit_tests tests/unit_tests.cpp)
     target_link_libraries(pfp_unit_tests pfp ${VCF_LIB_DEPS} Catch2::Catch2 ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
@@ -293,7 +291,6 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building benchmarks")
     add_executable(pfp_benchmarks benchmarks/kr_hash.cpp)
     target_link_libraries(pfp_benchmarks pfp ${VCF_LIB_DEPS} ${MALLOC_COUNT_LIBRARIES})
-
 endif()
 ################################################################################
 # Tools
