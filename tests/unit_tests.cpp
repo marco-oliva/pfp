@@ -1013,7 +1013,6 @@ TEST_CASE( "Reference + Sample HG00096, merging", "[PFP algorithm]" )
     std::string out_prefix_merged = testfiles_dir + "/merging_ref_and_96_tpfa";
     vcfbwt::pfp::ParserUtils<vcfbwt::char_type>::merge(out_prefix_ref, out_prefix_96, out_prefix_merged, params);
     
-    
     // Generate the desired outcome from the test files, reference first
     std::vector<vcfbwt::char_type> what_it_should_be;
     what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR);
@@ -1038,6 +1037,10 @@ TEST_CASE( "Reference + Sample HG00096, merging", "[PFP algorithm]" )
     what_it_should_be.insert(what_it_should_be.end(), 1, vcfbwt::pfp::DOLLAR_SEQUENCE);
 
     what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
+    
+    // Output occurrences
+    vcfbwt::pfp::PropertiesWriter<vcfbwt::char_type> properties_out(out_prefix_merged, params);
+    properties_out.write();
     
     // Check
     bool check = unparse_and_check<vcfbwt::char_type>(out_prefix_merged, what_it_should_be, params.w, vcfbwt::pfp::DOLLAR);
