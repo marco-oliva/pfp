@@ -82,7 +82,6 @@ FetchContent_GetProperties(hayai)
 if(NOT hayai_POPULATED)
     FetchContent_Populate(hayai)
 endif()
-include_directories(${hayai_SOURCE_DIR}/src)
 
 # mio mmap
 FetchContent_Declare(
@@ -93,7 +92,6 @@ FetchContent_GetProperties(mio)
 if(NOT mio_POPULATED)
     FetchContent_Populate(mio)
 endif()
-include_directories(${mio_SOURCE_DIR}/single_include)
 
 # Murmur Hash
 FetchContent_Declare(
@@ -104,7 +102,6 @@ FetchContent_GetProperties(smhasher)
 if(NOT smhasher_POPULATED)
     FetchContent_Populate(smhasher)
 endif()
-include_directories(${smhasher_SOURCE_DIR}/src)
 set(MURMUR_SOURCES ${smhasher_SOURCE_DIR}/src/MurmurHash3.cpp)
 
 # CLI11
@@ -117,7 +114,6 @@ FetchContent_GetProperties(cli11)
 if(NOT cli11_POPULATED)
     FetchContent_Populate(cli11)
 endif()
-include_directories(${cli11_SOURCE_DIR}/include)
 
 # SPDLOG
 FetchContent_Declare(
@@ -129,7 +125,6 @@ FetchContent_GetProperties(spdlog)
 if(NOT spdlog_POPULATED)
     FetchContent_Populate(spdlog)
 endif()
-include_directories(${spdlog_SOURCE_DIR}/include)
 
 # Zstr
 FetchContent_Declare(
@@ -141,7 +136,6 @@ FetchContent_GetProperties(zstr)
 if(NOT zstr_POPULATED)
     FetchContent_Populate(zstr)
 endif()
-include_directories(${zstr_SOURCE_DIR}/src)
 
 # malloc count
 FetchContent_Declare(
@@ -167,7 +161,6 @@ FetchContent_GetProperties(kseq)
 if(NOT kseq_POPULATED)
     FetchContent_Populate(kseq)
 endif()
-include_directories(${kseq_SOURCE_DIR})
 
 # Openmp
 find_package(OpenMP)
@@ -223,7 +216,6 @@ if(HTSlib_HIPERGATOR)
     set(HPG_INCLUDES "/apps/cmake/3.21.3/include")
     set(HTSlib_INCLUDE_DIRS ${HTSlib_INCLUDE_DIRS} ${HPG_INCLUDES})
     set(HTSlib_LIBRARIES ${HTSlib_LIBRARIES} ${LIBLZMA_LIBRARIES} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${CURL_LIBRARIES} ${CRYPTO_LIBRARIES})
-    include_directories(${HTSlib_INCLUDE_DIRS})
     message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
 elseif(HTSlib_CUSTOM)
     set(HTSlib_INCLUDE_DIRS "")
@@ -233,13 +225,11 @@ elseif(HTSlib_CUSTOM)
     set(ZLIB_LIBRARIES "")
     set(CURL_LIBRARIES "")
     set(HTSlib_LIBRARIES ${HTSlib_LIBRARIES} ${LIBLZMA_LIBRARIES} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${CURL_LIBRARIES})
-    include_directories(${HTSlib_INCLUDE_DIRS})
     message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
 else()
     list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
     find_package(HTSlib REQUIRED)
     if(HTSlib_FOUND)
-        include_directories(${HTSlib_INCLUDE_DIRS})
         message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
     endif()
 endif()
@@ -247,8 +237,19 @@ endif()
 ################################################################################
 # Lib
 
+set(PFP_INCLUDES
+        ${mio_SOURCE_DIR}/single_include
+        ${smhasher_SOURCE_DIR}/src
+        ${HTSlib_INCLUDE_DIRS}
+        ${cli11_SOURCE_DIR}/include
+        ${spdlog_SOURCE_DIR}/include
+        ${zstr_SOURCE_DIR}/src
+        ${kseq_SOURCE_DIR}
+        ${hayai_SOURCE_DIR}/src)
+
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_BINARY_DIR}/generated)
+include_directories(${PFP_INCLUDES})
 
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 
@@ -271,6 +272,7 @@ else()
     set(MALLOC_COUNT_LIBRARIES "")
 endif()
 
+set(PFP_LIBS ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
 ################################################################################
 # Tests
@@ -278,11 +280,11 @@ endif()
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     message(STATUS "Building unit tests")
     add_executable(pfp_unit_tests tests/unit_tests.cpp)
-    target_link_libraries(pfp_unit_tests pfp ${VCF_LIB_DEPS} Catch2::Catch2 ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+    target_link_libraries(pfp_unit_tests pfp ${PFP_LIBS} Catch2::Catch2)
 
     add_executable(pfp_unit_tests64 tests/unit_tests.cpp)
     target_compile_options(pfp_unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
-    target_link_libraries(pfp_unit_tests64 pfp64 ${VCF_LIB_DEPS} Catch2::Catch2 ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+    target_link_libraries(pfp_unit_tests64 pfp64 ${PFP_LIBS} Catch2::Catch2)
 
     enable_testing()
     add_test(NAME pfp_unit_tests COMMAND pfp_unit_tests)
@@ -290,7 +292,7 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
 
     message(STATUS "Building benchmarks")
     add_executable(pfp_benchmarks benchmarks/kr_hash.cpp)
-    target_link_libraries(pfp_benchmarks pfp ${VCF_LIB_DEPS} ${MALLOC_COUNT_LIBRARIES})
+    target_link_libraries(pfp_benchmarks pfp ${PFP_LIBS})
 endif()
 ################################################################################
 # Tools
@@ -299,35 +301,35 @@ endif()
 
 # 32 and 64 bits parse
 add_executable(pfp++ pfp++.cpp)
-target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(pfp++ pfp ${PFP_LIBS})
 add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(pfp++64 pfp64 ${PFP_LIBS})
 
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
-target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(mpfp++ pfp ${PFP_LIBS})
 add_executable(mpfp++64 merge.cpp)
 target_compile_options(mpfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(mpfp++64 pfp64 ${PFP_LIBS})
 
 # VCT to Fasta
 add_executable(vcf_to_fa vcf_to_fa.cpp)
-target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(vcf_to_fa pfp ${PFP_LIBS})
 
 # Integrity Check
 add_executable(check check_integrity.cpp)
-target_link_libraries(check pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(check pfp ${PFP_LIBS})
 add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(check64 pfp64 ${PFP_LIBS})
 
 # Extract properties from precomputed pfp
 add_executable(exprop exprop.cpp)
-target_link_libraries(exprop pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(exprop pfp ${PFP_LIBS})
 add_executable(exprop64 exprop.cpp)
 target_compile_options(exprop64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(exprop64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+target_link_libraries(exprop64 pfp64 ${PFP_LIBS})
 
 ################################################################################
 # Install
