@@ -225,7 +225,7 @@ private:
     Dictionary<vcfbwt::char_type>* dictionary = nullptr;
 
     // Shorthands
-    hash_type w, p;
+    hash_type w = params.w, p = params.p;
     std::size_t parse_size = 0;
     size_type tags;
     
@@ -312,7 +312,7 @@ private:
     
     Dictionary<vcfbwt::char_type> dictionary;
     
-    hash_type w, p;
+    hash_type w = params.w, p = params.p;
     std::size_t parse_size = 0;
     
     bool closed = false;
@@ -384,7 +384,7 @@ private:
     
     Dictionary<vcfbwt::char_type> dictionary;
     
-    hash_type w, p;
+    hash_type w = params.w, p = params.p;
     std::size_t parse_size = 0;
     
     bool closed = false;
@@ -456,8 +456,8 @@ private:
     Statistics statistics;
 
     Dictionary<uint32_t> dictionary;
-
-    hash_type w, p;
+    
+    hash_type w = params.w, p = params.p;
     std::size_t parse_size = 0;
 
     bool closed = false;
