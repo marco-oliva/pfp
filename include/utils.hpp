@@ -23,6 +23,7 @@
 #include <forward_list>
 #include <unordered_map>
 #include <cstring>
+#include <filesystem>
 
 #include <unistd.h>
 #include <math.h>
