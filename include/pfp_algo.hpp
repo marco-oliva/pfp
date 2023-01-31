@@ -623,7 +623,7 @@ public:
             std::ifstream in_hash(tmp_out_file_name);
             if (not in_hash.is_open()) { spdlog::error("Can't open {}", tmp_out_file_name); std::exit(EXIT_FAILURE); }
 
-            for (size_type i = 0; i < parse_size; i++)
+            for (std::size_t i = 0; i < parse_size; i++)
             {
                 hash_type hash;
                 in_hash.read((char*) &hash, sizeof(hash_type));

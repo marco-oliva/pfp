@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(PFP++)
 SET(VERSION_MAJOR "0")
 SET(VERSION_MINOR "3")
-SET(VERSION_PATCH "7")
+SET(VERSION_PATCH "8")
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(PROJECT_VERSION ${VERSION})
 
@@ -22,13 +22,13 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 # Version number
 execute_process(
         COMMAND git rev-parse --abbrev-ref HEAD
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         OUTPUT_VARIABLE GIT_BRANCH
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process(
         COMMAND git log -1 --format=%h
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         OUTPUT_VARIABLE GIT_COMMIT_HASH
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
@@ -37,10 +37,10 @@ message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
 
 message(STATUS "Generating version.hpp")
 configure_file(
-        ${CMAKE_SOURCE_DIR}/include/version.hpp.in
-        ${CMAKE_BINARY_DIR}/generated/version.hpp)
+        ${PROJECT_SOURCE_DIR}/include/version.hpp.in
+        ${PROJECT_BINARY_DIR}/generated/version.hpp)
 
-include_directories(${CMAKE_BINARY_DIR}/generated)
+include_directories(${PROJECT_BINARY_DIR}/generated)
 
 ################################################################################
 # Compiler and linker flags
@@ -67,41 +67,53 @@ FetchContent_Declare(
         GIT_TAG        v3.0.1
 )
 # Making available only if building tests
+FetchContent_GetProperties(Catch2)
+if (NOT Catch2_POPULATED AND (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug"))
+    FetchContent_MakeAvailable(Catch2)
+endif()
 
 # Hayai Benchmarks
 FetchContent_Declare(
-        Hayai
+        hayai
         GIT_REPOSITORY https://github.com/nickbruun/hayai.git
         GIT_TAG        v1.0.2
 )
-FetchContent_Populate(Hayai)
-include_directories(${hayai_SOURCE_DIR}/src)
+FetchContent_GetProperties(hayai)
+if(NOT hayai_POPULATED)
+    FetchContent_Populate(hayai)
+endif()
 
 # mio mmap
 FetchContent_Declare(
-        Mio
+        mio
         GIT_REPOSITORY https://github.com/mandreyel/mio.git
 )
-FetchContent_Populate(Mio)
-include_directories(${mio_SOURCE_DIR}/single_include)
+FetchContent_GetProperties(mio)
+if(NOT mio_POPULATED)
+    FetchContent_Populate(mio)
+endif()
 
 # Murmur Hash
 FetchContent_Declare(
-        SMHasher
+        smhasher
         GIT_REPOSITORY https://github.com/aappleby/smhasher.git
 )
-FetchContent_Populate(SMHasher)
-include_directories(${smhasher_SOURCE_DIR}/src)
+FetchContent_GetProperties(smhasher)
+if(NOT smhasher_POPULATED)
+    FetchContent_Populate(smhasher)
+endif()
 set(MURMUR_SOURCES ${smhasher_SOURCE_DIR}/src/MurmurHash3.cpp)
 
 # CLI11
 FetchContent_Declare(
         cli11
-        GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-        GIT_TAG        v2.3.0
+        GIT_REPOSITORY "https://github.com/CLIUtils/CLI11.git"
+        GIT_TAG "v1.9.0"
 )
-FetchContent_Populate(cli11)
-include_directories(${cli11_SOURCE_DIR}/include)
+FetchContent_GetProperties(cli11)
+if(NOT cli11_POPULATED)
+    FetchContent_Populate(cli11)
+endif()
 
 # SPDLOG
 FetchContent_Declare(
@@ -109,8 +121,10 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
         GIT_TAG        v1.10.0
 )
-FetchContent_Populate(spdlog)
-include_directories(${spdlog_SOURCE_DIR}/include)
+FetchContent_GetProperties(spdlog)
+if(NOT spdlog_POPULATED)
+    FetchContent_Populate(spdlog)
+endif()
 
 # Zstr
 FetchContent_Declare(
@@ -118,16 +132,24 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/mateidavid/zstr.git
         GIT_TAG        v1.0.6
 )
-FetchContent_Populate(zstr)
-include_directories(${zstr_SOURCE_DIR}/src)
+FetchContent_GetProperties(zstr)
+if(NOT zstr_POPULATED)
+    FetchContent_Populate(zstr)
+endif()
 
 # malloc count
 FetchContent_Declare(
-        mcount
+        malloc_count
         GIT_REPOSITORY https://github.com/bingmann/malloc_count.git
         GIT_TAG        v0.7.1
 )
-FetchContent_Populate(mcount)
+FetchContent_GetProperties(malloc_count)
+if(NOT malloc_count_POPULATED)
+    FetchContent_Populate(malloc_count)
+    add_library(malloc_count OBJECT ${malloc_count_SOURCE_DIR}/malloc_count.c ${malloc_count_SOURCE_DIR}/malloc_count.h)
+    target_include_directories(malloc_count PUBLIC "${malloc_count_SOURCE_DIR}")
+    target_link_libraries(malloc_count dl)
+endif()
 
 # kseq
 FetchContent_Declare(
@@ -135,8 +157,10 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/lh3/seqtk.git
         GIT_TAG        v1.3
 )
-FetchContent_Populate(kseq)
-include_directories(${kseq_SOURCE_DIR})
+FetchContent_GetProperties(kseq)
+if(NOT kseq_POPULATED)
+    FetchContent_Populate(kseq)
+endif()
 
 # Openmp
 find_package(OpenMP)
@@ -192,7 +216,6 @@ if(HTSlib_HIPERGATOR)
     set(HPG_INCLUDES "/apps/cmake/3.21.3/include")
     set(HTSlib_INCLUDE_DIRS ${HTSlib_INCLUDE_DIRS} ${HPG_INCLUDES})
     set(HTSlib_LIBRARIES ${HTSlib_LIBRARIES} ${LIBLZMA_LIBRARIES} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${CURL_LIBRARIES} ${CRYPTO_LIBRARIES})
-    include_directories(${HTSlib_INCLUDE_DIRS})
     message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
 elseif(HTSlib_CUSTOM)
     set(HTSlib_INCLUDE_DIRS "")
@@ -202,13 +225,11 @@ elseif(HTSlib_CUSTOM)
     set(ZLIB_LIBRARIES "")
     set(CURL_LIBRARIES "")
     set(HTSlib_LIBRARIES ${HTSlib_LIBRARIES} ${LIBLZMA_LIBRARIES} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${CURL_LIBRARIES})
-    include_directories(${HTSlib_INCLUDE_DIRS})
     message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
 else()
     list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
     find_package(HTSlib REQUIRED)
     if(HTSlib_FOUND)
-        include_directories(${HTSlib_INCLUDE_DIRS})
         message(STATUS "HTSlib: ${HTSlib_LIBRARIES}")
     endif()
 endif()
@@ -216,22 +237,38 @@ endif()
 ################################################################################
 # Lib
 
-include_directories(${CMAKE_SOURCE_DIR}/thirdparty)
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_BINARY_DIR}/generated)
+set(PFP_INCLUDES
+        ${mio_SOURCE_DIR}/single_include
+        ${smhasher_SOURCE_DIR}/src
+        ${HTSlib_INCLUDE_DIRS}
+        ${cli11_SOURCE_DIR}/include
+        ${spdlog_SOURCE_DIR}/include
+        ${zstr_SOURCE_DIR}/src
+        ${kseq_SOURCE_DIR}
+        ${hayai_SOURCE_DIR}/src)
 
-file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
-if (ENABLE_MALLOC_COUNT)
-    message(STATUS "Using malloc_count.c")
-    file(GLOB MALLOC_COUNT_SOURCES ${mcount_SOURCE_DIR}/*.c)
-else()
-    set(MALLOC_COUNT_SOURCES "")
-endif()
+include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_BINARY_DIR}/generated)
+include_directories(${PFP_INCLUDES})
+
+file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 # 32 and 64 bits parse
-add_library(pfp ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
-add_library(pfp64 ${SOURCES} ${MALLOC_COUNT_SOURCES} ${MURMUR_SOURCES})
+add_library(pfp ${SOURCES} ${MURMUR_SOURCES})
+add_library(pfp64 ${SOURCES} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
+
+
+set(PFP_PUBLIC_HEADERS
+        ${PROJECT_SOURCE_DIR}/include/internals.hpp
+        ${PROJECT_SOURCE_DIR}/include/pfp_algo.hpp
+        ${PROJECT_SOURCE_DIR}/include/utils.hpp
+        ${PROJECT_SOURCE_DIR}/include/vcf.hpp
+        ${PROJECT_BINARY_DIR}/generated/version.hpp
+        ${HTSlib_INCLUDE_DIRS}/hts.h)
+
+set_target_properties(pfp PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
+set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
 
 # Set libraries
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -240,29 +277,34 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread)
 endif()
 
+if (ENABLE_MALLOC_COUNT)
+    message(STATUS "Using malloc_count")
+    set(MALLOC_COUNT_LIBRARIES malloc_count)
+else()
+    set(MALLOC_COUNT_LIBRARIES "")
+endif()
+
+set(PFP_LIBS ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
 
 ################################################################################
 # Tests
 
 if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    FetchContent_MakeAvailable(Catch2)
-
     message(STATUS "Building unit tests")
-    add_executable(unit_tests tests/unit_tests.cpp)
-    target_link_libraries(unit_tests pfp ${VCF_LIB_DEPS} Catch2::Catch2 ${OMP_LIBRARIES})
+    add_executable(pfp_unit_tests tests/unit_tests.cpp)
+    target_link_libraries(pfp_unit_tests pfp ${PFP_LIBS} Catch2::Catch2)
 
-    add_executable(unit_tests64 tests/unit_tests.cpp)
-    target_compile_options(unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
-    target_link_libraries(unit_tests64 pfp64 ${VCF_LIB_DEPS} Catch2::Catch2 ${OMP_LIBRARIES})
+    add_executable(pfp_unit_tests64 tests/unit_tests.cpp)
+    target_compile_options(pfp_unit_tests64 PRIVATE "-DPFP_LONG_TYPE=ON")
+    target_link_libraries(pfp_unit_tests64 pfp64 ${PFP_LIBS} Catch2::Catch2)
 
     enable_testing()
-    add_test(NAME unit_tests COMMAND unit_tests)
-    add_test(NAME unit_tests64 COMMAND unit_tests64)
+    add_test(NAME pfp_unit_tests COMMAND pfp_unit_tests)
+    add_test(NAME pfp_unit_tests64 COMMAND pfp_unit_tests64)
 
     message(STATUS "Building benchmarks")
-    add_executable(benchmarks benchmarks/kr_hash.cpp)
-    target_link_libraries(benchmarks pfp ${VCF_LIB_DEPS})
-
+    add_executable(pfp_benchmarks benchmarks/kr_hash.cpp)
+    target_link_libraries(pfp_benchmarks pfp ${PFP_LIBS})
 endif()
 ################################################################################
 # Tools
@@ -271,41 +313,45 @@ endif()
 
 # 32 and 64 bits parse
 add_executable(pfp++ pfp++.cpp)
-target_link_libraries(pfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(pfp++ pfp ${PFP_LIBS})
 add_executable(pfp++64 pfp++.cpp)
 target_compile_options(pfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(pfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(pfp++64 pfp64 ${PFP_LIBS})
 
 # PFP++ merge
 add_executable(mpfp++ merge.cpp)
-target_link_libraries(mpfp++ pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(mpfp++ pfp ${PFP_LIBS})
 add_executable(mpfp++64 merge.cpp)
 target_compile_options(mpfp++64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(mpfp++64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(mpfp++64 pfp64 ${PFP_LIBS})
 
 # VCT to Fasta
 add_executable(vcf_to_fa vcf_to_fa.cpp)
-target_link_libraries(vcf_to_fa pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(vcf_to_fa pfp ${PFP_LIBS})
 
 # Integrity Check
 add_executable(check check_integrity.cpp)
-target_link_libraries(check pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(check pfp ${PFP_LIBS})
 add_executable(check64 check_integrity.cpp)
 target_compile_options(check64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(check64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(check64 pfp64 ${PFP_LIBS})
 
 # Extract properties from precomputed pfp
 add_executable(exprop exprop.cpp)
-target_link_libraries(exprop pfp ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(exprop pfp ${PFP_LIBS})
 add_executable(exprop64 exprop.cpp)
 target_compile_options(exprop64 PRIVATE "-DPFP_LONG_TYPE=ON")
-target_link_libraries(exprop64 pfp64 ${VCF_LIB_DEPS} ${OMP_LIBRARIES})
+target_link_libraries(exprop64 pfp64 ${PFP_LIBS})
 
 ################################################################################
 # Install
 
-install(TARGETS pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64)
-
+install(TARGETS )
+install(TARGETS pfp pfp64 pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib/static
+        PUBLIC_HEADER DESTINATION lib/static/include)
 ################################################################################
 # CPack
 
