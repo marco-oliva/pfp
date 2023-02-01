@@ -158,8 +158,7 @@ Mersenne_KR(std::string& s)
 {
     vcfbwt::Mersenne_KarpRabinHash kr_window(8, false);
 
-    std::string_view init_window(s.c_str(), 8);
-    kr_window.initialize(init_window);
+    kr_window.initialize((unsigned char*) s.data(), 8);
     vcfbwt::hash_type h = kr_window.get_hash();
 
     for (vcfbwt::size_type i = 8; i < s.size(); i++)
@@ -173,9 +172,8 @@ void
 KR(std::string& s)
 {
     vcfbwt::KarpRabinHash kr_window(8, false);
-
-    std::string_view init_window(s.c_str(), 8);
-    kr_window.initialize(init_window);
+    
+    kr_window.initialize((unsigned char*) s.data(), 8);
     vcfbwt::hash_type h = kr_window.get_hash();
 
     for (vcfbwt::size_type i = 8; i < s.size(); i++)
@@ -189,9 +187,8 @@ void
 KR4(std::string& s)
 {
     vcfbwt::KarpRabinHash4 kr_window(8, false);
-
-    std::string_view init_window(s.c_str(), 32);
-    kr_window.initialize(init_window);
+    
+    kr_window.initialize((unsigned char*) s.data(), 8);
     vcfbwt::hash_type h = kr_window.get_hash();
 
     for (vcfbwt::size_type i = 32; i < s.size(); i++)
@@ -205,9 +202,8 @@ void
 Mersenne_KR4(std::string& s)
 {
     vcfbwt::Mersenne_KarpRabinHash4 kr_window(32, false);
-
-    std::string_view init_window(s.c_str(), 32);
-    kr_window.initialize(init_window);
+    
+    kr_window.initialize((unsigned char*) s.data(), 8);
     vcfbwt::hash_type h = kr_window.get_hash();
 
     for (vcfbwt::size_type i = 32; i < s.size(); i++)
@@ -220,25 +216,25 @@ Mersenne_KR4(std::string& s)
 void
 KR_string_hash(std::string& s)
 {
-    vcfbwt::hash_type hash = vcfbwt::KarpRabinHash::string_hash(s);
+    vcfbwt::hash_type hash = vcfbwt::KarpRabinHash::string_hash((unsigned char*) s.data(), 8);
 }
 
 void
 Mersenne_KR_string_hash(std::string& s)
 {
-    vcfbwt::hash_type hash = vcfbwt::Mersenne_KarpRabinHash::string_hash(s);
+    vcfbwt::hash_type hash = vcfbwt::Mersenne_KarpRabinHash::string_hash((unsigned char*) s.data(), 8);
 }
 
 void
 KR4_string_hash(std::string& s)
 {
-    vcfbwt::hash_type hash = vcfbwt::KarpRabinHash4::string_hash(s);
+    vcfbwt::hash_type hash = vcfbwt::KarpRabinHash4::string_hash((unsigned char*) s.data(), 8);
 }
 
 void
 Mersenne_KR4_string_hash(std::string& s)
 {
-    vcfbwt::hash_type hash = vcfbwt::Mersenne_KarpRabinHash4::string_hash(s);
+    vcfbwt::hash_type hash = vcfbwt::Mersenne_KarpRabinHash4::string_hash((unsigned char*) s.data(), 8);
 }
 
 //------------------------------------------------------------------------------

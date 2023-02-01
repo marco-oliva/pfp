@@ -7,7 +7,7 @@ SET(VERSION_PATCH "8")
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(PROJECT_VERSION ${VERSION})
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -35,12 +35,10 @@ execute_process(
 message(STATUS "Git current branch: ${GIT_BRANCH}")
 message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
 
-message(STATUS "Generating version.hpp")
+message(STATUS "Generating version.cpp")
 configure_file(
-        ${PROJECT_SOURCE_DIR}/include/version.hpp.in
-        ${PROJECT_BINARY_DIR}/generated/version.hpp)
-
-include_directories(${PROJECT_BINARY_DIR}/generated)
+        ${PROJECT_SOURCE_DIR}/src/version.cpp.in
+        ${PROJECT_BINARY_DIR}/generated/version.cpp)
 
 ################################################################################
 # Compiler and linker flags
@@ -248,14 +246,14 @@ set(PFP_INCLUDES
         ${hayai_SOURCE_DIR}/src)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
-include_directories(${PROJECT_BINARY_DIR}/generated)
 include_directories(${PFP_INCLUDES})
 
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
+file(GLOB SOURCES_GENERATED ${PROJECT_BINARY_DIR}/generated/*.cpp)
 
 # 32 and 64 bits parse
-add_library(pfp ${SOURCES} ${MURMUR_SOURCES})
-add_library(pfp64 ${SOURCES} ${MURMUR_SOURCES})
+add_library(pfp ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
+add_library(pfp64 ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
 
@@ -264,7 +262,7 @@ set(PFP_PUBLIC_HEADERS
         ${PROJECT_SOURCE_DIR}/include/pfp_algo.hpp
         ${PROJECT_SOURCE_DIR}/include/utils.hpp
         ${PROJECT_SOURCE_DIR}/include/vcf.hpp
-        ${PROJECT_BINARY_DIR}/generated/version.hpp)
+        ${PROJECT_SOURCE_DIR}/include/version.hpp)
 
 set_target_properties(pfp PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
 set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")

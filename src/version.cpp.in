@@ -1,0 +1,25 @@
+//
+//  version.cpp
+//
+//  Copyright 2023 Marco Oliva. All rights reserved.
+//
+
+#include <version.hpp>
+
+std::string vcfbwt::Version::VCFBWT_GIT_BRANCH = "@GIT_BRANCH@";
+std::string vcfbwt::Version::VCFBWT_GIT_COMMIT_HASH = "@GIT_COMMIT_HASH@";
+int vcfbwt::Version::VCFBWT_MAJOR = @VERSION_MAJOR@;
+int vcfbwt::Version::VCFBWT_MINOR = @VERSION_MINOR@;
+int vcfbwt::Version::VCFBWT_PATCH = @VERSION_PATCH@;
+
+void vcfbwt::Version::print()
+{
+    std::cout
+    << VCFBWT_GIT_BRANCH << ":"
+    << VCFBWT_GIT_COMMIT_HASH << ":"
+    << " "
+    << VCFBWT_MAJOR << "." << VCFBWT_MINOR << "." << VCFBWT_PATCH
+    << std::endl;
+    
+    exit(0);
+}
