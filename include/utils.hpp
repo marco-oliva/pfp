@@ -25,7 +25,7 @@
 #include <cstring>
 
 #include <unistd.h>
-#include <math.h>
+#include <cmath>
 
 #include <spdlog/spdlog.h>
 #include <mio/mio.hpp>
@@ -139,7 +139,8 @@ class KarpRabinHash
 public:
     KarpRabinHash(size_type n, bool debug = false);
     
-    void initialize(const std::string_view& window);
+    void initialize(const char_type* data, std::size_t length);
+    
     void update(char_type char_out, char_type char_in);
     void reset();
     
@@ -161,15 +162,15 @@ public:
     constexpr static hash_type kr_prime    = 1999999973;
     constexpr static hash_type kr_constant = 256;
     
-    static hash_type string_hash(const std::string_view& s);
+    static hash_type string_hash(const char_type* data, std::size_t length);
 };
 
 class KarpRabinHash4
 {
 public:
     KarpRabinHash4(size_type n, bool debug = false);
-
-    void initialize(const std::string_view& window);
+    
+    void initialize(const char_type* data, std::size_t length);
     void update(const char_type* chars_out, const char_type* chars_in);
     void reset();
 
@@ -192,7 +193,7 @@ public:
     constexpr static hash_type kr_prime    = 1999999973;
     constexpr static hash_type kr_constant = 256;
 
-    static hash_type string_hash(const std::string_view& s);
+    static hash_type string_hash(const char_type* data, std::size_t length);
 };
 
 // when p = 2^61-1, the 128 bit number has to be less than 2^122-1
@@ -211,7 +212,7 @@ class Mersenne_KarpRabinHash
 public:
     Mersenne_KarpRabinHash(size_type n, bool debug = false);
 
-    void initialize(const std::string_view& window);
+    void initialize(const char_type* data, std::size_t length);
     void update(const char_type char_out, const char_type char_in);
     void reset();
 
@@ -231,7 +232,7 @@ public:
     constexpr static hash_type kr_prime = (1ull << kr_p_pow) - 1; // 9th Mersenne Prime
     constexpr static hash_type kr_base  = 660162925935593667;     // random number in range (1, kr_prime - 1)
 
-    static hash_type string_hash(const std::string_view& s);
+    static hash_type string_hash(const char_type* data, std::size_t length);
 };
 
 class Mersenne_KarpRabinHash4
@@ -239,7 +240,7 @@ class Mersenne_KarpRabinHash4
 public:
     Mersenne_KarpRabinHash4(size_type n, bool debug = false);
 
-    void initialize(const std::string_view& window);
+    void initialize(const char_type* data, std::size_t length);
     void update(const char_type* chars_out, const char_type* chars_in);
     void reset();
 
@@ -259,7 +260,7 @@ public:
     constexpr static hash_type kr_prime = (1ull << kr_p_pow) - 1; // 9th Mersenne Prime
     constexpr static hash_type kr_base  = 660162925935593667;     // random number in range (1, kr_prime - 1)
 
-    static hash_type string_hash(const std::string_view& s);
+    static hash_type string_hash(const char_type* data, std::size_t length);
 };
 
 //------------------------------------------------------------------------------

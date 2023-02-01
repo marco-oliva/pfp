@@ -30,7 +30,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
         char c = reference[ref_it];
         
         phrase.push_back(c);
-        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*)phrase.data(), params.w)); }
+        if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
         else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
         
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
@@ -42,7 +42,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
             
-            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
         }
     }
     
@@ -93,7 +93,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     // Every sample starts with w-1 dollar prime and one dollar seq
     for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
     phrase.emplace_back(DOLLAR_SEQUENCE);
-    kr_hash.initialize(std::string_view((char*)phrase.data(), params.w));
+    kr_hash.initialize(phrase.data(), params.w);
     
     // Shorthands
     std::vector<std::size_t>& tsp = reference_parse->trigger_strings_position;
@@ -134,7 +134,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                     phrase.clear();
                     for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}
                     
-                    kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
+                    kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
                     
                     ++sample_iterator;
                     spdlog::debug("New phrase [{}]: {}", phrase.size(), std::string((char*) phrase.data(), phrase.size()));
@@ -164,7 +164,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
             
             phrase.erase(phrase.begin(), phrase.end() - this->w); // Keep the last w chars
     
-            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
         }
     }
     
@@ -376,7 +376,7 @@ vcfbwt::pfp::ParserFasta::operator()()
             phrase.clear();
             for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
             phrase.emplace_back(DOLLAR_SEQUENCE);
-            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
         }
         
         for (std::size_t seq_it = 0; seq_it < record->seq.l; seq_it++)
@@ -384,7 +384,7 @@ vcfbwt::pfp::ParserFasta::operator()()
             char c = record->seq.s[seq_it];
         
             phrase.push_back(c);
-            if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), params.w)); }
+            if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
             else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
         
             if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
@@ -395,7 +395,7 @@ vcfbwt::pfp::ParserFasta::operator()()
                 
                 phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
                 
-                kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
+                kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
             }
         }
     }
@@ -513,7 +513,7 @@ vcfbwt::pfp::ParserText::operator()()
     while(gzread(fp, &c, 1) > 0)
     {
         phrase.push_back(c);
-        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), params.w)); }
+        if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
         else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
         
         if ((phrase.size() > this->params.w) and ((kr_hash.get_hash() % this->params.p) == 0))
@@ -524,7 +524,7 @@ vcfbwt::pfp::ParserText::operator()()
             
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
             
-            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), params.w));
+            kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
         }
     }
     
@@ -638,7 +638,7 @@ vcfbwt::pfp::ParserIntegers::operator()()
     while(gzread(fp, &c, 4) > 0)
     {
         phrase.push_back(c + this->params.integers_shift);
-        if (phrase.size() == params.w) { kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(uint32_t))); }
+        if (phrase.size() == params.w) { kr_hash.initialize((unsigned char*) phrase.data(), phrase.size() * sizeof(uint32_t)); }
         else if (phrase.size() > params.w)
         {
             kr_hash.update((const vcfbwt::char_type*)&(phrase[phrase.size() - params.w - 1]), (const vcfbwt::char_type*) &phrase[phrase.size() - 1]);
@@ -652,7 +652,7 @@ vcfbwt::pfp::ParserIntegers::operator()()
 
             phrase.erase(phrase.begin(), phrase.end() - this->params.w); // Keep the last w chars
 
-            kr_hash.reset(); kr_hash.initialize(std::string_view((char*) phrase.data(), phrase.size() * sizeof(uint32_t)));
+            kr_hash.reset(); kr_hash.initialize((unsigned char*) phrase.data(), phrase.size() * sizeof(uint32_t));
         }
     }
 

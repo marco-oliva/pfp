@@ -346,7 +346,7 @@ TEST_CASE( "Initialization KR", "[KR Window]" )
 
     vcfbwt::KarpRabinHash kr_window(5);
     kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     REQUIRE(kr_window.get_hash() == 842216599);
 }
@@ -357,7 +357,7 @@ TEST_CASE( "Update 1 charachter", "[KR Window]" )
 
     vcfbwt::KarpRabinHash kr_window(5);
     kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     kr_window.update('1', '6');
 
@@ -370,7 +370,7 @@ TEST_CASE( "Update 2 charachter", "[KR Window]" )
 
     vcfbwt::KarpRabinHash kr_window(5);
     kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     kr_window.update('1', '6');
     kr_window.update('2', '7');
@@ -384,7 +384,7 @@ TEST_CASE( "Periodic string", "[KR Window]" )
 
     vcfbwt::KarpRabinHash kr_window(5);
     kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     vcfbwt::hash_type before = kr_window.get_hash();
     kr_window.update('1', '1');
@@ -400,7 +400,7 @@ TEST_CASE( "Periodic string of Ns", "[KR Window]" )
 
     vcfbwt::KarpRabinHash kr_window(test_string.size());
     kr_window.set_constant(256); kr_window.set_prime(2147483647);
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     vcfbwt::hash_type before = kr_window.get_hash();
     kr_window.update('N', 'N');
@@ -415,9 +415,10 @@ TEST_CASE( "String Hash", "[KR Window]" )
     std::string test_string = "12345";
 
     vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
-    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash(test_string));
+    vcfbwt::hash_type h = vcfbwt::KarpRabinHash::string_hash((vcfbwt::char_type*) test_string.data(), test_string.size());
+    REQUIRE(kr_window.get_hash() == h);
 }
 
 TEST_CASE( "String Hash 2", "[KR Window]" )
@@ -425,10 +426,12 @@ TEST_CASE( "String Hash 2", "[KR Window]" )
     std::string test_string = "12345";
 
     vcfbwt::KarpRabinHash kr_window(5);
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
     kr_window.update('1', '6');
-
-    REQUIRE(kr_window.get_hash() == vcfbwt::KarpRabinHash::string_hash("23456"));
+    
+    std::string updated_string = "23456";
+    vcfbwt::hash_type h = vcfbwt::KarpRabinHash::string_hash((vcfbwt::char_type*) updated_string.data(), updated_string.size());
+    REQUIRE(kr_window.get_hash() == h);
 }
 
 TEST_CASE( "Reproducing bug", "[KR Window]" )
@@ -437,15 +440,18 @@ TEST_CASE( "Reproducing bug", "[KR Window]" )
     std::string test_string_2 = "\5\5\5\5\4You.fo";
 
     vcfbwt::KarpRabinHash kr_window_1(5, true);
-    kr_window_1.initialize(test_string_1.substr(0,5));
+    kr_window_1.initialize((vcfbwt::char_type*) test_string_1.data(), 5);
     for (std::size_t i = 0; i <= 15; i++) { kr_window_1.update(test_string_1[i], test_string_1[i + 5]); }
 
     vcfbwt::KarpRabinHash kr_window_2(5, true);
-    kr_window_2.initialize(test_string_2.substr(0,5));
+    kr_window_2.initialize((vcfbwt::char_type*) test_string_2.data(), 5);
     for (std::size_t i = 0; i <= 5; i++) { kr_window_2.update(test_string_2[i], test_string_2[i + 5]); }
-
-    REQUIRE(kr_window_1.get_hash() == vcfbwt::KarpRabinHash::string_hash("ou.fo"));
-    REQUIRE(kr_window_2.get_hash() == vcfbwt::KarpRabinHash::string_hash("ou.fo"));
+    
+    std::string updated_string = "ou.fo";
+    vcfbwt::hash_type h_1 = vcfbwt::KarpRabinHash::string_hash((vcfbwt::char_type*) updated_string.data(), updated_string.size());
+    
+    REQUIRE(kr_window_1.get_hash() == h_1);
+    REQUIRE(kr_window_2.get_hash() == h_1);
     REQUIRE(kr_window_1.get_hash() % 30 == 0);
     REQUIRE(kr_window_2.get_hash() % 30 == 0);
 }
@@ -458,7 +464,7 @@ TEST_CASE( "Initialization KR Mersenne", "[KR Mersenne Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash kr_window(5);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     REQUIRE(kr_window.get_hash() == 1337084880462018802);
 }
@@ -469,7 +475,7 @@ TEST_CASE( "Update 1 charachter Mersenne", "[KR Mersenne Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash kr_window(5);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     kr_window.update('1', '6');
 
@@ -482,7 +488,7 @@ TEST_CASE( "Update 2 charachters Mersenne", "[KR Mersenne Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash kr_window(5);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     kr_window.update('1', '6');
     kr_window.update('2', '7');
@@ -496,7 +502,7 @@ TEST_CASE( "Periodic string Mersenne", "[KR Mersenne Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash kr_window(5);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(test_string);
+    kr_window.initialize((vcfbwt::char_type*) test_string.data(), test_string.size());
 
     vcfbwt::hash_type before = kr_window.get_hash();
     kr_window.update('1', '1');
@@ -514,7 +520,7 @@ TEST_CASE( "Initialization KR Mersenne4", "[KR Mersenne4 Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+    kr_window.initialize((vcfbwt::char_type*) test_data.data(), test_data.size() * sizeof(int32_t));
 
     REQUIRE(kr_window.get_hash() == 207274774005008393);
 }
@@ -525,7 +531,7 @@ TEST_CASE( "Update 1 charachter Mersenne4", "[KR Mersenne4 Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+    kr_window.initialize((vcfbwt::char_type*) test_data.data(), test_data.size() * sizeof(int32_t));
 
     int32_t out = 1, in = 6;
     kr_window.update((const vcfbwt::char_type*) &out, (const vcfbwt::char_type*) &in);
@@ -539,7 +545,7 @@ TEST_CASE( "Update 2 charachters Mersenne4", "[KR Mersenne4 Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+    kr_window.initialize((vcfbwt::char_type*) test_data.data(), test_data.size() * sizeof(int32_t));
 
     int32_t out = 1, in = 6;
     kr_window.update((const vcfbwt::char_type*) &out, (const vcfbwt::char_type*) &in);
@@ -556,7 +562,7 @@ TEST_CASE( "Periodic string Mersenne4", "[KR Mersenne4 Window]" )
 
     vcfbwt::Mersenne_KarpRabinHash4 kr_window(5 * 4, true);
     // base = 660162925935593667, prime = 2305843009213693951
-    kr_window.initialize(std::string_view((char*) test_data.data(), test_data.size() * sizeof(int32_t)));
+    kr_window.initialize((vcfbwt::char_type*) test_data.data(), test_data.size() * sizeof(int32_t));
 
     int32_t out = 1, in = 1;
     vcfbwt::hash_type before = kr_window.get_hash();

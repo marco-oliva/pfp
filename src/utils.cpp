@@ -33,16 +33,16 @@ void
 vcfbwt::KarpRabinHash::reset() { this->hash_value = 0; }
 
 void
-vcfbwt::KarpRabinHash::initialize(const std::string_view& window)
+vcfbwt::KarpRabinHash::initialize(const char_type* data, std::size_t length)
 {
-    if (debug_) { debug_content_ = window; }
-
+    if (debug_) { debug_content_ = std::string((char*) data, length); }
+    
     constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, prime);
-
+    
     assert(window.size() == this->window_length);
     for (hash_type i = 0; i < this->window_length; i++)
     {
-        char_type c = window[window.size() - 1 - i];
+        char_type c = data[length - 1 - i];
         hash_value += c * modular_pow(constant, i, prime);
         hash_value = hash_value % prime;
     }
@@ -60,13 +60,13 @@ vcfbwt::KarpRabinHash::update(vcfbwt::char_type char_out, vcfbwt::char_type char
 }
 
 vcfbwt::hash_type
-vcfbwt::KarpRabinHash::string_hash(const std::string_view& s)
+vcfbwt::KarpRabinHash::string_hash(const char_type* data, std::size_t length)
 {
     hash_type result = 0;
 
-    for (size_type i = 0; i < s.size(); i++)
+    for (size_type i = 0; i < length; i++)
     {
-        char_type c = s[s.size() - 1 - i];
+        char_type c = data[length - 1 - i];
         result += c * modular_pow(kr_constant, i, kr_prime);
         result = result % kr_prime;
     }
@@ -87,13 +87,13 @@ void
 vcfbwt::KarpRabinHash4::reset() { this->hash_value = 0; }
 
 void
-vcfbwt::KarpRabinHash4::initialize(const std::string_view& window)
+vcfbwt::KarpRabinHash4::initialize(const char_type* data, std::size_t length)
 {
-    if (debug_) { debug_content_ = window; }
+    if (debug_) { debug_content_ = std::string((char*) data, length); }
 
     constant_to_n_minus_one_mod = modular_pow(constant, window_length_32 - 1, prime);
 
-    uint32_t* string32 = (uint32_t*) window.data();
+    uint32_t* string32 = (uint32_t*) data;
     for (size_type i = 0; i < this->window_length_32; i++) // window always multiple of 4
     {
         hash_value += string32[i] * modular_pow(constant, i, prime);
@@ -119,11 +119,11 @@ vcfbwt::KarpRabinHash4::update(const vcfbwt::char_type* chars_out, const vcfbwt:
 }
 
 vcfbwt::hash_type
-vcfbwt::KarpRabinHash4::string_hash(const std::string_view& s)
+vcfbwt::KarpRabinHash4::string_hash(const char_type* data, std::size_t length)
 {
     hash_type result = 0;
-    uint32_t* string32 = (uint32_t*) s.data();
-    for (size_type i = 0; i < s.size() / 4; i++) // window always multiple of 4
+    uint32_t* string32 = (uint32_t*) data;
+    for (size_type i = 0; i < length / 4; i++) // window always multiple of 4
     {
         result += string32[i] * modular_pow(kr_constant, i, kr_prime);
         result = result % kr_prime;
@@ -143,14 +143,14 @@ void
 vcfbwt::Mersenne_KarpRabinHash::reset() { this->hash_value = 0; }
 
 void
-vcfbwt::Mersenne_KarpRabinHash::initialize(const std::string_view& window)
+vcfbwt::Mersenne_KarpRabinHash::initialize(const char_type* data, std::size_t length)
 {
-    if (debug_) { debug_content_ = window; }
+    if (debug_) { debug_content_ = std::string((char*) data, length); }
 
     hash_type h = 0;
     for (size_type i = 0; i < this->window_length; i++) // window always multiple of 4
     {
-        unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) window[i]; //x64 compilers generate standard mul instruction
+        unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) data[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
         h = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
     }
@@ -176,12 +176,12 @@ vcfbwt::Mersenne_KarpRabinHash::update(const vcfbwt::char_type char_out, const v
 }
 
 vcfbwt::hash_type
-vcfbwt::Mersenne_KarpRabinHash::string_hash(const std::string_view& s)
+vcfbwt::Mersenne_KarpRabinHash::string_hash(const char_type* data, std::size_t length)
 {
     hash_type h = 0; //not 0!
-    for (size_type i = 0; i < s.size(); i++) // window always multiple of 4
+    for (size_type i = 0; i < length; i++) // window always multiple of 4
     {
-        unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) s[i]; //x64 compilers generate standard mul instruction
+        unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) data[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
         h = mersenne_modulo(lo, hi, kr_prime, kr_p_pow);
     }
@@ -202,11 +202,11 @@ void
 vcfbwt::Mersenne_KarpRabinHash4::reset() { this->hash_value = 0; }
 
 void
-vcfbwt::Mersenne_KarpRabinHash4::initialize(const std::string_view& window)
+vcfbwt::Mersenne_KarpRabinHash4::initialize(const char_type* data, std::size_t length)
 {
-    if (debug_) { debug_content_ = window; }
+    if (debug_) { debug_content_ = std::string((char*) data, length); }
 
-    uint32_t* s32c_ins = (uint32_t*) window.data();
+    uint32_t* s32c_ins = (uint32_t*) data;
     hash_type h = 0;
     for (size_type i = 0; i < this->window_length_32; i++) // window always multiple of 4
     {
@@ -244,11 +244,11 @@ vcfbwt::Mersenne_KarpRabinHash4::update(const vcfbwt::char_type* chars_out, cons
 }
 
 vcfbwt::hash_type
-vcfbwt::Mersenne_KarpRabinHash4::string_hash(const std::string_view& s)
+vcfbwt::Mersenne_KarpRabinHash4::string_hash(const char_type* data, std::size_t length)
 {
-    uint32_t* string32 = (uint32_t*) s.data();
+    uint32_t* string32 = (uint32_t*) data;
     hash_type h = 0;
-    for (size_type i = 0; i < s.size() / 4; i++) // window always multiple of 4
+    for (size_type i = 0; i < length / 4; i++) // window always multiple of 4
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + string32[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
@@ -274,7 +274,7 @@ struct Handler
     
     ~Handler()
     {
-        std::lock_guard<std::mutex>(this->tempfile_lock);
+        std::lock_guard<std::mutex> lock_guard(this->tempfile_lock);
         for(auto& filename : this->filenames)
         {
             std::remove(filename.c_str());
@@ -286,7 +286,7 @@ struct Handler
 void
 vcfbwt::TempFile::setDirectory(const std::string& directory)
 {
-    std::lock_guard<std::mutex>(handler.tempfile_lock);
+    std::lock_guard<std::mutex> lock_guard(handler.tempfile_lock);
     if(directory.empty()) { temp_dir = DEFAULT_TEMP_DIR; }
     else if(directory[directory.length() - 1] != '/') { temp_dir = directory; }
     else { temp_dir = directory.substr(0, directory.length() - 1); }
@@ -300,7 +300,7 @@ vcfbwt::TempFile::getName(const std::string& name_part)
     
     std::string filename;
     {
-        std::lock_guard<std::mutex>(handler.tempfile_lock);
+        std::lock_guard<std::mutex> lock_guard(handler.tempfile_lock);
         filename = temp_dir + '/' + name_part + '_'
         + std::string(hostname) + '_'
         + std::to_string(pid()) + '_'
@@ -319,7 +319,7 @@ vcfbwt::TempFile::remove(std::string& filename)
     {
         std::remove(filename.c_str());
         {
-            std::lock_guard<std::mutex>(handler.tempfile_lock);
+            std::lock_guard<std::mutex> lock_guard(handler.tempfile_lock);
             handler.filenames.erase(filename);
         }
         filename.clear();
@@ -364,7 +364,7 @@ struct WritesCounter
 
 void vcfbwt::DiskWrites::update(std::size_t num_of_bytes)
 {
-    std::lock_guard<std::mutex> lock(writes_counter.write_stats_lock);
+    std::lock_guard<std::mutex> lock_guard(writes_counter.write_stats_lock);
     writes_counter.bytes_wrote += num_of_bytes;
 }
 
