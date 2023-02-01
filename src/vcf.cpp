@@ -343,7 +343,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                     auto id = l_samples_id.find(std::string(hdr->samples[i_s]));
                     if ((id != l_samples_id.end() and id->second < max_samples)
                     and
-                    ((input_samples.empty()) or ( input_samples.find(id->first) != input_samples.end()))) // Process only wanted l_samples
+                    ((input_samples.empty()) or (input_samples.find(id->first) != input_samples.end()))) // Process only wanted l_samples
                     {
                         // Update frequency, to be normalized by the number of samples when parsing ends
                         var.freq += 1;
@@ -370,7 +370,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     for (auto& v : l_variations) { v.freq = v.freq / double(number_of_samples); }
     
     // print some statistics
-    spdlog::info("Variations size [{}]: {}GB", l_variations.size(), inGigabytes(l_variations.size() * sizeof(Variation)));
+    spdlog::info("Variations size [{}]: {} GB", l_variations.size(), inGigabytes(l_variations.size() * sizeof(Variation)));
     spdlog::info("Reference size: {} GB", inGigabytes(reference.size()));
     
     std::size_t tot_a_s = 0;
