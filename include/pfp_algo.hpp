@@ -16,6 +16,7 @@
 #include <utils.hpp>
 #include <internals.hpp>
 
+
 namespace vcfbwt
 {
 namespace pfp
@@ -512,6 +513,8 @@ public:
 
 //------------------------------------------------------------------------------
 
+#include <sys/stat.h>
+
 template <typename data_type>
 class ParserUtils
 {
@@ -519,18 +522,17 @@ public:
     
     static void read_parse(std::string parse_file_name, std::vector<size_type>& parse)
     {
-        std::filesystem::path parse_path(parse_file_name);
-        std::size_t parse_size_in_bytes = std::filesystem::file_size(parse_path);
-        
         // reserve memory for the parse
-        parse.reserve(parse_size_in_bytes / sizeof(size_type) + 1);
+        struct stat64 stat_buf;
+        int rc = stat64(parse_file_name.c_str(), &stat_buf);
+        if (rc == 0) { parse.reserve((stat_buf.st_size / sizeof(size_type)) + 1); }
         
         std::ifstream parse_file(parse_file_name, std::ios::binary);
         if (not parse_file.is_open()) { spdlog::error("Error opening file: {}", parse_file_name); std::exit(EXIT_FAILURE); }
         
         while (not parse_file.eof()) { size_type i; parse_file.read((char*) &i, sizeof(size_type)); parse.push_back(i); }
 
-        // remove last entry, apparently it reads the last twice, strano
+        // remove last entry, apparently it reads the last twice
         parse.pop_back();
     }
 
