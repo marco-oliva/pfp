@@ -19,7 +19,7 @@ RUN wget https://github.com/samtools/htslib/releases/download/1.15.1/htslib-1.15
 # Start building
 COPY . /usr/src/pfp
 WORKDIR /usr/src/pfp/build
-RUN cmake -DENABLE_MIMALLOC .. \
+RUN cmake -DENABLE_MIMALLOC=ON .. \
     && make -j
 
 # Get binaries
