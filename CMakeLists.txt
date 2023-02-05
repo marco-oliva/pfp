@@ -12,6 +12,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 ################################################################################
+# Options
+
+option(ENABLE_MALLOC_COUNT "Keep track of allocations with malloc_count." OFF)
+option(ENABLE_MIMALLOC "Use mimalloc if installed/" OFF)
+option(BUILD_TESTS "Build unit test." OFF)
+option(HTSlib_HIPERGATOR "Use hipergator default location for htslib." OFF)
+option(HTSlib_CUSTOM "Use custom location for htslib." OFF)
+
+################################################################################
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
@@ -285,7 +294,6 @@ if (ENABLE_MIMALLOC AND ENABLE_MALLOC_COUNT)
     set(ENABLE_MALLOC_COUNT FALSE)
 endif()
 
-
 if (ENABLE_MALLOC_COUNT)
     message(STATUS "Using malloc_count")
     set(MALLOC_COUNT_LIBRARIES malloc_count)
@@ -356,7 +364,6 @@ target_link_libraries(exprop64 pfp64 ${PFP_LIBS})
 ################################################################################
 # Install
 
-install(TARGETS )
 install(TARGETS pfp pfp64 pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
