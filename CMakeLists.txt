@@ -12,6 +12,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 ################################################################################
+# Options
+
+option(ENABLE_MALLOC_COUNT "Keep track of allocations with malloc_count."   OFF)
+option(ENABLE_MIMALLOC "Use mimalloc if installed."                         OFF)
+option(BUILD_TESTS "Build unit test."                                       OFF)
+option(HTSlib_HIPERGATOR "Use hipergator default location for htslib."      OFF)
+option(HTSlib_CUSTOM "Use custom location for htslib."                      OFF)
+
+################################################################################
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
@@ -232,6 +241,25 @@ else()
     endif()
 endif()
 
+# MiMalloc
+if (ENABLE_MIMALLOC)
+    set(MI_BUILD_STATIC OFF)
+    set(MI_BUILD_OBJECT OFF)
+    set(MI_BUILD_TESTS  OFF)
+    FetchContent_Declare(
+            mimalloc
+            GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+            GIT_TAG        v2.0.9
+    )
+    # Making available only if building tests
+    FetchContent_GetProperties(mimalloc)
+    if (NOT mimalloc_POPULATED)
+        FetchContent_MakeAvailable(mimalloc)
+        message(STATUS "Building mimalloc. It will be dynamically linked.")
+        set(MIMALLOC_D_LIB mimalloc)
+    endif()
+endif()
+
 ################################################################################
 # Lib
 
@@ -256,7 +284,6 @@ add_library(pfp ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-
 set(PFP_PUBLIC_HEADERS
         ${PROJECT_SOURCE_DIR}/include/internals.hpp
         ${PROJECT_SOURCE_DIR}/include/pfp_algo.hpp
@@ -274,6 +301,11 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread)
 endif()
 
+if (ENABLE_MIMALLOC AND ENABLE_MALLOC_COUNT)
+    message(STATUS "mimalloc enabled, disabling malloc count")
+    set(ENABLE_MALLOC_COUNT FALSE)
+endif()
+
 if (ENABLE_MALLOC_COUNT)
     message(STATUS "Using malloc_count")
     set(MALLOC_COUNT_LIBRARIES malloc_count)
@@ -281,7 +313,7 @@ else()
     set(MALLOC_COUNT_LIBRARIES "")
 endif()
 
-set(PFP_LIBS ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+set(PFP_LIBS ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES} ${MIMALLOC_D_LIB})
 
 ################################################################################
 # Tests
@@ -303,6 +335,7 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_executable(pfp_benchmarks benchmarks/kr_hash.cpp)
     target_link_libraries(pfp_benchmarks pfp ${PFP_LIBS})
 endif()
+
 ################################################################################
 # Tools
 
@@ -343,7 +376,6 @@ target_link_libraries(exprop64 pfp64 ${PFP_LIBS})
 ################################################################################
 # Install
 
-install(TARGETS )
 install(TARGETS pfp pfp64 pfp++ pfp++64 mpfp++ mpfp++64 vcf_to_fa check check64 exprop exprop64
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
