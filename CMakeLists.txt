@@ -232,6 +232,13 @@ else()
     endif()
 endif()
 
+# MiMalloc
+find_package(mimalloc)
+if (mimalloc_FOUND AND ENABLE_MIMALLOC)
+    message(STATUS "Found mimalloc. It will be dynamically linked.")
+    set(MIMALLOC_D_LIB mimalloc)
+endif()
+
 ################################################################################
 # Lib
 
@@ -256,7 +263,6 @@ add_library(pfp ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
-
 set(PFP_PUBLIC_HEADERS
         ${PROJECT_SOURCE_DIR}/include/internals.hpp
         ${PROJECT_SOURCE_DIR}/include/pfp_algo.hpp
@@ -274,6 +280,12 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(VCF_LIB_DEPS ${HTSlib_LIBRARIES} dl pthread)
 endif()
 
+if (ENABLE_MIMALLOC AND ENABLE_MALLOC_COUNT)
+    message(STATUS "mimalloc enabled, disabling malloc count")
+    set(ENABLE_MALLOC_COUNT FALSE)
+endif()
+
+
 if (ENABLE_MALLOC_COUNT)
     message(STATUS "Using malloc_count")
     set(MALLOC_COUNT_LIBRARIES malloc_count)
@@ -281,7 +293,7 @@ else()
     set(MALLOC_COUNT_LIBRARIES "")
 endif()
 
-set(PFP_LIBS ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES})
+set(PFP_LIBS ${VCF_LIB_DEPS} ${OMP_LIBRARIES} ${MALLOC_COUNT_LIBRARIES} ${MIMALLOC_D_LIB})
 
 ################################################################################
 # Tests
@@ -303,6 +315,7 @@ if (BUILD_TESTS OR ${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_executable(pfp_benchmarks benchmarks/kr_hash.cpp)
     target_link_libraries(pfp_benchmarks pfp ${PFP_LIBS})
 endif()
+
 ################################################################################
 # Tools
 
