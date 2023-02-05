@@ -243,9 +243,13 @@ endif()
 
 # MiMalloc
 find_package(mimalloc)
-if (mimalloc_FOUND AND ENABLE_MIMALLOC)
-    message(STATUS "Found mimalloc. It will be dynamically linked.")
-    set(MIMALLOC_D_LIB mimalloc)
+if (ENABLE_MIMALLOC)
+    if (mimalloc_FOUND)
+        message(STATUS "Found mimalloc. It will be dynamically linked.")
+        set(MIMALLOC_D_LIB mimalloc)
+    else()
+        message(STATUS "Could not find mimalloc.")
+    endif()
 endif()
 
 ################################################################################
