@@ -242,13 +242,21 @@ else()
 endif()
 
 # MiMalloc
-find_package(mimalloc)
 if (ENABLE_MIMALLOC)
-    if (mimalloc_FOUND)
-        message(STATUS "Found mimalloc. It will be dynamically linked.")
+    set(MI_BUILD_STATIC OFF)
+    set(MI_BUILD_OBJECT OFF)
+    set(MI_BUILD_TESTS  OFF)
+    FetchContent_Declare(
+            mimalloc
+            GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+            GIT_TAG        v2.0.9
+    )
+    # Making available only if building tests
+    FetchContent_GetProperties(mimalloc)
+    if (NOT mimalloc_POPULATED)
+        FetchContent_MakeAvailable(mimalloc)
+        message(STATUS "Building mimalloc. It will be dynamically linked.")
         set(MIMALLOC_D_LIB mimalloc)
-    else()
-        message(STATUS "Could not find mimalloc.")
     endif()
 endif()
 
