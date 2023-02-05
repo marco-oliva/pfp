@@ -1,12 +1,9 @@
 # Get the base Ubuntu image from Docker Hub
 FROM ubuntu:20.04
 
-# Update apps on the base image
-RUN apt-get -y update
-
 # Install GCC and dependencies
-RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
-RUN apt-get update \
+RUN apt-get -y update \
+    && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata \
     && apt-get install -y wget bzip2 autoconf automake make cmake gcc g++ perl zlib1g-dev libbz2-dev liblzma-dev \
     libcurl4-gnutls-dev libssl-dev libncurses5-dev
 
