@@ -24,5 +24,15 @@ RUN cmake -DENABLE_MIMALLOC=ON .. \
 
 # Get binaries
 WORKDIR /pfp/bin
-RUN cp /usr/src/pfp/build/pfp++ /usr/src/pfp/build/pfp++64 .
+RUN cp \
+    /usr/src/pfp/build/pfp++ \
+    /usr/src/pfp/build/pfp++64 \
+    /usr/src/pfp/build/vcf_to_fa \
+    /usr/src/pfp/build/mpfp++ \
+    /usr/src/pfp/build/mpfp++64 \
+    /usr/src/pfp/build/check \
+    /usr/src/pfp/build/check64 \
+    /usr/src/pfp/build/exprop \
+    /usr/src/pfp/build/exprop64  \
+    .
 ENV PATH /pfp/bin:$PATH
