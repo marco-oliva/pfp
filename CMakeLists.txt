@@ -14,11 +14,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 ################################################################################
 # Options
 
-option(ENABLE_MALLOC_COUNT "Keep track of allocations with malloc_count." OFF)
-option(ENABLE_MIMALLOC "Use mimalloc if installed/" OFF)
-option(BUILD_TESTS "Build unit test." OFF)
-option(HTSlib_HIPERGATOR "Use hipergator default location for htslib." OFF)
-option(HTSlib_CUSTOM "Use custom location for htslib." OFF)
+option(ENABLE_MALLOC_COUNT "Keep track of allocations with malloc_count."   OFF)
+option(ENABLE_MIMALLOC "Use mimalloc if installed/"                         OFF)
+option(BUILD_TESTS "Build unit test."                                       OFF)
+option(HTSlib_HIPERGATOR "Use hipergator default location for htslib."      OFF)
+option(HTSlib_CUSTOM "Use custom location for htslib."                      OFF)
 
 ################################################################################
 # Set a default build type if none was specified
