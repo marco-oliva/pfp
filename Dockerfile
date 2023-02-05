@@ -4,7 +4,7 @@ FROM ubuntu:20.04
 # Install GCC and dependencies
 RUN apt-get -y update \
     && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata \
-    && apt-get install -y wget bzip2 autoconf automake make cmake gcc g++ perl zlib1g-dev libbz2-dev liblzma-dev \
+    && apt-get install -y git wget bzip2 autoconf automake make cmake gcc g++ perl zlib1g-dev libbz2-dev liblzma-dev \
     libcurl4-gnutls-dev libssl-dev libncurses5-dev
 
 WORKDIR /usr/src/
