@@ -676,6 +676,9 @@ public:
         std::string parse_path = this->pfp_prefix + EXT::PARSE;
         std::string dict_path = this->pfp_prefix + EXT::DICT;
         
+        if (not (params.output_occurrences or params.output_last or params.output_sai or params.compress_dictionary))
+        { spdlog::info("No properties requested."); return; }
+        
         // read in dictionary
         spdlog::info("Loading dictionary from disk.");
         std::vector<std::vector<data_type>> dictionary;
