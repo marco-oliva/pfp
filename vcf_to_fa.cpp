@@ -47,7 +47,6 @@ int main(int argc, char **argv)
     spdlog::info("Current Configuration:\n{}", app.config_to_str(true,true));
     
     // Parse the VCF
-    // Parse the VCF
     vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, max_samples);
 
     // Generate fasta file, reference first

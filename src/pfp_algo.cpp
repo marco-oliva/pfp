@@ -11,11 +11,6 @@
 void
 vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
 {
-    if (params.ignore_ts_file.size() > 0)
-    {
-        spdlog::info("Not Impelmented!!!");
-    }
-    
     std::vector<vcfbwt::char_type> phrase;
     spdlog::info("Parsing reference");
     
@@ -50,7 +45,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     if (phrase.size() > this->params.w)
     {
         // Append w-1 dollar prime and 1 dollar sequence at the end, reference as the first sample
-        for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
+        for (std::size_t j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
         phrase.emplace_back(DOLLAR_SEQUENCE);
     
         hash_type hash = this->dictionary.check_and_add(phrase);
@@ -91,7 +86,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     Mersenne_KarpRabinHash kr_hash(this->params.w);
     
     // Every sample starts with w-1 dollar prime and one dollar seq
-    for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
+    for (std::size_t j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
     phrase.emplace_back(DOLLAR_SEQUENCE);
     kr_hash.initialize(phrase.data(), params.w);
     
@@ -299,7 +294,7 @@ vcfbwt::pfp::ParserVCF::close()
         std::string dict_file_name = out_file_prefix + EXT::DICT;
         std::ofstream dict(dict_file_name);
     
-        for (size_type i = 0; i < this->dictionary->size(); i++)
+        for (std::size_t i = 0; i < this->dictionary->size(); i++)
         {
             dict.write((char*) this->dictionary->sorted_entry_at(i).data(), this->dictionary->sorted_entry_at(i).size());
             dict.put(ENDOFWORD);
@@ -365,7 +360,7 @@ vcfbwt::pfp::ParserFasta::operator()()
         if (phrase[0] != DOLLAR and phrase.size() >= this->params.w)
         {
             // Append w-1 dollar prime, and one dollar seq at the end of each sequence
-            for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
+            for (std::size_t j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
             phrase.emplace_back(DOLLAR_SEQUENCE);
     
             hash_type hash = this->dictionary.check_and_add(phrase);
@@ -374,7 +369,7 @@ vcfbwt::pfp::ParserFasta::operator()()
     
             // Reset phrase
             phrase.clear();
-            for (size_type j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
+            for (std::size_t j = 0; j < this->params.w - 1; j++) { phrase.emplace_back(DOLLAR_PRIME); }
             phrase.emplace_back(DOLLAR_SEQUENCE);
             kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
         }
@@ -457,7 +452,7 @@ vcfbwt::pfp::ParserFasta::close()
     std::string dict_file_name = out_file_prefix + EXT::DICT;
     std::ofstream dict(dict_file_name);
     
-    for (size_type i = 0; i < this->dictionary.size(); i++)
+    for (std::size_t i = 0; i < this->dictionary.size(); i++)
     {
         dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size());
         dict.put(ENDOFWORD);
@@ -581,7 +576,7 @@ vcfbwt::pfp::ParserText::close()
     std::string dict_file_name = out_file_prefix + EXT::DICT;
     std::ofstream dict(dict_file_name);
     
-    for (size_type i = 0; i < this->dictionary.size(); i++)
+    for (std::size_t i = 0; i < this->dictionary.size(); i++)
     {
         dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size());
         dict.put(ENDOFWORD);
@@ -708,7 +703,7 @@ vcfbwt::pfp::ParserIntegers::close()
     std::string dict_file_name = out_file_prefix + EXT::DICT;
     std::ofstream dict(dict_file_name);
 
-    for (size_type i = 0; i < this->dictionary.size(); i++)
+    for (std::size_t i = 0; i < this->dictionary.size(); i++)
     {
         dict.write((char*) this->dictionary.sorted_entry_at(i).data(), this->dictionary.sorted_entry_at(i).size() * sizeof(uint32_t));
         uint32_t eow = ENDOFWORD;

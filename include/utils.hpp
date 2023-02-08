@@ -137,7 +137,7 @@ string_hash(const char* s, std::size_t size)
 class KarpRabinHash
 {
 public:
-    KarpRabinHash(size_type n, bool debug = false);
+    KarpRabinHash(std::size_t n, bool debug = false);
     
     void initialize(const char_type* data, std::size_t length);
     
@@ -153,7 +153,7 @@ private:
     hash_type constant;
     hash_type prime;
     hash_type constant_to_n_minus_one_mod;
-    size_type window_length;
+    std::size_t window_length;
     hash_type hash_value = 0;
     bool debug_ = false;
     std::string debug_content_;
@@ -168,7 +168,7 @@ public:
 class KarpRabinHash4
 {
 public:
-    KarpRabinHash4(size_type n, bool debug = false);
+    KarpRabinHash4(std::size_t n, bool debug = false);
     
     void initialize(const char_type* data, std::size_t length);
     void update(const char_type* chars_out, const char_type* chars_in);
@@ -183,8 +183,8 @@ private:
     hash_type constant;
     hash_type prime;
     hash_type constant_to_n_minus_one_mod;
-    size_type window_length;
-    size_type window_length_32;
+    std::size_t window_length;
+    std::size_t window_length_32;
     hash_type hash_value = 0;
     bool debug_ = false;
     std::string debug_content_;
@@ -210,7 +210,7 @@ mersenne_modulo(uint64_t lo, uint64_t hi, uint64_t prime, uint64_t p_pow)
 class Mersenne_KarpRabinHash
 {
 public:
-    Mersenne_KarpRabinHash(size_type n, bool debug = false);
+    Mersenne_KarpRabinHash(std::size_t n, bool debug = false);
 
     void initialize(const char_type* data, std::size_t length);
     void update(const char_type char_out, const char_type char_in);
@@ -221,8 +221,8 @@ public:
 private:
 
     hash_type constant_to_n_minus_one_mod;
-    size_type window_length;
-    size_type window_length_32;
+    std::size_t window_length;
+    std::size_t window_length_32;
     hash_type hash_value = 0;
     bool debug_ = false;
     std::string debug_content_;
@@ -238,7 +238,7 @@ public:
 class Mersenne_KarpRabinHash4
 {
 public:
-    Mersenne_KarpRabinHash4(size_type n, bool debug = false);
+    Mersenne_KarpRabinHash4(std::size_t n, bool debug = false);
 
     void initialize(const char_type* data, std::size_t length);
     void update(const char_type* chars_out, const char_type* chars_in);
@@ -249,8 +249,8 @@ public:
 private:
 
     hash_type constant_to_n_minus_one_mod;
-    size_type window_length;
-    size_type window_length_32;
+    std::size_t window_length;
+    std::size_t window_length_32;
     hash_type hash_value = 0;
     bool debug_ = false;
     std::string debug_content_;
