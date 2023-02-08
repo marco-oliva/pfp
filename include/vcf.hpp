@@ -72,7 +72,7 @@ public:
     Sample(const std::string& id, const std::string& ref, const std::vector<Variation>& variations)
     : sample_id(id), reference_(ref), variations_list(variations) {}
     
-    const Variation& get_variation(size_type i) const { return this->variations_list[variations[i]]; }
+    const Variation& get_variation(std::size_t i) const { return this->variations_list[variations[i]]; }
     
     const std::string& get_reference() const { return this->reference_; }
     

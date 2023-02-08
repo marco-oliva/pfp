@@ -40,7 +40,7 @@ class Dictionary
 {
 public:
 
-    vcfbwt::size_type insertions_safe_guard = 1000;
+    std::size_t insertions_safe_guard = 1000;
 
     std::mutex dictionary_mutex;
 
@@ -179,7 +179,6 @@ struct Params
     bool output_occurrences = false;
     bool output_sai = false;
     bool output_last = false;
-    std::string ignore_ts_file;
     uint32_t integers_shift = 10;
 };
 
@@ -197,14 +196,13 @@ public :
     Dictionary<vcfbwt::char_type> dictionary;
     std::vector<hash_type> parse;
     std::vector<std::size_t> trigger_strings_position; // position of first char of each trigger string
-    std::set<hash_type> to_ignore_ts_hash;
     
     const Params& params;
     
     void init(const std::string& reference);
     
     ReferenceParse(const std::string& reference, const Params& pms) : params(pms) { this->init(reference); }
-    const hash_type& operator[](size_type i) const { return this->parse[i]; }
+    const hash_type& operator[](std::size_t i) const { return this->parse[i]; }
 };
 
 // Create a parse on disk
@@ -228,7 +226,7 @@ private:
     // Shorthands
     hash_type w = params.w, p = params.p;
     std::size_t parse_size = 0;
-    size_type tags;
+    std::size_t tags;
     
     bool closed = false;
     
@@ -260,7 +258,7 @@ public:
     ~ParserVCF()
     {
         close();
-        size_type total_length = 0;
+        std::size_t total_length = 0;
         for (auto& entry : dictionary->hash_string_map) { total_length += entry.second.phrase.size(); }
     
         // Fill out statistics
@@ -335,7 +333,7 @@ public:
     ~ParserFasta()
     {
         close();
-        size_type total_length = 0;
+        std::size_t total_length = 0;
         for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size(); }
         
         // Fill out statistics
@@ -407,7 +405,7 @@ public:
     ~ParserText()
     {
         close();
-        size_type total_length = 0;
+        std::size_t total_length = 0;
         for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size(); }
         
         // Fill out statistics
@@ -480,7 +478,7 @@ public:
     ~ParserIntegers()
     {
         close();
-        size_type total_length = 0;
+        std::size_t total_length = 0;
         for (auto& entry : dictionary.hash_string_map) { total_length += entry.second.phrase.size() * sizeof(int32_t); }
 
         // Fill out statistics
@@ -691,7 +689,7 @@ public:
             std::ofstream dicz(this->pfp_prefix + EXT::DICT_COMPRESSED);
             std::ofstream lengths(this->pfp_prefix + EXT::DICT_COMPRESSED_LENGTHS);
             
-            for (size_type i = 0; i < dictionary.size(); i++)
+            for (std::size_t i = 0; i < dictionary.size(); i++)
             {
                 std::size_t shift = 1; // skip dollar on first phrase
                 if (i != 0) { shift = this->params.w; }

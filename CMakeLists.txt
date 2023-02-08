@@ -251,7 +251,6 @@ if (ENABLE_MIMALLOC)
             GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
             GIT_TAG        v2.0.9
     )
-    # Making available only if building tests
     FetchContent_GetProperties(mimalloc)
     if (NOT mimalloc_POPULATED)
         FetchContent_MakeAvailable(mimalloc)

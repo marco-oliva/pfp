@@ -23,7 +23,7 @@ modular_pow(vcfbwt::hash_type base, vcfbwt::hash_type exponent, vcfbwt::hash_typ
 }
 
 
-vcfbwt::KarpRabinHash::KarpRabinHash(size_type n, bool debug) : window_length(n), debug_(debug)
+vcfbwt::KarpRabinHash::KarpRabinHash(std::size_t n, bool debug) : window_length(n), debug_(debug)
 {
     this->constant = kr_constant;
     this->prime = kr_prime;
@@ -64,7 +64,7 @@ vcfbwt::KarpRabinHash::string_hash(const char_type* data, std::size_t length)
 {
     hash_type result = 0;
 
-    for (size_type i = 0; i < length; i++)
+    for (std::size_t i = 0; i < length; i++)
     {
         char_type c = data[length - 1 - i];
         result += c * modular_pow(kr_constant, i, kr_prime);
@@ -76,7 +76,7 @@ vcfbwt::KarpRabinHash::string_hash(const char_type* data, std::size_t length)
 
 //------------------------------------------------------------------------------
 
-vcfbwt::KarpRabinHash4::KarpRabinHash4(size_type n, bool debug) : window_length(n), debug_(debug)
+vcfbwt::KarpRabinHash4::KarpRabinHash4(std::size_t n, bool debug) : window_length(n), debug_(debug)
 {
     this->window_length_32 = window_length / 4;
     this->constant = kr_constant;
@@ -94,7 +94,7 @@ vcfbwt::KarpRabinHash4::initialize(const char_type* data, std::size_t length)
     constant_to_n_minus_one_mod = modular_pow(constant, window_length_32 - 1, prime);
 
     uint32_t* string32 = (uint32_t*) data;
-    for (size_type i = 0; i < this->window_length_32; i++) // window always multiple of 4
+    for (std::size_t i = 0; i < this->window_length_32; i++) // window always multiple of 4
     {
         hash_value += string32[i] * modular_pow(constant, i, prime);
         hash_value = hash_value % prime;
@@ -106,7 +106,7 @@ vcfbwt::KarpRabinHash4::update(const vcfbwt::char_type* chars_out, const vcfbwt:
 {
     if (debug_)
     {
-        for (size_type  i = 0; i < 4; i++) { assert(debug_content_[i] == chars_out[i]); }
+        for (std::size_t  i = 0; i < 4; i++) { assert(debug_content_[i] == chars_out[i]); }
         debug_content_.erase(0, 4);
         debug_content_.append((char*) chars_in, 4);
     }
@@ -123,7 +123,7 @@ vcfbwt::KarpRabinHash4::string_hash(const char_type* data, std::size_t length)
 {
     hash_type result = 0;
     uint32_t* string32 = (uint32_t*) data;
-    for (size_type i = 0; i < length / 4; i++) // window always multiple of 4
+    for (std::size_t i = 0; i < length / 4; i++) // window always multiple of 4
     {
         result += string32[i] * modular_pow(kr_constant, i, kr_prime);
         result = result % kr_prime;
@@ -134,7 +134,7 @@ vcfbwt::KarpRabinHash4::string_hash(const char_type* data, std::size_t length)
 
 //------------------------------------------------------------------------------
 
-vcfbwt::Mersenne_KarpRabinHash::Mersenne_KarpRabinHash(size_type n, bool debug) : window_length(n), debug_(debug)
+vcfbwt::Mersenne_KarpRabinHash::Mersenne_KarpRabinHash(std::size_t n, bool debug) : window_length(n), debug_(debug)
 {
     this->constant_to_n_minus_one_mod = modular_pow(kr_base, window_length - 1, kr_prime);
 }
@@ -148,7 +148,7 @@ vcfbwt::Mersenne_KarpRabinHash::initialize(const char_type* data, std::size_t le
     if (debug_) { debug_content_ = std::string((char*) data, length); }
 
     hash_type h = 0;
-    for (size_type i = 0; i < this->window_length; i++) // window always multiple of 4
+    for (std::size_t i = 0; i < this->window_length; i++) // window always multiple of 4
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) data[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
@@ -179,7 +179,7 @@ vcfbwt::hash_type
 vcfbwt::Mersenne_KarpRabinHash::string_hash(const char_type* data, std::size_t length)
 {
     hash_type h = 0; //not 0!
-    for (size_type i = 0; i < length; i++) // window always multiple of 4
+    for (std::size_t i = 0; i < length; i++) // window always multiple of 4
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + (char_type) data[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
@@ -190,7 +190,7 @@ vcfbwt::Mersenne_KarpRabinHash::string_hash(const char_type* data, std::size_t l
 
 //------------------------------------------------------------------------------
 
-vcfbwt::Mersenne_KarpRabinHash4::Mersenne_KarpRabinHash4(size_type n, bool debug) : window_length(n), debug_(debug)
+vcfbwt::Mersenne_KarpRabinHash4::Mersenne_KarpRabinHash4(std::size_t n, bool debug) : window_length(n), debug_(debug)
 {
     assert(this->window_length % 4 == 0 and this->window_length >= 4);
     this->window_length_32 = window_length / 4;
@@ -208,7 +208,7 @@ vcfbwt::Mersenne_KarpRabinHash4::initialize(const char_type* data, std::size_t l
 
     uint32_t* s32c_ins = (uint32_t*) data;
     hash_type h = 0;
-    for (size_type i = 0; i < this->window_length_32; i++) // window always multiple of 4
+    for (std::size_t i = 0; i < this->window_length_32; i++) // window always multiple of 4
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + s32c_ins[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
@@ -222,7 +222,7 @@ vcfbwt::Mersenne_KarpRabinHash4::update(const vcfbwt::char_type* chars_out, cons
 {
     if (debug_)
     {
-        for (size_type  i = 0; i < 4; i++) { assert(debug_content_[i] == chars_out[i]); }
+        for (std::size_t  i = 0; i < 4; i++) { assert(debug_content_[i] == chars_out[i]); }
         debug_content_.erase(0, 4);
         debug_content_.append((char*) chars_in, 4); // this goes byte by byte
     }
@@ -248,7 +248,7 @@ vcfbwt::Mersenne_KarpRabinHash4::string_hash(const char_type* data, std::size_t 
 {
     uint32_t* string32 = (uint32_t*) data;
     hash_type h = 0;
-    for (size_type i = 0; i < length / 4; i++) // window always multiple of 4
+    for (std::size_t i = 0; i < length / 4; i++) // window always multiple of 4
     {
         unsigned __int128 hc = (unsigned __int128)h*kr_base + string32[i]; //x64 compilers generate standard mul instruction
         hash_type lo = (hash_type)hc, hi = (hash_type)(hc >> 64);
