@@ -13,7 +13,7 @@ Symbolic alleles are currently not supported, e.g. `<CN1>`.
 PFP is available on `bioconda`:
 
 ```bash
-conda install -c bioconda pfp
+conda install -c bioconda -c conda-forge pfp
 pfp++ --help
 ```
 
