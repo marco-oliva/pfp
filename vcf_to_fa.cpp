@@ -85,7 +85,7 @@ int main(int argc, char **argv)
             samples.put('\n');
     
             // second haplotype
-            vcfbwt::Sample::iterator it_h2(vcf[i], 0);
+            vcfbwt::Sample::iterator it_h2(vcf[i], 1);
             std::string sample_h2;
             while (not it_h2.end()) { sample_h2.push_back(*it_h2); ++it_h2; }
             samples << "> " + vcf[i].id() + "H2 \n";
