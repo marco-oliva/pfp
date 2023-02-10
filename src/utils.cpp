@@ -39,7 +39,6 @@ vcfbwt::KarpRabinHash::initialize(const char_type* data, std::size_t length)
     
     constant_to_n_minus_one_mod = modular_pow(constant, window_length - 1, prime);
     
-    assert(window.size() == this->window_length);
     for (hash_type i = 0; i < this->window_length; i++)
     {
         char_type c = data[length - 1 - i];

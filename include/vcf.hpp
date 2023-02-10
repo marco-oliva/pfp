@@ -39,6 +39,7 @@ struct Variation
     std::size_t pos = 0; // already adjusted when read from the vcf by htslib. No need of -1
     std::size_t ref_len = 0;
     std::vector<std::string> alt;
+    std::vector<int> types;
     
     double freq = 0.0;
     bool used = false;
