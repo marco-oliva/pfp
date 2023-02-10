@@ -264,6 +264,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         for (int allele_idx = 0; allele_idx < rec->n_allele; allele_idx++)
         {
             var.alt.push_back(rec->d.allele[allele_idx]);
+            var.types.push_back(rec->d.var[allele_idx].type);
         }
         
         int32_t *gt_arr = NULL, ngt_arr = 0;
