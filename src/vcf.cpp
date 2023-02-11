@@ -22,7 +22,7 @@ curr_char_(NULL), sample_length_(sample.reference_.size())
     for (std::size_t i = 0; i < this->sample_.variations.size(); i++)
     {
         std::size_t var_id = this->sample_.variations[i];
-        int var_genotype = this->sample_.genotypes[i][this->genotype];
+        int var_genotype = this->sample_.genotypes[i].at(this->genotype);
         if (var_genotype != 0)
         {
             indels += sample_.variations_list[var_id].alt[var_genotype].size() -
@@ -31,7 +31,7 @@ curr_char_(NULL), sample_length_(sample.reference_.size())
         
     }
     sample_length_ = sample_length_ + indels;
-    while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+    while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_].at(genotype) == 0)
     { var_it_++; }
     this->operator++();
 }
@@ -84,7 +84,7 @@ vcfbwt::Sample::iterator::operator++()
         }
         
         // Più nucleotidi nella variaizione
-        int var_genotype = sample_.genotypes[var_it_][genotype];
+        int var_genotype = sample_.genotypes[var_it_].at(genotype);
         // Handling same position insertions see bcftools consensus:
         // https://github.com/samtools/bcftools/blob/df43fd4781298e961efc951ba33fc4cdcc165a19/consensus.c#L723
         int gap = ref_it_ - curr_variation.pos;
@@ -124,7 +124,7 @@ vcfbwt::Sample::iterator::operator++()
         {
             prev_variation_it = var_it_;
             var_it_++;
-            while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_][genotype] == 0)
+            while (var_it_ < sample_.variations.size() and sample_.genotypes[var_it_].at(genotype) == 0)
             {
                 var_it_++;
             }
