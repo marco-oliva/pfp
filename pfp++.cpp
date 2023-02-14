@@ -45,12 +45,13 @@ int main(int argc, char **argv)
     app.add_option("-p, --modulo", params.p, "Modulo used during parsing.")->check(CLI::Range(5, 20000))->configurable();
     app.add_option("-j, --threads", threads, "Number of threads.")->configurable();
     app.add_option("--tmp-dir", tmp_dir, "Temporary files directory.")->check(CLI::ExistingDirectory)->configurable();
-    app.add_flag("-c, --compression", params.compress_dictionary, "Also output compressed the dictionary.")->configurable();
-    app.add_flag("--use-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing.")->configurable();
+    app.add_flag("-c, --compress-dictionary", params.compress_dictionary, "Also output compressed the dictionary.")->configurable();
+    app.add_flag("--use-vcf-acceleration", params.use_acceleration, "Use reference parse to avoid re-parsing.")->configurable();
     app.add_flag("--print-statistics", params.print_out_statistics_csv, "Print out csv containing stats.")->configurable();
     app.add_flag("--output-occurrences", params.output_occurrences, "Output count for each dictionary phrase.")->configurable();
     app.add_flag("--output-sai", params.output_sai, "Output sai array.")->configurable();
     app.add_flag("--output-last", params.output_last, "Output last array.")->configurable();
+    app.add_flag("--vcf-acgt-only", params.vcf_acgt_only, "Convert all non ACGT characters from a VCF to N.")->configurable();
     app.add_flag("--verbose", verbose, "Verbose output.")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version number.");
     app.set_config("--configure");

@@ -55,14 +55,14 @@ PFP++
 Usage: pfp++ [OPTIONS]
 
 Options:
-  -h,--help                   Print this help message and exit
+  -h,--help                   Print this help message and exit.
   -v,--vcf TEXT ...           List of comma ',' separated vcf files. Assuming in genome order!
   -r,--ref TEXT ...           List of comma ',' separated reference files. Assuming in genome order!
   -f,--fasta TEXT:FILE        Fasta file to parse.
   -i,--int32t TEXT:FILE       Integers file to parse.
-  --int-shift INT:INT in [0 - 200]
+  --int-shift UINT:INT in [0 - 200]
                               Each integer i in int32t input is interpreted as (i + int-shift).
-  -H,--haplotype TEXT         Haplotype. [1,2,12]
+  -H,--haplotype TEXT         Haplotype: [1,2,12].
   -t,--text TEXT:FILE         Text file to parse.
   -o,--out-prefix TEXT        Output prefix.
   -m,--max UINT               Max number of samples to analyze.
@@ -70,12 +70,16 @@ Options:
   -w,--window-size UINT:INT in [3 - 200]
                               Sliding window size.
   -p,--modulo UINT:INT in [5 - 20000]
-                              Modulo used during parisng.
+                              Modulo used during parsing.
   -j,--threads UINT           Number of threads.
   --tmp-dir TEXT:DIR          Temporary files directory.
-  -c,--compression            Also output compressed the dictionary.
-  --use-acceleration          Use reference parse to avoid re-parsing.
+  -c,--compress-dictionary    Also output compressed the dictionary.
+  --use-vcf-acceleration      Use reference parse to avoid re-parsing.
   --print-statistics          Print out csv containing stats.
+  --output-occurrences        Output count for each dictionary phrase.
+  --output-sai                Output sai array.
+  --output-last               Output last array.
+  --vcf-acgt-only             Convert all non ACGT characters from a VCF to N.
   --verbose                   Verbose output.
   --version                   Version number.
   --configure                 Read an ini file.
