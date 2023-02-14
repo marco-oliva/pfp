@@ -23,6 +23,8 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     for (std::size_t ref_it = 0; ref_it < reference.size(); ref_it++)
     {
         char c = reference[ref_it];
+    
+        if (params.vcf_acgt_only) c = acgt_only_table[c];
         
         phrase.push_back(c);
         if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
@@ -127,7 +129,12 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                     // move iterators and re-initialize phrase
                     sample_iterator.go_to(tsp[end_window]);
                     phrase.clear();
-                    for (std::size_t i = 0; i < this->w; i++) { ++sample_iterator; phrase.push_back(*sample_iterator);}
+                    for (std::size_t i = 0; i < this->w; i++)
+                    {
+                        ++sample_iterator;
+                        char next_char  = (params.vcf_acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
+                        phrase.push_back(next_char);
+                    }
                     
                     kr_hash.reset(); kr_hash.initialize(phrase.data(), params.w);
                     
@@ -140,7 +147,8 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         
         // Next phrase should contain a variation so parse as normal, also if we don't
         // want to use the acceleration we should always end up here
-        phrase.push_back(*sample_iterator);
+        char next_char  = (params.vcf_acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
+        phrase.push_back(next_char);
         kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]);
         ++sample_iterator;
     

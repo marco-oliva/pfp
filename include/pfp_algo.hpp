@@ -175,6 +175,7 @@ struct Params
     hash_type w =  10;
     bool compress_dictionary = false;
     bool use_acceleration = false;
+    bool vcf_acgt_only = false;
     bool print_out_statistics_csv = false;
     bool output_occurrences = false;
     bool output_sai = false;
