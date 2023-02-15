@@ -255,8 +255,8 @@ if (ENABLE_MIMALLOC)
     if (NOT mimalloc_POPULATED)
         FetchContent_MakeAvailable(mimalloc)
         message(STATUS "Building mimalloc. It will be dynamically linked.")
-        set(MIMALLOC_D_LIB mimalloc)
     endif()
+    set(MIMALLOC_D_LIB mimalloc)
 endif()
 
 ################################################################################
