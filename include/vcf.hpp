@@ -1,8 +1,6 @@
 //
 //  vcf.hpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #ifndef vcf_hpp
 #define vcf_hpp

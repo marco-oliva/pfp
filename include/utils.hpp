@@ -1,8 +1,6 @@
 //
 //  utils.hpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #ifndef utils_hpp
 #define utils_hpp
@@ -23,6 +21,7 @@
 #include <forward_list>
 #include <unordered_map>
 #include <cstring>
+#include <string_view>
 
 #include <unistd.h>
 #include <cmath>
