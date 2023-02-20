@@ -180,19 +180,40 @@ vcfbwt::VCF::init_samples(const std::string& samples_path)
 void
 vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
 {
-    spdlog::info("Reading reference file: {}", ref_path);
+    
+    spdlog::info("Reading reference file with kseq: {}", ref_path);
     std::ifstream in_stream(ref_path);
     if (not is_gzipped(in_stream))
     {
         spdlog::error("Reference file expected gzip compressed");
         std::exit(EXIT_FAILURE);
     }
+    in_stream.close();
     
-    zstr::istream is(in_stream);
-    std::string line;
+    // Open kseq structures
+    gzFile fp; fp = gzopen(ref_path.c_str(), "r");
+    kseq_t *seq; int l = 0;
     
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { reference.append(line); } }
-    if (not last) { reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); }
+    // Read reference contigs
+    seq = kseq_init(fp);
+    if ((l = kseq_read(seq)) >= 0)
+    {
+        this->reference.append(seq->seq.s);
+        if (not last) { reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); }
+    }
+    else { spdlog::error("Error while reading {}"); std::exit(EXIT_FAILURE); }
+    
+    // Ignore rest of contigs
+    if ((l = kseq_read(seq)) >= 0)
+    {
+        spdlog::error("{} contains more than one sequence. Malformed input."); std::exit(EXIT_FAILURE);
+    }
+    
+    // Close kseq structures
+    kseq_destroy(seq);
+    gzclose(fp);
+    
+    spdlog::info("Done reading {}", ref_path);
 
     ref_sum_lengths.push_back(reference.size());
 
@@ -274,8 +295,8 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
             int max_ploidy = ngt/n_samples;
             while (max_ploidy > tppos.size())
             {
-                tppos.push_back(std::vector<int>(n_samples,0));
-                prev_is_ins.push_back(std::vector<bool>(n_samples,false));
+                tppos.emplace_back(n_samples,0);
+                prev_is_ins.emplace_back(n_samples,false);
             }
             bool skip_this_variation = false;
             for (std::size_t i_s = 0; i_s < n_samples; i_s++)
@@ -306,18 +327,23 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         // For some variant types POS+REF refer to the base *before* the event; in such case set trim_beg
                         int trim_beg = 0;
                         int var_len  = rec->d.var[allele_index].n;
-                        if ( var_type & VCF_INDEL ) trim_beg = 1;
-                        else if ( (var_type & VCF_OTHER) && !strcasecmp(rec->d.allele[allele_index],"<DEL>") ) {
+                        if ( var_type & VCF_INDEL ) { trim_beg = 1; }
+                        else if ( (var_type & VCF_OTHER) && !strcasecmp(rec->d.allele[allele_index],"<DEL>") )
+                        {
                             trim_beg = 1;
                             var_len  = 1 - var.ref_len;
                         }
                         else if ( (var_type & VCF_OTHER) && !strncasecmp(rec->d.allele[allele_index],"<INS",4) )
+                        {
                             trim_beg = 1;
+                        }
 
-                        if (rec->pos <= tppos[j][i_s]) {
+                        if (rec->pos <= tppos[j][i_s])
+                        {
                             int overlap = 0;
-                            if ( rec->pos < tppos[j][i_s] || !trim_beg || var_len==0 || prev_is_ins[j][i_s] ) overlap = 1;
-                            if (overlap) {
+                            if ( rec->pos < tppos[j][i_s] || !trim_beg || var_len==0 || prev_is_ins[j][i_s] ) { overlap = 1; }
+                            if (overlap)
+                            {
                                 spdlog::debug("vcfbwt::VCF::init_vcf: Skipping overlapping variantat sample {} in pos {}", i_s, var.pos);
                                 continue;
                             }
@@ -367,7 +393,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     // Compute normalized variations frequency
     std::size_t number_of_samples = 0;
-    for (auto& s : l_samples) { if (s.variations.size() > 0) { number_of_samples += 1; } }
+    for (auto& s : l_samples) { if (not s.variations.empty()) { number_of_samples += 1; } }
     for (auto& v : l_variations) { v.freq = v.freq / double(number_of_samples); }
     
     // print some statistics
