@@ -213,8 +213,6 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
     kseq_destroy(seq);
     gzclose(fp);
     
-    spdlog::info("Done reading {}", ref_path);
-
     ref_sum_lengths.push_back(reference.size());
 
     spdlog::info("Done reading {}", ref_path);
