@@ -1,8 +1,6 @@
 //
 //  utils.cpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 
 #include <utils.hpp>

@@ -1,8 +1,6 @@
 //
 //  version.hpp.in
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #ifndef version_hpp
 #define version_hpp

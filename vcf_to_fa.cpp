@@ -1,8 +1,6 @@
 //
 //  vcf_to_fa.cpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #include <CLI/CLI.hpp>
 #include <version.hpp>

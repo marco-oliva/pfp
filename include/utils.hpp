@@ -1,8 +1,6 @@
 //
 //  utils.hpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #ifndef utils_hpp
 #define utils_hpp

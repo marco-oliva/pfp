@@ -1,8 +1,6 @@
 //
 //  vcf.cpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #include <vcf.hpp>
 #include <pfp_algo.hpp>

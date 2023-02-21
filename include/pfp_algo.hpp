@@ -1,8 +1,6 @@
 //
 //  pfp_algo.hpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #ifndef pfp_algo_hpp
 #define pfp_algo_hpp
