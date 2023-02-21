@@ -22,7 +22,12 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     {
         char c = reference[ref_it];
     
-        if (params.acgt_only) c = acgt_only_table[c];
+        if (c <= DOLLAR_PRIME)
+        {
+            spdlog::error("Input may not contain bytes with integer value less than or equal to 5!");
+            std::exit(EXIT_FAILURE);
+        }
+        if (params.acgt_only) { c = acgt_only_table[c]; }
         
         phrase.push_back(c);
         if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
@@ -146,6 +151,11 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         // Next phrase should contain a variation so parse as normal, also if we don't
         // want to use the acceleration we should always end up here
         char next_char  = (params.acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
+        if (next_char <= DOLLAR_PRIME)
+        {
+            spdlog::error("Input may not contain bytes with integer value less than or equal to 5!");
+            std::exit(EXIT_FAILURE);
+        }
         phrase.push_back(next_char);
         kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]);
         ++sample_iterator;
@@ -384,7 +394,12 @@ vcfbwt::pfp::ParserFasta::operator()()
         {
             char c = record->seq.s[seq_it];
     
-            if (params.acgt_only) c = acgt_only_table[c];
+            if (c <= DOLLAR_PRIME)
+            {
+                spdlog::error("Input may not contain bytes with integer value less than or equal to 5!");
+                std::exit(EXIT_FAILURE);
+            }
+            if (params.acgt_only) { c = acgt_only_table[c]; }
         
             phrase.push_back(c);
             if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
@@ -515,6 +530,12 @@ vcfbwt::pfp::ParserText::operator()()
     char c;
     while(gzread(fp, &c, 1) > 0)
     {
+        if (c <= DOLLAR_PRIME)
+        {
+            spdlog::error("Input may not contain bytes with integer value less than or equal to 5!");
+            std::exit(EXIT_FAILURE);
+        }
+        
         phrase.push_back(c);
         if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
         else if (phrase.size() > params.w) { kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]); }
