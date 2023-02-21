@@ -24,7 +24,7 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     {
         char c = reference[ref_it];
     
-        if (params.vcf_acgt_only) c = acgt_only_table[c];
+        if (params.acgt_only) c = acgt_only_table[c];
         
         phrase.push_back(c);
         if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }
@@ -132,7 +132,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
                     for (std::size_t i = 0; i < this->w; i++)
                     {
                         ++sample_iterator;
-                        char next_char  = (params.vcf_acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
+                        char next_char  = (params.acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
                         phrase.push_back(next_char);
                     }
                     
@@ -147,7 +147,7 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         
         // Next phrase should contain a variation so parse as normal, also if we don't
         // want to use the acceleration we should always end up here
-        char next_char  = (params.vcf_acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
+        char next_char  = (params.acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
         phrase.push_back(next_char);
         kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]);
         ++sample_iterator;
@@ -358,11 +358,11 @@ vcfbwt::pfp::ParserFasta::operator()()
     record = kseq_init(fp);
     while(kseq_read(record) >= 0)
     {
-        std::string sequence_name("<error reading sequence name>"), sequence_comment;
+        std::string sequence_name("<error reading sequence name>"), sequence_comment("<error reading sequence comment>");
         if (record->name.s != NULL) { sequence_name = record->name.s; }
         if (record->comment.s != NULL) { sequence_comment = record->comment.s; }
         this->sequences_processed.push_back(sequence_name + " " + sequence_comment);
-        spdlog::debug("Parsed:\t{}", sequence_name + " " + sequence_comment);
+        spdlog::info("Parsed:\t{}", sequence_name + " " + sequence_comment);
         
         // Previous last phrase
         if (phrase[0] != DOLLAR and phrase.size() >= this->params.w)
@@ -385,6 +385,8 @@ vcfbwt::pfp::ParserFasta::operator()()
         for (std::size_t seq_it = 0; seq_it < record->seq.l; seq_it++)
         {
             char c = record->seq.s[seq_it];
+    
+            if (params.acgt_only) c = acgt_only_table[c];
         
             phrase.push_back(c);
             if (phrase.size() == params.w) { kr_hash.initialize(phrase.data(), params.w); }

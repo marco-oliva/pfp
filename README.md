@@ -79,7 +79,7 @@ Options:
   --output-occurrences        Output count for each dictionary phrase.
   --output-sai                Output sai array.
   --output-last               Output last array.
-  --vcf-acgt-only             Convert all non ACGT characters from a VCF to N.
+  --acgt-only                 Convert all non ACGT characters from a VCF or FASTA file to N.
   --verbose                   Verbose output.
   --version                   Version number.
   --configure                 Read an ini file.
