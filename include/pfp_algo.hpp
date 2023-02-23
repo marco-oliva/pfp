@@ -692,7 +692,7 @@ public:
             {
                 std::size_t shift = 1; // skip dollar on first phrase
                 if (i != 0) { shift = this->params.w; }
-                dicz.write((char*) (dictionary[i].data() + shift),
+                dicz.write((char*) &(dictionary[i][shift]),
                            (dictionary[i].size() - shift) * sizeof(data_type));
                 uint32_t len = dictionary[i].size() - shift;
                 lengths.write((char*) &len, sizeof(uint32_t));
