@@ -1,5 +1,5 @@
 //
-// Created by marco on 7/9/21.
+// internals.hpp
 //
 
 #ifndef VCF_BWT_INTERNALS_HPP

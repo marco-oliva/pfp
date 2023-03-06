@@ -1,8 +1,6 @@
 //
 //  vcf.cpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #include <vcf.hpp>
 #include <pfp_algo.hpp>
@@ -260,6 +258,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         
         // get all alternate alleles
         bcf_unpack(rec, BCF_UN_ALL);
+        
         int type = bcf_get_variant_types(rec);
         for (int allele_idx = 0; allele_idx < rec->n_allele; allele_idx++)
         {
@@ -306,18 +305,23 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                         // For some variant types POS+REF refer to the base *before* the event; in such case set trim_beg
                         int trim_beg = 0;
                         int var_len  = rec->d.var[allele_index].n;
-                        if ( var_type & VCF_INDEL ) trim_beg = 1;
-                        else if ( (var_type & VCF_OTHER) && !strcasecmp(rec->d.allele[allele_index],"<DEL>") ) {
+                        if ( var_type & VCF_INDEL ) { trim_beg = 1; }
+                        else if ( (var_type & VCF_OTHER) && !strcasecmp(rec->d.allele[allele_index],"<DEL>") )
+                        {
                             trim_beg = 1;
                             var_len  = 1 - var.ref_len;
                         }
                         else if ( (var_type & VCF_OTHER) && !strncasecmp(rec->d.allele[allele_index],"<INS",4) )
+                        {
                             trim_beg = 1;
+                        }
 
-                        if (rec->pos <= tppos[j][i_s]) {
+                        if (rec->pos <= tppos[j][i_s])
+                        {
                             int overlap = 0;
-                            if ( rec->pos < tppos[j][i_s] || !trim_beg || var_len==0 || prev_is_ins[j][i_s] ) overlap = 1;
-                            if (overlap) {
+                            if ( rec->pos < tppos[j][i_s] || !trim_beg || var_len==0 || prev_is_ins[j][i_s] ) { overlap = 1; }
+                            if (overlap)
+                            {
                                 spdlog::debug("vcfbwt::VCF::init_vcf: Skipping overlapping variantat sample {} in pos {}", i_s, var.pos);
                                 continue;
                             }
@@ -356,7 +360,20 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                 }
             }
         }
-        if (var.used) { l_variations.push_back(var); }
+        if (var.used)
+        {
+            l_variations.push_back(var);
+    
+            // check if reference allele matches our reference in used variations
+            for (std::size_t pos = 0; pos < var.ref_len; pos++)
+            {
+                if (rec->d.allele[0][pos] != this->reference[var.pos + pos])
+                {
+                    spdlog::error("Variation {} does not match reference allele.", var.pos);
+                    std::exit(EXIT_FAILURE);
+                }
+            }
+        }
         free(gt_arr);
     }
     

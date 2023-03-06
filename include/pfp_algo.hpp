@@ -1,8 +1,6 @@
 //
 //  pfp_algo.hpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #ifndef pfp_algo_hpp
 #define pfp_algo_hpp
@@ -175,7 +173,7 @@ struct Params
     hash_type w =  10;
     bool compress_dictionary = false;
     bool use_acceleration = false;
-    bool vcf_acgt_only = false;
+    bool acgt_only = false;
     bool print_out_statistics_csv = false;
     bool output_occurrences = false;
     bool output_sai = false;
@@ -694,7 +692,7 @@ public:
             {
                 std::size_t shift = 1; // skip dollar on first phrase
                 if (i != 0) { shift = this->params.w; }
-                dicz.write((char*) (dictionary[i].data() + shift),
+                dicz.write((char*) &(dictionary[i][shift]),
                            (dictionary[i].size() - shift) * sizeof(data_type));
                 uint32_t len = dictionary[i].size() - shift;
                 lengths.write((char*) &len, sizeof(uint32_t));

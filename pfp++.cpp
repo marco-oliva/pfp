@@ -1,8 +1,6 @@
 //
 //  pfp++.cpp
 //
-//  Copyright 2020 Marco Oliva. All rights reserved.
-//
 
 #include <CLI/CLI.hpp>
 #include <version.hpp>
@@ -51,7 +49,7 @@ int main(int argc, char **argv)
     app.add_flag("--output-occurrences", params.output_occurrences, "Output count for each dictionary phrase.")->configurable();
     app.add_flag("--output-sai", params.output_sai, "Output sai array.")->configurable();
     app.add_flag("--output-last", params.output_last, "Output last array.")->configurable();
-    app.add_flag("--vcf-acgt-only", params.vcf_acgt_only, "Convert all non ACGT characters from a VCF to N.")->configurable();
+    app.add_flag("--acgt-only", params.acgt_only, "Convert all non ACGT characters from a VCF or FASTA file to N.")->configurable();
     app.add_flag("--verbose", verbose, "Verbose output.")->configurable();
     app.add_flag_callback("--version",vcfbwt::Version::print,"Version number.");
     app.set_config("--configure");

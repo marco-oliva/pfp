@@ -1,8 +1,6 @@
 //
 //  version.cpp
 //
-//  Copyright 2023 Marco Oliva. All rights reserved.
-//
 
 #include <version.hpp>
 
