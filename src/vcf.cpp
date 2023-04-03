@@ -374,7 +374,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                                  rec->pos,
                                  rec->d.allele[0][pos],
                                  this->reference[var.pos + pos]);
-                    // std::exit(EXIT_FAILURE);
+                    std::exit(EXIT_FAILURE);
                 }
             }
         }
