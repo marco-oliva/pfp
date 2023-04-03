@@ -70,7 +70,7 @@ vcfbwt::Sample::iterator::next_variation_distance() const
 void
 vcfbwt::Sample::iterator::operator++()
 {
-    // Ci sono ancora variazioni da processare
+    // There are variations to process
     if (var_it_ < sample_.variations.size())
     {
         const Variation& curr_variation = sample_.variations_list[sample_.variations[var_it_]];
@@ -186,14 +186,29 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
         std::exit(EXIT_FAILURE);
     }
     
-    zstr::istream is(in_stream);
-    std::string line;
+    gzFile fp; kseq_t *record;
+    fp = gzopen(ref_path.c_str(), "r");
+    if (fp == 0)
+    {
+        spdlog::error("Error: failed to open reference FASTA file {}", ref_path);
+        std::exit(EXIT_FAILURE);
+    }
     
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { reference.append(line); } }
+    // Initialize the kseq_t struct
+    record = kseq_init(fp);
+    
+    // Read first sequence and append dollar if not last
+    kseq_read(record);
+    reference.append(record->seq.s);
     if (not last) { reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); }
-
     ref_sum_lengths.push_back(reference.size());
-
+    
+    // The next sequences will be ignored
+    if (kseq_read(record)> 0)
+    {
+        spdlog::warn("More tha one sequences in reference file, only reading the first one. [{}]", ref_path);
+    }
+    
     spdlog::info("Done reading {}", ref_path);
 }
 
