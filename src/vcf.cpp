@@ -369,7 +369,8 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
             {
                 if (rec->d.allele[0][pos] != this->reference[var.pos + pos])
                 {
-                    spdlog::warn("Variation {} does not match reference allele.", var.pos);
+                    spdlog::warn("Variation {} does not match reference allele. VAR: {} REF: {}",
+                                 var.pos, rec->d.allele[0][pos], this->reference[var.pos + pos]);
                     // std::exit(EXIT_FAILURE);
                 }
             }
