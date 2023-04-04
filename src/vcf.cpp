@@ -202,14 +202,13 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
     reference.append(record->seq.s);
     if (not last) { reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); }
     ref_sum_lengths.push_back(reference.size());
+    spdlog::info("Done reading {}. Length: {}", ref_path, record->seq.l);
     
     // The next sequences will be ignored
     if (kseq_read(record)> 0)
     {
         spdlog::warn("More than one sequence in reference file, only reading the first one. [{}]", ref_path);
     }
-    
-    spdlog::info("Done reading {}", ref_path);
 }
 
 //------------------------------------------------------------------------------
@@ -231,9 +230,6 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     // read header
     bcf_hdr_t *hdr = bcf_hdr_read(inf);
-    
-    // check contig length
-    bcf_idpair_t* ctg = hdr->id[BCF_DT_CTG];
     
     // get l_samples ids from header
     std::size_t n_samples = bcf_hdr_nsamples(hdr);
@@ -274,14 +270,6 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
         var.pos = rec->pos + offset;
         var.freq = 0;
-    
-        // check contig length before processing variation
-        const char* c_name = bcf_hdr_id2name(hdr, rec->rid);
-        std::size_t contig_length = ctg[rec->rid].val->info[0];
-        if (contig_length != (ref_sum_lengths[i] - offset - 1))
-        {
-            spdlog::error("Error in contig {} length", c_name);
-        }
         
         // get all alternate alleles
         bcf_unpack(rec, BCF_UN_ALL);
