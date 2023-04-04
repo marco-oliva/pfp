@@ -206,7 +206,7 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
     // The next sequences will be ignored
     if (kseq_read(record)> 0)
     {
-        spdlog::warn("More tha one sequences in reference file, only reading the first one. [{}]", ref_path);
+        spdlog::warn("More than one sequence in reference file, only reading the first one. [{}]", ref_path);
     }
     
     spdlog::info("Done reading {}", ref_path);
@@ -231,6 +231,9 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
     
     // read header
     bcf_hdr_t *hdr = bcf_hdr_read(inf);
+    
+    // check contig length
+    bcf_idpair_t* ctg = hdr->id[BCF_DT_CTG];
     
     // get l_samples ids from header
     std::size_t n_samples = bcf_hdr_nsamples(hdr);
@@ -258,8 +261,9 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         std::exit(EXIT_FAILURE);
     }
 
-    std::vector<std::vector<int>> tppos(1, std::vector<int>(n_samples,0));
+    std::vector<std::vector<int>>  tppos(1, std::vector<int>(n_samples,0));
     std::vector<std::vector<bool>> prev_is_ins(1, std::vector<bool>(n_samples,false));
+    
     
     // start parsing
     while (bcf_read(inf, hdr, rec) == 0)
@@ -270,6 +274,14 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         std::size_t offset = i != 0 ? ref_sum_lengths[i-1] : 0; // when using multiple vcfs
         var.pos = rec->pos + offset;
         var.freq = 0;
+    
+        // check contig length before processing variation
+        const char* c_name = bcf_hdr_id2name(hdr, rec->rid);
+        std::size_t contig_length = ctg[rec->rid].val->info[0];
+        if (contig_length != (ref_sum_lengths[i] - offset - 1))
+        {
+            spdlog::error("Error in contig {} length", c_name);
+        }
         
         // get all alternate alleles
         bcf_unpack(rec, BCF_UN_ALL);
@@ -298,7 +310,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                 int32_t *ptr = gt_arr + i_s * max_ploidy;
                 std::vector<int> alleles_idx(max_ploidy, 0);
                 bool alt_alleles_set = false;
-                for (std::size_t j = 0; j < max_ploidy; j++)
+                for (int j = 0; j < max_ploidy; j++)
                 {
                     // if true, the sample has smaller ploidy
                     if ( ptr[j]==bcf_int32_vector_end ) { break; }
@@ -461,8 +473,8 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
     tmp_samples_array.resize(vcfs_path.size());
     tmp_variations_array.resize(vcfs_path.size());
     tmp_samples_id.resize(vcfs_path.size());
-
-    #pragma omp parallel for schedule(static)
+    
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < vcfs_path.size(); i++)
     {
         init_vcf(vcfs_path[i],
