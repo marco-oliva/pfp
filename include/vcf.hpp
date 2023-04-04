@@ -158,6 +158,7 @@ public:
 
     VCF(const std::vector<std::string> &refs_path, const std::vector<std::string> &vcfs_path, const std::string &samples_path, std::size_t ms = 0, const int last_genotype = 0) : max_samples(ms)
     {
+        if (vcfs_path.size() != refs_path.size()) { spdlog::error("Number of reference files and vcf files differs."); std::exit(EXIT_FAILURE); }
         if (samples_path != "") { init_samples(samples_path); }
         init_multi_ref(refs_path);
         init_multi_vcf(vcfs_path);
