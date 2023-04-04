@@ -21,12 +21,6 @@ vcfbwt::pfp::ReferenceParse::init(const std::string& reference)
     for (std::size_t ref_it = 0; ref_it < reference.size(); ref_it++)
     {
         char c = reference[ref_it];
-    
-        if (c <= DOLLAR_PRIME)
-        {
-            spdlog::error("Input may not contain bytes with integer value less than or equal to 5!");
-            std::exit(EXIT_FAILURE);
-        }
         if (params.acgt_only) { c = acgt_only_table[c]; }
         
         phrase.push_back(c);
@@ -151,11 +145,6 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
         // Next phrase should contain a variation so parse as normal, also if we don't
         // want to use the acceleration we should always end up here
         char next_char  = (params.acgt_only) ? acgt_only_table[*sample_iterator] : *sample_iterator;
-        if (next_char <= DOLLAR_PRIME)
-        {
-            spdlog::error("Input may not contain bytes with integer value less than or equal to 5!");
-            std::exit(EXIT_FAILURE);
-        }
         phrase.push_back(next_char);
         kr_hash.update(phrase[phrase.size() - params.w - 1], phrase[phrase.size() - 1]);
         ++sample_iterator;

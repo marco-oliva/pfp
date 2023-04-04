@@ -871,8 +871,7 @@ TEST_CASE( "Sample: HG00096, twice chromosome Y", "[VCF parser]" )
     from_fasta.push_back(vcfbwt::pfp::DOLLAR_PRIME);
     from_fasta.append(from_fasta);
     from_fasta.pop_back();
-
-
+    
     vcfbwt::Sample::iterator it(vcf[0]);
     std::string from_vcf;
     while (not it.end()) { from_vcf.push_back(*it); ++it; }
