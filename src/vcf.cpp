@@ -70,7 +70,7 @@ vcfbwt::Sample::iterator::next_variation_distance() const
 void
 vcfbwt::Sample::iterator::operator++()
 {
-    // Ci sono ancora variazioni da processare
+    // There are variations to process
     if (var_it_ < sample_.variations.size())
     {
         const Variation& curr_variation = sample_.variations_list[sample_.variations[var_it_]];
@@ -186,15 +186,29 @@ vcfbwt::VCF::init_ref(const std::string& ref_path, bool last)
         std::exit(EXIT_FAILURE);
     }
     
-    zstr::istream is(in_stream);
-    std::string line;
+    gzFile fp; kseq_t *record;
+    fp = gzopen(ref_path.c_str(), "r");
+    if (fp == 0)
+    {
+        spdlog::error("Error: failed to open reference FASTA file {}", ref_path);
+        std::exit(EXIT_FAILURE);
+    }
     
-    while (getline(is, line)) { if ( not (line.empty() or line[0] == '>') ) { reference.append(line); } }
+    // Initialize the kseq_t struct
+    record = kseq_init(fp);
+    
+    // Read first sequence and append dollar if not last
+    kseq_read(record);
+    reference.append(record->seq.s);
     if (not last) { reference.push_back(pfp::SPECIAL_TYPES::DOLLAR_PRIME); }
-
     ref_sum_lengths.push_back(reference.size());
-
-    spdlog::info("Done reading {}", ref_path);
+    spdlog::info("Done reading {}. Length: {}", ref_path, record->seq.l);
+    
+    // The next sequences will be ignored
+    if (kseq_read(record)> 0)
+    {
+        spdlog::warn("More than one sequence in reference file, only reading the first one. [{}]", ref_path);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -243,8 +257,9 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
         std::exit(EXIT_FAILURE);
     }
 
-    std::vector<std::vector<int>> tppos(1, std::vector<int>(n_samples,0));
+    std::vector<std::vector<int>>  tppos(1, std::vector<int>(n_samples,0));
     std::vector<std::vector<bool>> prev_is_ins(1, std::vector<bool>(n_samples,false));
+    
     
     // start parsing
     while (bcf_read(inf, hdr, rec) == 0)
@@ -283,7 +298,7 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
                 int32_t *ptr = gt_arr + i_s * max_ploidy;
                 std::vector<int> alleles_idx(max_ploidy, 0);
                 bool alt_alleles_set = false;
-                for (std::size_t j = 0; j < max_ploidy; j++)
+                for (int j = 0; j < max_ploidy; j++)
                 {
                     // if true, the sample has smaller ploidy
                     if ( ptr[j]==bcf_int32_vector_end ) { break; }
@@ -369,8 +384,12 @@ vcfbwt::VCF::init_vcf(const std::string& vcf_path, std::vector<Variation>& l_var
             {
                 if (rec->d.allele[0][pos] != this->reference[var.pos + pos])
                 {
-                    spdlog::warn("Variation {} does not match reference allele.", var.pos);
-                    // std::exit(EXIT_FAILURE);
+                    spdlog::warn("[{}] Variation {} does not match reference allele. VAR: {} REF: {}",
+                                 vcf_path,
+                                 rec->pos,
+                                 rec->d.allele[0][pos],
+                                 this->reference[var.pos + pos]);
+                    std::exit(EXIT_FAILURE);
                 }
             }
         }
@@ -442,8 +461,8 @@ vcfbwt::VCF::init_multi_vcf(const std::vector<std::string>& vcfs_path)
     tmp_samples_array.resize(vcfs_path.size());
     tmp_variations_array.resize(vcfs_path.size());
     tmp_samples_id.resize(vcfs_path.size());
-
-    #pragma omp parallel for schedule(static)
+    
+    #pragma omp parallel for schedule(dynamic)
     for (std::size_t i = 0; i < vcfs_path.size(); i++)
     {
         init_vcf(vcfs_path[i],

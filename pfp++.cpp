@@ -114,12 +114,12 @@ int main(int argc, char **argv)
         int last_genotype = 0;
         if (haplotype_string == "2" or haplotype_string == "12")
             last_genotype = 1;
+    
+        // Set threads accordingly to configuration
+        omp_set_num_threads(threads);
 
         // Parse the VCF
         vcfbwt::VCF vcf(refs_file_names, vcfs_file_names, samples_file_name, max_samples, last_genotype);
-
-        // Set threads accordingly to configuration
-        omp_set_num_threads(threads);
     
         vcfbwt::pfp::ReferenceParse reference_parse(vcf.get_reference(), params);
     
