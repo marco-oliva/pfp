@@ -288,7 +288,15 @@ set(PFP_PUBLIC_HEADERS
         ${PROJECT_SOURCE_DIR}/include/pfp_algo.hpp
         ${PROJECT_SOURCE_DIR}/include/utils.hpp
         ${PROJECT_SOURCE_DIR}/include/vcf.hpp
-        ${PROJECT_SOURCE_DIR}/include/version.hpp)
+        ${PROJECT_SOURCE_DIR}/include/version.hpp
+        ${kseq_SOURCE_DIR}/kseq.h
+        ${smhasher_SOURCE_DIR}/src/MurmurHash3.h
+        ${zstr_SOURCE_DIR}/src/zstr.hpp
+        ${zstr_SOURCE_DIR}/src/strict_fstream.hpp
+        ${mio_SOURCE_DIR}/single_include/mio/mio.hpp
+        ${HTSlib_INCLUDE_DIR}/hts.h
+        ${HTSlib_INCLUDE_DIR}/sam.h
+        )
 
 set_target_properties(pfp PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
 set_target_properties(pfp64 PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
