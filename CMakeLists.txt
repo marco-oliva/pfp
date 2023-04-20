@@ -283,6 +283,7 @@ add_library(pfp ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
 add_library(pfp64 ${SOURCES} ${SOURCES_GENERATED} ${MURMUR_SOURCES})
 target_compile_options(pfp64 PRIVATE "-DPFP_LONG_TYPE=ON")
 
+file(GLOB HTSLIB_HEADERS ${HTSlib_INCLUDE_DIR}/*.h)
 set(PFP_PUBLIC_HEADERS
         ${PROJECT_SOURCE_DIR}/include/internals.hpp
         ${PROJECT_SOURCE_DIR}/include/pfp_algo.hpp
@@ -294,8 +295,7 @@ set(PFP_PUBLIC_HEADERS
         ${zstr_SOURCE_DIR}/src/zstr.hpp
         ${zstr_SOURCE_DIR}/src/strict_fstream.hpp
         ${mio_SOURCE_DIR}/single_include/mio/mio.hpp
-        ${HTSlib_INCLUDE_DIR}/hts.h
-        ${HTSlib_INCLUDE_DIR}/sam.h
+        ${HTSLIB_HEADERS}
         )
 
 set_target_properties(pfp PROPERTIES PUBLIC_HEADER "${PFP_PUBLIC_HEADERS}")
