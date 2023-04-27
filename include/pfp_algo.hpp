@@ -40,7 +40,7 @@ public:
 
     std::size_t insertions_safe_guard = 1000;
 
-    std::mutex dictionary_mutex;
+    std::recursive_mutex dictionary_mutex;
 
     bool sorted = false;
     
@@ -59,7 +59,7 @@ public:
     void sort()
     {
         // lock the dictionary
-        std::lock_guard<std::mutex> guard(dictionary_mutex);
+        std::lock_guard<std::recursive_mutex> guard(dictionary_mutex);
 
         // sort the dictionary
         for (auto& entry : this->hash_string_map)
@@ -83,7 +83,7 @@ public:
     hash_type add(const std::vector<data_type>& phrase)
     {
         // lock the dictionary
-        std::lock_guard<std::mutex> guard(dictionary_mutex);
+        std::lock_guard<std::recursive_mutex> guard(dictionary_mutex);
 
         this->sorted = false;
 
@@ -106,7 +106,7 @@ public:
     hash_type check_and_add(const std::vector<data_type>& phrase)
     {
         // lock the dictionary
-        std::lock_guard<std::mutex> guard(dictionary_mutex);
+        std::lock_guard<std::recursive_mutex> guard(dictionary_mutex);
 
         // Check if present
         hash_type phrase_hash = string_hash((const char*) &(phrase[0]), phrase.size() * sizeof(data_type));
@@ -138,7 +138,7 @@ public:
     bool contains(const std::vector<data_type>& phrase)
     {
         // lock the dictionary
-        std::lock_guard<std::mutex> guard(dictionary_mutex);
+        std::lock_guard<std::recursive_mutex> guard(dictionary_mutex);
 
         hash_type phrase_hash = string_hash((const char*) &(phrase[0]), phrase.size() * sizeof(data_type));
         const auto& ptr = hash_string_map.find(phrase_hash);
@@ -158,7 +158,7 @@ public:
     
     const std::vector<data_type>& sorted_entry_at(std::size_t i)
     {
-        std::lock_guard<std::mutex> guard(dictionary_mutex);
+        std::lock_guard<std::recursive_mutex> guard(dictionary_mutex);
         if (not this->sorted) { sort(); } return sorted_phrases[i].first.get();
     }
 
