@@ -42,7 +42,7 @@ public:
 
     std::mutex dictionary_mutex;
 
-    bool sorted = false;
+    std::atomic_bool sorted;
     
     struct DictionaryEntry
     {
@@ -61,6 +61,9 @@ public:
         // lock the dictionary
         std::lock_guard<std::mutex> guard(dictionary_mutex);
 
+        // if sorted, do nothing
+        if (this->sorted.load()) { return; }
+
         // sort the dictionary
         for (auto& entry : this->hash_string_map)
         {
@@ -75,7 +78,7 @@ public:
             hash_to_ranks.insert(std::make_pair(sorted_phrases[i].second, i + 1)); // 1 based
         }
 
-        this->sorted = true;
+        this->sorted.store(true);
     }
     
     Dictionary() = default;
@@ -85,7 +88,7 @@ public:
         // lock the dictionary
         std::lock_guard<std::mutex> guard(dictionary_mutex);
 
-        this->sorted = false;
+        this->sorted.store(false);
 
         hash_type phrase_hash = string_hash(&(phrase[0]), phrase.size());
         if (hash_string_map.contains(phrase_hash))
@@ -119,7 +122,7 @@ public:
         }
         else if (ptr != hash_string_map.end()) { return phrase_hash; }
 
-        this->sorted = false;
+        this->sorted.store(false);
 
         DictionaryEntry entry(phrase);
         hash_string_map.insert(std::make_pair(phrase_hash, entry));
@@ -148,7 +151,7 @@ public:
 
     size_type hash_to_rank(hash_type hash)
     {
-        if (not this->sorted) { sort(); }
+        if (not this->sorted.load()) { sort(); }
         auto it = hash_to_ranks.find(hash);
         if (it != hash_to_ranks.end()) { return it->second; }
         else { spdlog::error("Dictionary::hash_to_rank hash requested not in the dictionary. hash: {}", hash); std::exit(EXIT_FAILURE); }
@@ -158,8 +161,8 @@ public:
     
     const std::vector<data_type>& sorted_entry_at(std::size_t i)
     {
-        std::lock_guard<std::mutex> guard(dictionary_mutex);
-        if (not this->sorted) { sort(); } return sorted_phrases[i].first.get();
+        if (not this->sorted.load()) { sort(); }
+        return sorted_phrases[i].first.get();
     }
 
     friend class ParserVCF;
