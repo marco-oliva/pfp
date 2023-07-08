@@ -169,16 +169,26 @@ vcfbwt::pfp::ParserVCF::operator()(const vcfbwt::Sample& sample)
     }
     
     // Last phrase
-    if (phrase.size() >= this->w)
+    if (phrase.size() >= this->params.w)
     {
-        // Append w dollar prime at the end of each sample, also w DOLLAR if it's the last sample
+        // append w-1 dollar prime and a dollar sequence at the end of each sample
         phrase.insert(phrase.end(), params.w - 1, DOLLAR_PRIME);
-        if (sample.last(this->working_genotype)) { phrase.insert(phrase.end(), params.w, DOLLAR); }
-        else { phrase.emplace_back(DOLLAR_SEQUENCE); }
+        phrase.emplace_back(DOLLAR_SEQUENCE);
 
+        // write down last phrase of last sequence
         hash_type hash = this->dictionary->check_and_add(phrase);
-        
         out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
+
+        // if this is the last sample, add w dollars at the end
+        if (sample.last(this->working_genotype))
+        {
+            phrase.erase(phrase.begin(), phrase.end() - this->w); // keep the last w chars
+            phrase.insert(phrase.end(), params.w, DOLLAR);
+
+            // write down last phrase
+            hash_type hash_l = this->dictionary->check_and_add(phrase);
+            out_file.write((char*) (&hash_l), sizeof(hash_type));   this->parse_size += 1;
+        }
     }
     else { spdlog::error("A sample doesn't have w dollar prime at the end!"); std::exit(EXIT_FAILURE); }
 }
@@ -406,20 +416,25 @@ vcfbwt::pfp::ParserFasta::operator()()
             }
         }
     }
-    
+
     // Last phrase
     if (phrase.size() >= this->params.w)
     {
-        // Append w-1 dollar prime and a dollar seq
-        phrase.insert(phrase.end(), this->params.w - 1, DOLLAR_PRIME);
+        // append w-1 dollar prime and a dollar sequence at the end of each sample
+        phrase.insert(phrase.end(), params.w - 1, DOLLAR_PRIME);
         phrase.emplace_back(DOLLAR_SEQUENCE);
 
-        // Append w dollar at the end
-        phrase.insert(phrase.end(), this->params.w, DOLLAR);
-        
+        // write down last phrase of last sequence
         hash_type hash = this->dictionary.check_and_add(phrase);
-        
-        out_file.write((char*) (&hash), sizeof(hash_type)); this->parse_size += 1;
+        out_file.write((char*) (&hash), sizeof(hash_type));   this->parse_size += 1;
+
+        // last sequence, add w dollars at the end
+        phrase.erase(phrase.begin(), phrase.end() - this->params.w); // keep the last w chars
+        phrase.insert(phrase.end(), this->params.w, DOLLAR);
+
+        // write down last phrase
+        hash_type hash_l = this->dictionary.check_and_add(phrase);
+        out_file.write((char*) (&hash_l), sizeof(hash_type));   this->parse_size += 1;
     }
     else { spdlog::error("Missing w DOLLAR at the end!"); std::exit(EXIT_FAILURE); }
     
@@ -545,7 +560,7 @@ vcfbwt::pfp::ParserText::operator()()
     if (phrase.size() >= this->params.w)
     {
         // Append w dollar at the end
-       phrase.insert(phrase.end(), this->params.w, DOLLAR);
+        phrase.insert(phrase.end(), this->params.w, DOLLAR);
         
         hash_type hash = this->dictionary.check_and_add(phrase);
         
