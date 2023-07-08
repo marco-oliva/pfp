@@ -781,7 +781,7 @@ TEST_CASE( "Reference + Sample HG00096, No acceleration", "[PFP algorithm]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    what_it_should_be.emplace_back(vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
@@ -834,7 +834,7 @@ TEST_CASE( "Reference + Sample HG00096, WITH acceleration", "[PFP algorithm]" )
 
     what_it_should_be.insert(what_it_should_be.end(), from_fasta.begin(), from_fasta.end());
     what_it_should_be.insert(what_it_should_be.end(), params.w - 1, vcfbwt::pfp::DOLLAR_PRIME);
-    //what_it_should_be.append(1, vcfbwt::pfp::DOLLAR_SEQUENCE);
+    what_it_should_be.emplace_back(vcfbwt::pfp::DOLLAR_SEQUENCE);
     what_it_should_be.insert(what_it_should_be.end(), params.w, vcfbwt::pfp::DOLLAR);
 
     // Check
