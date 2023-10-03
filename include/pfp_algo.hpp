@@ -1,6 +1,8 @@
 //
 //  pfp_algo.hpp
 //
+// Copyright (c) Boucher Lab. All rights reserved.
+// Licensed under the GNU license. See LICENSE file in the repository root for full license information.
 
 #ifndef pfp_algo_hpp
 #define pfp_algo_hpp

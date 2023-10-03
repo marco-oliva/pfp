@@ -1,6 +1,8 @@
 //
-// Created by marco on 1/24/22.
+// Small benchmark
 //
+// Copyright (c) Boucher Lab. All rights reserved.
+// Licensed under the GNU license. See LICENSE file in the repository root for full license information.
 
 #include <hayai.hpp>
 #include <utils.hpp>

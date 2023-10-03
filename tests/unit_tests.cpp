@@ -1,6 +1,8 @@
 //
 //  unit_tests.cpp
 //
+// Copyright (c) Boucher Lab. All rights reserved.
+// Licensed under the GNU license. See LICENSE file in the repository root for full license information.
 
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch_all.hpp>

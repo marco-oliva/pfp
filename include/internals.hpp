@@ -1,6 +1,8 @@
 //
 // internals.hpp
 //
+// Copyright (c) Boucher Lab. All rights reserved.
+// Licensed under the GNU license. See LICENSE file in the repository root for full license information.
 
 #ifndef VCF_BWT_INTERNALS_HPP
 #define VCF_BWT_INTERNALS_HPP
