@@ -2,8 +2,41 @@
 [![CMake](https://github.com/marco-oliva/pfp/actions/workflows/cmake.yml/badge.svg?branch=master)](https://github.com/marco-oliva/pfp/actions/workflows/cmake.yml)
 [![Conda](https://anaconda.org/bioconda/pfp/badges/version.svg)](https://anaconda.org/bioconda/pfp)
 
-Tool to build the parse and the dictionary for VCF files using the approach described in Prefix-Free Parsing for Building Big BWTs by Christina Boucher, Travis Gagie, Alan Kuhnle and Giovanni Manzini.
-It produces the same result as running `bigbwt` on the fasta file generated as follow:
+### Citing ###
+This is an implementation of prefix-free parsing that was originally proposed by:
+
+```
+@article{boucher2019prefix,
+  title={Prefix-free parsing for building big BWTs},
+  author={Boucher, Christina and Gagie, Travis and Kuhnle, Alan and Langmead, Ben and Manzini, Giovanni and Mun, Taher},
+  journal={Algorithms for Molecular Biology},
+  volume={14},
+  number={1},
+  pages={1--15},
+  year={2019},
+  publisher={BioMed Central}
+}
+```
+
+This has been modified to allow for optimization and allows for Variant Call Format (VCF) files to be used in replace of fasta files.  The publication corresponding to this work is as follows:
+
+```
+@inproceedings{oliva2022csts,
+  title={CSTs for Terabyte-Sized Data},
+  author={Oliva, Marco and Cenzato, Davide and Rossi, Massimiliano and Lipt{\'a}k, Zsuzsanna and Gagie, Travis and Boucher, Christina},
+  booktitle={2022 Data Compression Conference (DCC)},
+  pages={93--102},
+  year={2022},
+  organization={IEEE}
+}
+```
+
+This work was supported by NIH R01AI141810 and made publicly available under GNU license.  If you use any parts of the repository, please acknowledge via citation of the above publications and this repository. 
+
+### Install and Use ###
+
+This tool produces the same result as running `bigbwt` on the fasta file generated as follow:
+
 ```
 cat reference.fa | bcftools consensus calls.vcf.gz -H 1 > consensus.fa
 ```
