@@ -525,8 +525,13 @@ public:
     static void read_parse(std::string parse_file_name, std::vector<size_type>& parse)
     {
         // reserve memory for the parse
+#if defined(__APPLE__) || defined(__wasm__) || !defined(__GLIBC__)
+        struct stat stat_buf;
+        int rc = stat(parse_file_name.c_str(), &stat_buf);
+#else
         struct stat64 stat_buf;
         int rc = stat64(parse_file_name.c_str(), &stat_buf);
+#endif
         if (rc == 0) { parse.reserve((stat_buf.st_size / sizeof(size_type)) + 1); }
         
         std::ifstream parse_file(parse_file_name, std::ios::binary);

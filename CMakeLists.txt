@@ -171,6 +171,24 @@ endif()
 
 # Openmp
 find_package(OpenMP)
+if(NOT OpenMP_FOUND AND NOT OPENMP_FOUND AND APPLE)
+    # Before we can hunt around for OpenMP on Apple we need to know where
+    # Homebrew is, if installed.
+    set(HOMEBREW_PREFIX "$ENV{HOMEBREW_PREFIX}")
+    if("${HOMEBREW_PREFIX}" STREQUAL "")
+        # Ask Homebrew if it exists and where it is.
+        # Returns an empty string if this command can't run.
+        execute_process(COMMAND brew --prefix OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE HOMEBREW_PREFIX)
+    endif()
+    if("${HOMEBREW_PREFIX}" STREQUAL "")
+        # Use defaults
+        if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
+            set(HOMEBREW_PREFIX "/opt/homebrew")
+        else()
+            set(HOMEBREW_PREFIX "/usr/local")
+        endif()
+    endif()
+endif()
 if(OpenMP_FOUND OR OPENMP_FOUND)
     message(STATUS "HAVE_OPENMP: OpenMP")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -184,14 +202,14 @@ elseif(APPLE AND EXISTS "/opt/local/lib/libomp")
     set(CMAKE_CXX_FLAGS
             "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/opt/local/include/libomp")
     set(OMP_LIBRARIES "-L/opt/local/lib/libomp -lomp")
-elseif(APPLE AND EXISTS "/usr/local/opt/libomp")
+elseif(APPLE AND EXISTS "${HOMEBREW_PREFIX}/opt/libomp")
     # official Apple compiler with homebrew's kegg libomp
     message(STATUS "HAVE_OPENMP: OpenMP[Homebrew kegg]")
     set(CMAKE_C_FLAGS
-            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
+            "${CMAKE_C_FLAGS} -Xpreprocessor -fopenmp -I${HOMEBREW_PREFIX}/opt/libomp/include")
     set(CMAKE_CXX_FLAGS
-            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include")
-    set(OMP_LIBRARIES "-L/usr/local/opt/libomp/lib -lomp")
+            "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -I${HOMEBREW_PREFIX}/opt/libomp/include")
+    set(OMP_LIBRARIES "-L${HOMEBREW_PREFIX}/opt/libomp/lib -lomp")
 elseif(APPLE AND EXISTS "/usr/local/lib/libomp.dylib")
     # official Apple compiler with homebrew's libomp
     message(STATUS "HAVE_OPENMP: OpenMP[Homebrew]")
